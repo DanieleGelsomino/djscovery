@@ -1,0 +1,22 @@
+.footer {
+  background-color: #111;
+  padding: 2rem 0;
+  color: var(--white);
+  text-align: center;
+}
+
+.social a,
+.menu a {
+  color: var(--lime-green);
+  margin: 0 0.5rem;
+  text-decoration: none;
+}
+
+.menu {
+  margin-top: 1rem;
+}
+
+.copy {
+  margin-top: 1rem;
+  color: var(--sun-yellow);
+}

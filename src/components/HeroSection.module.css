@@ -1,0 +1,38 @@
+.hero {
+  background: url('https://source.unsplash.com/1600x900/?music,party') center/cover no-repeat;
+  color: var(--white);
+  text-align: center;
+  padding: 4rem 0;
+}
+
+.ctaWrapper {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btnPrimary,
+.btnSecondary {
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.btnPrimary {
+  background-color: var(--lime-green);
+  color: var(--deep-black);
+}
+
+.btnSecondary {
+  background-color: var(--sun-yellow);
+  color: var(--deep-black);
+}
+
+@media (min-width: 768px) {
+  .ctaWrapper {
+    flex-direction: row;
+  }
+}
