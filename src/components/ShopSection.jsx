@@ -35,7 +35,7 @@ const Item = styled(motion.div)`
   }
 `;
 
-const Button = styled.button`
+const Button = styled(motion.button)`
   margin-top: 1rem;
   background-color: var(--green);
   color: var(--white);
@@ -48,13 +48,14 @@ const ShopSection = () => (
   <Section>
     <div className="container">
       <h2>Shop</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
       <Grid>
         {products.map(product => (
-          <Item key={product.id} whileHover={{ scale: 1.05 }}>
+          <Item key={product.id} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} whileHover={{ scale: 1.05 }}>
             <img src={product.image} alt={product.name} />
             <h3>{product.name}</h3>
             <p>{product.price}</p>
-            <Button>Aggiungi al carrello</Button>
+            <Button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Aggiungi al carrello</Button>
           </Item>
         ))}
       </Grid>

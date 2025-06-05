@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-const Foot = styled.footer`
+const Foot = styled(motion.footer)`
   background-color: #111;
   padding: 2rem 0;
   color: var(--white);
@@ -34,13 +34,14 @@ const Copy = styled.p`
 `;
 
 const Footer = () => (
-  <Foot>
+  <Foot initial={{opacity:0}} animate={{opacity:1}}>
     <div className="container">
       <Social>
         <motion.a whileHover={{ scale: 1.2 }} href="https://instagram.com/djscovery.tv" target="_blank" rel="noopener noreferrer">Instagram</motion.a>
         <motion.a whileHover={{ scale: 1.2 }} href="#">Facebook</motion.a>
         <motion.a whileHover={{ scale: 1.2 }} href="#">YouTube</motion.a>
       </Social>
+      <p>Lorem ipsum dolor sit amet.</p>
       <Menu>
         <Link to="/">Home</Link>
         <Link to="/eventi">Eventi</Link>
