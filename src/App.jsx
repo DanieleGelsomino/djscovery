@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
-import HeroSection from './components/HeroSection';
+import HomePage from './components/HomePage';
 import EventiSection from './components/EventiSection';
 import ShopSection from './components/ShopSection';
 import CartPage from './components/CartPage';
@@ -17,7 +17,7 @@ const App = () => {
       <Navbar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<HeroSection />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/eventi" element={<EventiSection />} />
           <Route path="/shop" element={<ShopSection />} />
           <Route path="/carrello" element={<CartPage />} />
