@@ -34,7 +34,7 @@ const Card = styled(motion.div)`
   }
 `;
 
-const Button = styled.button`
+const Button = styled(motion.button)`
   margin-top: 1rem;
   background-color: var(--red);
   color: var(--white);
@@ -47,13 +47,14 @@ const EventiSection = () => (
   <Section>
     <div className="container">
       <h2>Prossimi Eventi</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
       <Cards>
         {eventi.map(event => (
-          <Card key={event.id} whileHover={{ scale: 1.05, boxShadow: '0 0 8px var(--green)' }}>
+          <Card key={event.id} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} whileHover={{ scale: 1.05, boxShadow: '0 0 8px var(--green)' }}>
             <h3>{event.place}</h3>
             <p>{event.date}</p>
             <p>{event.time}</p>
-            <Button>Prenota ora</Button>
+            <Button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Prenota ora</Button>
           </Card>
         ))}
       </Cards>

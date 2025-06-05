@@ -12,7 +12,7 @@ const Section = styled(motion.section)`
   overflow: hidden;
 `;
 
-const Overlay = styled.div`
+const Overlay = styled(motion.div)`
   position: absolute;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
@@ -36,7 +36,7 @@ const CTAWrapper = styled.div`
   }
 `;
 
-const BtnPrimary = styled(Link)`
+const BtnPrimary = styled(motion(Link))`
   padding: 0.75rem 1.5rem;
   border-radius: 4px;
   background-color: var(--green);
@@ -44,7 +44,7 @@ const BtnPrimary = styled(Link)`
   font-weight: bold;
 `;
 
-const BtnSecondary = styled(Link)`
+const BtnSecondary = styled(motion(Link))`
   padding: 0.75rem 1.5rem;
   border-radius: 4px;
   background-color: var(--yellow);
@@ -53,14 +53,39 @@ const BtnSecondary = styled(Link)`
 `;
 
 const HeroSection = () => (
-  <Section initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-    <Overlay />
+  <Section
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.6 }}
+  >
+    <Overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
     <Content>
-      <h1>Music &amp; Travel</h1>
-      <p>DJSCOVERY was born from the idea of blending music with the discovery of authentic places.</p>
+      <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+        Music &amp; Travel
+      </motion.h1>
+      <motion.p
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae
+        vehicula magna.
+      </motion.p>
       <CTAWrapper>
-        <BtnPrimary to="/eventi">Scopri i prossimi eventi</BtnPrimary>
-        <BtnSecondary to="/shop">Visita lo shop</BtnSecondary>
+        <BtnPrimary
+          to="/eventi"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Scopri i prossimi eventi
+        </BtnPrimary>
+        <BtnSecondary
+          to="/shop"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Visita lo shop
+        </BtnSecondary>
       </CTAWrapper>
     </Content>
   </Section>

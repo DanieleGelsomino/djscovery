@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-const Section = styled.section`
+const Section = styled(motion.section)`
   padding: 2rem 0;
   text-align: center;
 `;
@@ -19,7 +19,7 @@ const Form = styled.form`
   }
 `;
 
-const Input = styled.input`
+const Input = styled(motion.input)`
   padding: 0.75rem;
   border: 1px solid #333;
   border-radius: 4px;
@@ -27,7 +27,7 @@ const Input = styled.input`
   color: var(--white);
 `;
 
-const TextArea = styled.textarea`
+const TextArea = styled(motion.textarea)`
   padding: 0.75rem;
   border: 1px solid #333;
   border-radius: 4px;
@@ -35,7 +35,7 @@ const TextArea = styled.textarea`
   color: var(--white);
 `;
 
-const Button = styled.button`
+const Button = styled(motion.button)`
   padding: 0.75rem;
   background-color: var(--red);
   color: var(--white);
@@ -57,11 +57,12 @@ const ContattiSection = () => {
     <Section>
       <div className="container">
         <h2>Contattaci</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
         <Form as={motion.form} onSubmit={handleSubmit} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-          <Input type="text" placeholder="Nome" required />
-          <Input type="email" placeholder="Email" required />
-          <TextArea placeholder="Messaggio" rows="5" required />
-          <Button type="submit">Invia</Button>
+          <Input whileFocus={{ scale:1.02 }} type="text" placeholder="Nome" required />
+          <Input whileFocus={{ scale:1.02 }} type="email" placeholder="Email" required />
+          <TextArea whileFocus={{ scale:1.02 }} placeholder="Messaggio" rows="5" required />
+          <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Invia</Button>
         </Form>
         {submitted && <p>Messaggio inviato!</p>}
       </div>

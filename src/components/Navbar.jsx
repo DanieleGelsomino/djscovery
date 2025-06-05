@@ -4,12 +4,14 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
 const Nav = styled(motion.nav)`
-  background-color: ${({ scrolled }) => (scrolled ? 'var(--black)' : 'transparent')};
+  background-color: ${({ scrolled }) =>
+    scrolled ? 'var(--black)' : 'transparent'};
   padding: 1rem 0;
   position: sticky;
   top: 0;
   width: 100%;
   z-index: 1000;
+  backdrop-filter: blur(4px);
   transition: background-color 0.3s ease;
 `;
 
@@ -22,7 +24,7 @@ const Container = styled.div`
   align-items: center;
 `;
 
-const Logo = styled(Link)`
+const Logo = styled(motion(Link))`
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--yellow);
@@ -40,7 +42,7 @@ const Toggle = styled.button`
   }
 `;
 
-const Menu = styled.ul`
+const Menu = styled(motion.ul)`
   list-style: none;
   display: flex;
   gap: 1rem;
@@ -65,6 +67,14 @@ const Menu = styled.ul`
   }
 `;
 
+const MenuItem = styled(motion.li)`
+  a {
+    display: block;
+    color: var(--white);
+    padding: 0.5rem 1rem;
+  }
+`;
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -78,16 +88,26 @@ const Navbar = () => {
   }, []);
 
   return (
-    <Nav scrolled={scrolled} initial={{ y: -80 }} animate={{ y: 0 }}>
+    <Nav scrolled={scrolled} initial={{ y: -80 }} animate={{ y: 0 }} transition={{ duration: 0.5 }}>
       <Container>
-        <Logo to="/">DJSCOVERY</Logo>
+        <Logo whileHover={{rotate:2}} to="/">DJSCOVERY</Logo>
         <Toggle onClick={() => setOpen(!open)}>&#9776;</Toggle>
-        <Menu open={open}>
-          <li><NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink></li>
-          <li><NavLink to="/eventi" onClick={() => setOpen(false)}>Eventi</NavLink></li>
-          <li><NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink></li>
-          <li><NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink></li>
-          <li><NavLink to="/contatti" onClick={() => setOpen(false)}>Contatti</NavLink></li>
+        <Menu open={open} initial={{opacity:0}} animate={{opacity:1}}>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
+          </MenuItem>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/eventi" onClick={() => setOpen(false)}>Eventi</NavLink>
+          </MenuItem>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
+          </MenuItem>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink>
+          </MenuItem>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/contatti" onClick={() => setOpen(false)}>Contatti</NavLink>
+          </MenuItem>
         </Menu>
       </Container>
     </Nav>

@@ -19,6 +19,8 @@ export const GlobalStyles = createGlobalStyle`
     --white: ${theme.colors.white};
   }
 
+  html { scroll-behavior: smooth; }
+
   *, *::before, *::after {
     margin: 0;
     padding: 0;
@@ -26,6 +28,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
+    font-size: 16px;
     font-family: Arial, Helvetica, sans-serif;
     background-color: var(--black);
     color: var(--white);
@@ -46,5 +49,19 @@ export const GlobalStyles = createGlobalStyle`
     width: 90%;
     max-width: 1200px;
     margin: 0 auto;
+  }
+
+  h1, h2, h3 {
+    color: var(--yellow);
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
   }
 `;
