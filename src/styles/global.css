@@ -1,0 +1,37 @@
+/* Global styles and color palette */
+:root {
+  --deep-black: #000000;
+  --lime-green: #32CD32;
+  --sun-yellow: #FFD700;
+  --bright-orange: #FF4500;
+  --white: #FFFFFF;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--deep-black);
+  color: var(--white);
+  line-height: 1.6;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Utility classes */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
