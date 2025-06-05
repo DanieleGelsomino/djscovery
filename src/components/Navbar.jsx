@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { FaShoppingCart } from 'react-icons/fa';
+import { useCart } from './CartContext';
 
 const Nav = styled(motion.nav)`
   background-color: ${({ scrolled }) =>
@@ -75,9 +77,31 @@ const MenuItem = styled(motion.li)`
   }
 `;
 
+const CartLink = styled(NavLink)`
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  svg {
+    color: var(--white);
+  }
+`;
+
+const CartCount = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background-color: var(--green);
+  color: var(--white);
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+`;
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { items } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,7 +127,10 @@ const Navbar = () => {
             <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/carrello" onClick={() => setOpen(false)}>Carrello</NavLink>
+            <CartLink to="/carrello" aria-label="Carrello" onClick={() => setOpen(false)}>
+              <FaShoppingCart size={20} />
+              {items.length > 0 && <CartCount>{items.length}</CartCount>}
+            </CartLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink>
