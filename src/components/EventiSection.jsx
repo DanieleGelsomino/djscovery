@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useCart } from './CartContext';
 
 const eventi = [
-  { id: 1, date: '2024-07-01', place: 'Rome', time: '21:00' },
-  { id: 2, date: '2024-08-15', place: 'Milan', time: '22:00' },
-  { id: 3, date: '2024-09-10', place: 'Naples', time: '20:00' },
+  { id: 1, date: '2024-07-01', place: 'Rome', time: '21:00', price: 25 },
+  { id: 2, date: '2024-08-15', place: 'Milan', time: '22:00', price: 30 },
+  { id: 3, date: '2024-09-10', place: 'Naples', time: '20:00', price: 20 },
 ];
 
 const Section = styled.section`
@@ -43,7 +44,9 @@ const Button = styled(motion.button)`
   border-radius: 4px;
 `;
 
-const EventiSection = () => (
+const EventiSection = () => {
+  const { addItem } = useCart();
+  return (
   <Section>
     <div className="container">
       <h2>Prossimi Eventi</h2>
@@ -54,12 +57,19 @@ const EventiSection = () => (
             <h3>{event.place}</h3>
             <p>{event.date}</p>
             <p>{event.time}</p>
-            <Button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Prenota ora</Button>
+            <Button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price })}
+            >
+              Prenota ora
+            </Button>
           </Card>
         ))}
       </Cards>
     </div>
   </Section>
-);
+  );
+};
 
 export default EventiSection;

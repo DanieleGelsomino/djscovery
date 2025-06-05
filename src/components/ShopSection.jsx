@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useCart } from './CartContext';
 
 const products = [
-  { id: 1, name: 'T-shirt Logo', price: '20€', image: 'https://source.unsplash.com/300x300/?tshirt' },
-  { id: 2, name: 'Cappellino DJ', price: '15€', image: 'https://source.unsplash.com/300x300/?cap' },
-  { id: 3, name: 'Sticker Pack', price: '5€', image: 'https://source.unsplash.com/300x300/?sticker' },
+  { id: 1, name: 'T-shirt Logo', price: 20, image: 'https://source.unsplash.com/300x300/?tshirt' },
+  { id: 2, name: 'Cappellino DJ', price: 15, image: 'https://source.unsplash.com/300x300/?cap' },
+  { id: 3, name: 'Sticker Pack', price: 5, image: 'https://source.unsplash.com/300x300/?sticker' },
 ];
 
 const Section = styled.section`
@@ -44,7 +45,9 @@ const Button = styled(motion.button)`
   border-radius: 4px;
 `;
 
-const ShopSection = () => (
+const ShopSection = () => {
+  const { addItem } = useCart();
+  return (
   <Section>
     <div className="container">
       <h2>Shop</h2>
@@ -54,13 +57,20 @@ const ShopSection = () => (
           <Item key={product.id} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} whileHover={{ scale: 1.05 }}>
             <img src={product.image} alt={product.name} />
             <h3>{product.name}</h3>
-            <p>{product.price}</p>
-            <Button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Aggiungi al carrello</Button>
+            <p>{product.price}€</p>
+            <Button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => addItem({ id: product.id, name: product.name, price: product.price })}
+            >
+              Aggiungi al carrello
+            </Button>
           </Item>
         ))}
       </Grid>
     </div>
   </Section>
-);
+  );
+};
 
 export default ShopSection;
