@@ -103,6 +103,9 @@ const Navbar = () => {
             <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <NavLink to="/carrello" onClick={() => setOpen(false)}>Carrello</NavLink>
+          </MenuItem>
+          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>

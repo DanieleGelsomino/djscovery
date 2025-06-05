@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import EventiSection from './components/EventiSection';
 import ShopSection from './components/ShopSection';
+import CartPage from './components/CartPage';
 import ChiSiamoSection from './components/ChiSiamoSection';
 import ContattiSection from './components/ContattiSection';
 import Footer from './components/Footer';
@@ -19,6 +20,7 @@ const App = () => {
           <Route path="/" element={<HeroSection />} />
           <Route path="/eventi" element={<EventiSection />} />
           <Route path="/shop" element={<ShopSection />} />
+          <Route path="/carrello" element={<CartPage />} />
           <Route path="/chi-siamo" element={<ChiSiamoSection />} />
           <Route path="/contatti" element={<ContattiSection />} />
         </Routes>
