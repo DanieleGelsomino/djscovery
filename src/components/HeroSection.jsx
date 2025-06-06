@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import heroImg from '../assets/img/hero.png';
 
 const Section = styled(motion.section)`
   position: relative;
@@ -62,33 +63,15 @@ const BtnSecondary = styled(motion(Link))`
   font-weight: bold;
 `;
 
-const images = [
-  'https://source.unsplash.com/1600x900/?music,party',
-  'https://source.unsplash.com/1600x900/?concert',
-  'https://source.unsplash.com/1600x900/?dj'
-];
-
 const HeroSection = () => {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % images.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
   return (
     <Section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-      {images.map((img, i) => (
-        <Background
-          key={img}
-          style={{ backgroundImage: `url(${img})` }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: i === index ? 1 : 0 }}
-          transition={{ duration: 1 }}
-        />
-      ))}
+      <Background
+        style={{ backgroundImage: `url(${heroImg})` }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+      />
       <Overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
       <Content>
         <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
