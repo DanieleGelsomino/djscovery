@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FaShoppingCart } from 'react-icons/fa';
 import { useCart } from './CartContext';
+import logoImg from '../assets/img/logo-dj.png';
 
 const Nav = styled(motion.nav)`
   background-color: ${({ scrolled }) =>
@@ -27,9 +28,12 @@ const Container = styled.div`
 `;
 
 const Logo = styled(motion(Link))`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--yellow);
+  display: flex;
+  align-items: center;
+`;
+
+const LogoImage = styled.img`
+  height: 40px;
 `;
 
 const Toggle = styled.button`
@@ -114,7 +118,9 @@ const Navbar = () => {
   return (
     <Nav scrolled={scrolled} initial={{ y: -80 }} animate={{ y: 0 }} transition={{ duration: 0.5 }}>
       <Container>
-        <Logo whileHover={{rotate:2}} to="/">DJSCOVERY</Logo>
+        <Logo whileHover={{ rotate: 2 }} to="/">
+          <LogoImage src={logoImg} alt="Djscovery logo" />
+        </Logo>
         <Toggle onClick={() => setOpen(!open)}>&#9776;</Toggle>
         <Menu open={open} initial={{opacity:0}} animate={{opacity:1}}>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
