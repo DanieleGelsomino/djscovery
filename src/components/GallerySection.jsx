@@ -1,6 +1,14 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import img1 from '../assets/img/Copia di Testo del paragraf.png';
+import img2 from '../assets/img/Copia di Testo del paragrafo.png';
+import img3 from '../assets/img/DJSCOVERY LOGO.png';
+import img4 from '../assets/img/LOGO PRINCIPALE.png';
+import img5 from '../assets/img/Testo del paragrafo_HQ.png';
+import img6 from '../assets/img/Testo del paragrafo_HQ2.png';
+import img7 from '../assets/img/hero.png';
+import img8 from '../assets/img/logo-dj.png';
 
 const Section = styled.section`
   padding: 2rem 0;
@@ -28,7 +36,15 @@ const images = [
   'https://source.unsplash.com/400x300/?dj',
   'https://source.unsplash.com/400x300/?concert',
   'https://source.unsplash.com/400x300/?club',
-  'https://source.unsplash.com/400x300/?festival'
+  'https://source.unsplash.com/400x300/?festival',
+  img1,
+  img2,
+  img3,
+  img4,
+  img5,
+  img6,
+  img7,
+  img8
 ];
 
 const GallerySection = () => (
