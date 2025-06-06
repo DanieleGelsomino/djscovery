@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaShoppingBag } from 'react-icons/fa';
 import { useCart } from './CartContext';
 import logoImg from '../assets/img/logo-dj.png';
 
@@ -25,6 +25,12 @@ const Container = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 `;
 
 const Logo = styled(motion(Link))`
@@ -122,6 +128,7 @@ const Navbar = () => {
           <LogoImage src={logoImg} alt="Djscovery logo" />
         </Logo>
         <Toggle onClick={() => setOpen(!open)}>&#9776;</Toggle>
+        <RightSection>
         <Menu open={open} initial={{opacity:0}} animate={{opacity:1}}>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
@@ -133,18 +140,17 @@ const Navbar = () => {
             <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <CartLink to="/carrello" aria-label="Carrello" onClick={() => setOpen(false)}>
-              <FaShoppingCart size={20} />
-              {items.length > 0 && <CartCount>{items.length}</CartCount>}
-            </CartLink>
-          </MenuItem>
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink>
           </MenuItem>
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/contatti" onClick={() => setOpen(false)}>Contatti</NavLink>
           </MenuItem>
         </Menu>
+        <CartLink to="/carrello" aria-label="Carrello" onClick={() => setOpen(false)}>
+          <FaShoppingBag size={20} />
+          {items.length > 0 && <CartCount>{items.length}</CartCount>}
+        </CartLink>
+        </RightSection>
       </Container>
     </Nav>
   );
