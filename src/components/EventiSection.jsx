@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const eventi = [
   { id: 1, date: '2024-07-01', place: 'Rome', time: '21:00', price: 25 },
@@ -46,6 +47,7 @@ const Button = styled(motion.button)`
 
 const EventiSection = () => {
   const { addItem } = useCart();
+  const navigate = useNavigate();
   return (
   <Section>
     <div className="container">
@@ -60,7 +62,10 @@ const EventiSection = () => {
             <Button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price })}
+              onClick={() => {
+                addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price });
+                navigate('/prenota');
+              }}
             >
               Prenota ora
             </Button>

@@ -8,3 +8,38 @@ npm run dev
 ```
 
 The server binds to `0.0.0.0` on port `5173` (or the next available port) so it can be accessed from outside the container using `localhost`.
+
+Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase.
+
+## Configurazione Firebase
+
+1. Crea un progetto su [Firebase Console](https://console.firebase.google.com/) e abilita **Firestore**.
+2. Nella sezione "Project settings" genera le credenziali Web e copia i valori (apiKey, authDomain, ecc.).
+3. Inserisci tali valori nel file `src/firebase/config.js` al posto dei placeholder.
+4. Installa le dipendenze:
+
+```bash
+npm install firebase
+```
+
+Il file `src/firebase/functions.js` contiene la funzione `saveBooking` che salva i dati nella collezione `bookings` di Firestore.
+
+## Deploy dell'applicazione
+
+Puoi pubblicare il sito sia tramite **Firebase Hosting** che con servizi come **Vercel** o **Netlify**.
+
+### Firebase Hosting
+
+```bash
+npm run build              # genera la versione statica
+npm install -g firebase-tools
+firebase login
+firebase init hosting      # scegli "dist" come cartella di deploy
+firebase deploy
+```
+
+### Vercel / Netlify
+
+1. Esegui `npm run build` per produrre la cartella `dist`.
+2. Carica la cartella `dist` su Vercel o Netlify seguendo le indicazioni del provider.
+3. Imposta come comando di build `npm run build` e come cartella di output `dist`.
