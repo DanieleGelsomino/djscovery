@@ -21,19 +21,24 @@ const Social = styled.div`
   a {
     color: var(--yellow);
     font-size: 1.5rem;
-    transition: color 0.3s;
+    transition: color 0.3s, filter 0.3s;
 
     &:hover {
       color: var(--green);
+      filter: drop-shadow(0 0 6px var(--yellow));
     }
   }
 `;
 
 const Menu = styled.div`
   margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   a {
     color: var(--yellow);
-    margin: 0 0.5rem;
+    margin: 0 0.25rem;
   }
 `;
 

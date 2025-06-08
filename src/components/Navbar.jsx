@@ -80,7 +80,7 @@ const Menu = styled(motion.ul)`
   }
 
   li a {
-    color: var(--white);
+    color: ${({ scrolled }) => (scrolled ? 'var(--yellow)' : 'var(--white)')};
     padding: 0.5rem 1rem;
     position: relative;
     transition: color 0.3s;
@@ -109,7 +109,7 @@ const Menu = styled(motion.ul)`
 const MenuItem = styled(motion.li)`
   a {
     display: block;
-    color: var(--white);
+    color: inherit;
     padding: 0.5rem 1rem;
     font-weight: 500;
   }
@@ -196,6 +196,7 @@ const Navbar = () => {
         </Toggle>
         <RightSection>
           <Menu
+            scrolled={scrolled}
             initial={{ x: '100%' }}
             animate={open || isDesktop ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
             transition={{ type: 'tween' }}
