@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { FaPlus, FaMinus } from 'react-icons/fa';
 import { useCart } from './CartContext';
 import Spinner from './Spinner';
 import { useLanguage } from './LanguageContext';
@@ -33,7 +34,7 @@ const CartWrapper = styled.div`
 
 const Item = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
@@ -69,6 +70,20 @@ const Item = styled.div`
   }
 `;
 
+const Quantity = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const Control = styled.button`
+  background-color: var(--gray);
+  color: var(--white);
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+`;
+
 const Total = styled.p`
   font-weight: bold;
   font-size: 1.25rem;
@@ -77,7 +92,7 @@ const Total = styled.p`
 `;
 
 const CartPage = () => {
-  const { items, removeItem } = useCart();
+  const { items, removeItem, increaseItem, decreaseItem } = useCart();
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
@@ -86,7 +101,7 @@ const CartPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const total = items.reduce((sum, item) => sum + item.price, 0);
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   if (loading) return <Spinner />;
 
@@ -99,7 +114,16 @@ const CartPage = () => {
           {items.map((item) => (
             <Item key={item.id}>
               <span>{item.name}</span>
-              <span>{item.price}€</span>
+              <Quantity>
+                <Control aria-label={t('cart.decrease')} onClick={() => decreaseItem(item.id)}>
+                  <FaMinus size={12} />
+                </Control>
+                <span>{item.quantity}</span>
+                <Control aria-label={t('cart.increase')} onClick={() => increaseItem(item.id)}>
+                  <FaPlus size={12} />
+                </Control>
+              </Quantity>
+              <span>{item.price * item.quantity}€</span>
               <button onClick={() => removeItem(item.id)}>{t('cart.remove')}</button>
             </Item>
           ))}

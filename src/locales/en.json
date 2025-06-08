@@ -57,7 +57,10 @@
     "title": "Cart",
     "empty": "No items in cart.",
     "remove": "Remove",
-    "total": "Total"
+    "total": "Total",
+    "quantity": "Qty",
+    "increase": "Increase",
+    "decrease": "Decrease"
   },
   "booking": {
     "title": "Book your ticket",
