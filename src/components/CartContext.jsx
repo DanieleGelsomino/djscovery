@@ -8,11 +8,14 @@ export const CartProvider = ({ children }) => {
   const [items, setItems] = useState([]);
 
   const addItem = (item) => {
-    setItems((prev) => [...prev, item]);
+    // ensure each item stored in the cart has an id property
+    const id = item.id ?? Date.now() + Math.random();
+    setItems((prev) => [...prev, { ...item, id }]);
   };
 
   const removeItem = (id) => {
-    setItems((prev) => prev.filter((i, idx) => idx !== id));
+    // remove item by matching its id instead of using the array index
+    setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
   return (
