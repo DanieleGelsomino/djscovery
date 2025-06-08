@@ -96,11 +96,11 @@ const CartPage = () => {
         <CartWrapper>
           <h2>{t('cart.title')}</h2>
           {items.length === 0 && <p>{t('cart.empty')}</p>}
-          {items.map((item, idx) => (
-            <Item key={idx}>
+          {items.map((item) => (
+            <Item key={item.id}>
               <span>{item.name}</span>
               <span>{item.price}€</span>
-              <button onClick={() => removeItem(idx)}>{t('cart.remove')}</button>
+              <button onClick={() => removeItem(item.id)}>{t('cart.remove')}</button>
             </Item>
           ))}
           {items.length > 0 && <Total>{t('cart.total')}: {total}€</Total>}
