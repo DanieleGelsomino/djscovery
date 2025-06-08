@@ -6,6 +6,7 @@ import App from './App';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles, theme } from './styles/globalStyles';
 import { CartProvider } from './components/CartContext';
+import { LanguageProvider } from './components/LanguageContext';
 
 const container = document.getElementById('root');
 const root = createRoot(container);
@@ -13,11 +14,13 @@ const root = createRoot(container);
 root.render(
   <ThemeProvider theme={theme}>
     <GlobalStyles />
-    <CartProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <App />
-      </BrowserRouter>
-    </CartProvider>
+    <LanguageProvider>
+      <CartProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <App />
+        </BrowserRouter>
+      </CartProvider>
+    </LanguageProvider>
   </ThemeProvider>
 );

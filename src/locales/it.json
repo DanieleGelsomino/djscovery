@@ -1,0 +1,74 @@
+{
+  "nav": {
+    "home": "Home",
+    "events": "Eventi",
+    "shop": "Shop",
+    "about": "Chi Siamo",
+    "contacts": "Contatti",
+    "cart": "Carrello"
+  },
+  "hero": {
+    "title": "Music & Travel",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.",
+    "cta_events": "Scopri i prossimi eventi",
+    "cta_shop": "Visita lo shop"
+  },
+  "gallery": {
+    "title": "Gallery"
+  },
+  "newsletter": {
+    "title": "Newsletter",
+    "subtitle": "Iscriviti per rimanere aggiornato sui nostri eventi",
+    "email": "Email",
+    "subscribe": "Iscriviti",
+    "success": "Grazie per la tua iscrizione!"
+  },
+  "events": {
+    "title": "Prossimi Eventi",
+    "subtitle": "Scopri e prenota le nostre serate speciali in tutta Italia.",
+    "book_now": "Prenota ora",
+    "added": "Aggiunto al carrello!"
+  },
+  "shop": {
+    "title": "Shop",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    "add_to_cart": "Aggiungi al carrello",
+    "added": "Aggiunto al carrello!"
+  },
+  "about": {
+    "title": "Chi Siamo",
+    "p1": "Siamo un team di appassionati di musica e viaggi che organizza eventi unici in location indimenticabili. La nostra missione è far scoprire nuovi luoghi attraverso il ritmo della musica.",
+    "p2": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+  },
+  "contacts": {
+    "title": "Contattaci",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    "name": "Nome",
+    "email": "Email",
+    "message": "Messaggio",
+    "send": "Invia",
+    "sent": "Messaggio inviato!"
+  },
+  "footer": {
+    "text": "Lorem ipsum dolor sit amet.",
+    "copy": "DJSCOVERY"
+  },
+  "cart": {
+    "title": "Carrello",
+    "empty": "Nessun elemento nel carrello.",
+    "remove": "Rimuovi",
+    "total": "Total"
+  },
+  "booking": {
+    "title": "Prenota il tuo biglietto",
+    "name": "Nome",
+    "surname": "Cognome",
+    "email": "Email",
+    "phone": "Telefono",
+    "book": "Prenota",
+    "required": "Tutti i campi sono obbligatori",
+    "invalid_email": "Email non valida",
+    "error": "Errore durante il salvataggio",
+    "success": "Prenotazione avvenuta con successo!"
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { saveBooking } from '../firebase/functions';
+import { useLanguage } from './LanguageContext';
 
 const Wrapper = styled.section`
   text-align: center;
@@ -55,6 +56,7 @@ const TicketBookingForm = () => {
   });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useLanguage();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,11 +68,11 @@ const TicketBookingForm = () => {
     e.preventDefault();
     const { nome, cognome, email, telefono } = formData;
     if (!nome || !cognome || !email || !telefono) {
-      setError('Tutti i campi sono obbligatori');
+      setError(t('booking.required'));
       return;
     }
     if (!validateEmail(email)) {
-      setError('Email non valida');
+      setError(t('booking.invalid_email'));
       return;
     }
     setError('');
@@ -79,25 +81,25 @@ const TicketBookingForm = () => {
       setSuccess(true);
       setFormData({ nome: '', cognome: '', email: '', telefono: '' });
     } catch (err) {
-      setError('Errore durante il salvataggio');
+      setError(t('booking.error'));
     }
   };
 
   return (
     <Wrapper>
       <div className="container">
-        <h2>Prenota il tuo biglietto</h2>
+        <h2>{t('booking.title')}</h2>
         <Form onSubmit={handleSubmit} noValidate>
           <Input
             name="nome"
-            placeholder="Nome"
+            placeholder={t('booking.name')}
             value={formData.nome}
             onChange={handleChange}
             required
           />
           <Input
             name="cognome"
-            placeholder="Cognome"
+            placeholder={t('booking.surname')}
             value={formData.cognome}
             onChange={handleChange}
             required
@@ -105,22 +107,22 @@ const TicketBookingForm = () => {
           <Input
             type="email"
             name="email"
-            placeholder="Email"
+            placeholder={t('booking.email')}
             value={formData.email}
             onChange={handleChange}
             required
           />
           <Input
             name="telefono"
-            placeholder="Telefono"
+            placeholder={t('booking.phone')}
             value={formData.telefono}
             onChange={handleChange}
             required
           />
-          <Button type="submit">Prenota</Button>
+          <Button type="submit">{t('booking.book')}</Button>
         </Form>
         {error && <p>{error}</p>}
-        {success && <p>Prenotazione avvenuta con successo!</p>}
+        {success && <p>{t('booking.success')}</p>}
       </div>
     </Wrapper>
   );

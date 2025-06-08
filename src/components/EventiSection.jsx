@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from './LanguageContext';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign } from 'react-icons/fa';
 
 const eventi = [
@@ -100,11 +101,12 @@ const EventiSection = () => {
   const { addItem } = useCart();
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
+  const { t } = useLanguage();
   return (
   <Section>
     <div className="container">
-      <h2>Prossimi Eventi</h2>
-      <p>Scopri e prenota le nostre serate speciali in tutta Italia.</p>
+      <h2>{t('events.title')}</h2>
+      <p>{t('events.subtitle')}</p>
       <Cards>
         {eventi.map(event => (
           <Card
@@ -128,11 +130,11 @@ const EventiSection = () => {
               onClick={() => {
                 addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price });
                 navigate('/prenota');
-                setMessage('Aggiunto al carrello!');
+                setMessage(t('events.added'));
                 setTimeout(() => setMessage(''), 2000);
               }}
             >
-              Prenota ora
+              {t('events.book_now')}
             </Button>
           </Card>
         ))}

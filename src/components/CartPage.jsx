@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useCart } from './CartContext';
 import Spinner from './Spinner';
+import { useLanguage } from './LanguageContext';
 
 const Section = styled.section`
   display: flex;
@@ -78,6 +79,7 @@ const Total = styled.p`
 const CartPage = () => {
   const { items, removeItem } = useCart();
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
@@ -92,16 +94,16 @@ const CartPage = () => {
     <Section>
       <div className="container">
         <CartWrapper>
-          <h2>Carrello</h2>
-          {items.length === 0 && <p>Nessun elemento nel carrello.</p>}
+          <h2>{t('cart.title')}</h2>
+          {items.length === 0 && <p>{t('cart.empty')}</p>}
           {items.map((item, idx) => (
             <Item key={idx}>
               <span>{item.name}</span>
               <span>{item.price}€</span>
-              <button onClick={() => removeItem(idx)}>Rimuovi</button>
+              <button onClick={() => removeItem(idx)}>{t('cart.remove')}</button>
             </Item>
           ))}
-          {items.length > 0 && <Total>Total: {total}€</Total>}
+          {items.length > 0 && <Total>{t('cart.total')}: {total}€</Total>}
         </CartWrapper>
       </div>
     </Section>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useLanguage } from './LanguageContext';
 
 const Section = styled.section`
   padding: 3rem 0;
@@ -38,6 +39,7 @@ const Button = styled(motion.button)`
 
 const NewsletterSection = () => {
   const [submitted, setSubmitted] = useState(false);
+  const { t } = useLanguage();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -48,15 +50,15 @@ const NewsletterSection = () => {
   return (
     <Section>
       <div className="container">
-        <h2>Newsletter</h2>
-        <p>Iscriviti per rimanere aggiornato sui nostri eventi</p>
+        <h2>{t('newsletter.title')}</h2>
+        <p>{t('newsletter.subtitle')}</p>
         <Form onSubmit={handleSubmit}>
-          <Input type="email" placeholder="Email" required whileFocus={{ scale: 1.02 }} />
+          <Input type="email" placeholder={t('newsletter.email')} required whileFocus={{ scale: 1.02 }} />
           <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            Iscriviti
+            {t('newsletter.subscribe')}
           </Button>
         </Form>
-        {submitted && <p>Grazie per la tua iscrizione!</p>}
+        {submitted && <p>{t('newsletter.success')}</p>}
       </div>
     </Section>
   );
