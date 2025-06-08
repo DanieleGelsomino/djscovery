@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FaShoppingBag } from 'react-icons/fa';
+import { FiMenu, FiX } from 'react-icons/fi';
 import { useCart } from './CartContext';
 import logoImg from '../assets/img/logo-dj.png';
 
@@ -42,7 +43,7 @@ const LogoImage = styled.img`
   height: 40px;
 `;
 
-const Toggle = styled.button`
+const Toggle = styled(motion.button)`
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -66,7 +67,6 @@ const Menu = styled(motion.ul)`
     flex-direction: column;
     background-color: var(--black);
     width: 100%;
-    display: ${({ open }) => (open ? 'flex' : 'none')};
   }
 
   li a {
@@ -127,9 +127,19 @@ const Navbar = () => {
         <Logo whileHover={{ rotate: 2 }} to="/">
           <LogoImage src={logoImg} alt="Djscovery logo" />
         </Logo>
-        <Toggle onClick={() => setOpen(!open)}>&#9776;</Toggle>
+        <Toggle
+          onClick={() => setOpen(!open)}
+          whileTap={{ scale: 0.9 }}
+          aria-label="Toggle menu"
+        >
+          {open ? <FiX /> : <FiMenu />}
+        </Toggle>
         <RightSection>
-        <Menu open={open} initial={{opacity:0}} animate={{opacity:1}}>
+        <Menu
+          animate={open ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
+          transition={{ type: 'tween' }}
+          style={{ display: open || window.innerWidth > 768 ? 'flex' : 'none' }}
+        >
           <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
             <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
           </MenuItem>

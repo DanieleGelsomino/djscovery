@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
+import { FaEuroSign } from 'react-icons/fa';
 
 const products = [
   { id: 1, name: 'T-shirt Logo', price: 20, image: 'https://source.unsplash.com/300x300/?tshirt' },
@@ -16,19 +17,18 @@ const Section = styled.section`
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-top: 2rem;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
 `;
 
 const Item = styled(motion.div)`
   background-color: #111;
   padding: 1rem;
   border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   h3 {
     color: var(--yellow);
@@ -55,9 +55,9 @@ const ShopSection = () => {
       <Grid>
         {products.map(product => (
           <Item key={product.id} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} whileHover={{ scale: 1.05 }}>
-            <img src={product.image} alt={product.name} />
+            <motion.img src={product.image} alt={product.name} whileHover={{ scale: 1.1 }} />
             <h3>{product.name}</h3>
-            <p>{product.price}€</p>
+            <p><FaEuroSign /> {product.price}</p>
             <Button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop';
 import App from './App';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles, theme } from './styles/globalStyles';
@@ -14,6 +15,7 @@ root.render(
     <GlobalStyles />
     <CartProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <App />
       </BrowserRouter>
     </CartProvider>
