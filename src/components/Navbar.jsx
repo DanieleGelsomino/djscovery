@@ -146,6 +146,7 @@ const CartCount = styled.span`
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const { items } = useCart();
   const { t } = useLanguage();
 
@@ -158,8 +159,22 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "auto";
-  }, [open]);
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth > 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setOpen(false);
+    }
+  }, [isDesktop]);
+
+  useEffect(() => {
+    document.body.style.overflow = open && !isDesktop ? "hidden" : "auto";
+  }, [open, isDesktop]);
 
   return (
     <Nav
@@ -182,9 +197,9 @@ const Navbar = () => {
         <RightSection>
           <Menu
             initial={{ x: '100%' }}
-            animate={open || window.innerWidth > 768 ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
-            transition={{ type: "tween" }}
-            style={{ display: open || window.innerWidth > 768 ? "flex" : "none" }}
+            animate={open || isDesktop ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
+            transition={{ type: 'tween' }}
+            style={{ display: open || isDesktop ? 'flex' : 'none' }}
           >
             <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               <NavLink to="/" onClick={() => setOpen(false)}>
