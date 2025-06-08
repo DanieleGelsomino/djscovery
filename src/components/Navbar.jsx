@@ -64,13 +64,16 @@ const Menu = styled(motion.ul)`
   gap: 1rem;
 
   @media (max-width: 768px) {
-    position: absolute;
-    top: 60px;
-    right: 0;
+    position: fixed;
+    inset: 0;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background-color: var(--black);
     width: 100%;
-    padding: 1rem 0;
+    height: 100vh;
+    padding: 2rem;
+    z-index: 2000;
     transform-origin: top right;
   }
 
@@ -150,6 +153,10 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "auto";
+  }, [open]);
 
   return (
     <Nav

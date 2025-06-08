@@ -17,6 +17,10 @@ const CartWrapper = styled.div`
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
 `;
 
 const Item = styled.div`
@@ -39,6 +43,16 @@ const Item = styled.div`
     border: none;
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    text-align: center;
+
+    button {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
   }
 `;
 
