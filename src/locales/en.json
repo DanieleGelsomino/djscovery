@@ -1,0 +1,74 @@
+{
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "shop": "Shop",
+    "about": "About Us",
+    "contacts": "Contacts",
+    "cart": "Cart"
+  },
+  "hero": {
+    "title": "Music & Travel",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.",
+    "cta_events": "Discover upcoming events",
+    "cta_shop": "Visit the shop"
+  },
+  "gallery": {
+    "title": "Gallery"
+  },
+  "newsletter": {
+    "title": "Newsletter",
+    "subtitle": "Subscribe to stay updated on our events",
+    "email": "Email",
+    "subscribe": "Subscribe",
+    "success": "Thank you for subscribing!"
+  },
+  "events": {
+    "title": "Next Events",
+    "subtitle": "Discover and book our special nights throughout Italy.",
+    "book_now": "Book now",
+    "added": "Added to cart!"
+  },
+  "shop": {
+    "title": "Shop",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    "add_to_cart": "Add to cart",
+    "added": "Added to cart!"
+  },
+  "about": {
+    "title": "About Us",
+    "p1": "We are a team of music and travel lovers organizing unique events in unforgettable locations. Our mission is to discover new places through the rhythm of music.",
+    "p2": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+  },
+  "contacts": {
+    "title": "Contact Us",
+    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send",
+    "sent": "Message sent!"
+  },
+  "footer": {
+    "text": "Lorem ipsum dolor sit amet.",
+    "copy": "DJSCOVERY"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "No items in cart.",
+    "remove": "Remove",
+    "total": "Total"
+  },
+  "booking": {
+    "title": "Book your ticket",
+    "name": "First Name",
+    "surname": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "book": "Book",
+    "required": "All fields are required",
+    "invalid_email": "Invalid email",
+    "error": "Error saving data",
+    "success": "Booking successful!"
+  }
+}

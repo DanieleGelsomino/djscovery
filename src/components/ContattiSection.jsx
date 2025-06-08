@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useLanguage } from './LanguageContext';
 
 const Section = styled(motion.section)`
   text-align: center;
@@ -50,6 +51,7 @@ const Button = styled(motion.button)`
 
 const ContattiSection = () => {
   const [submitted, setSubmitted] = useState(false);
+  const { t } = useLanguage();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -60,15 +62,15 @@ const ContattiSection = () => {
   return (
     <Section>
       <div className="container">
-        <h2>Contattaci</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        <h2>{t('contacts.title')}</h2>
+        <p>{t('contacts.subtitle')}</p>
         <Form as={motion.form} onSubmit={handleSubmit} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-          <Input whileFocus={{ scale:1.02 }} type="text" placeholder="Nome" required />
-          <Input whileFocus={{ scale:1.02 }} type="email" placeholder="Email" required />
-          <TextArea whileFocus={{ scale:1.02 }} placeholder="Messaggio" rows="5" required />
-          <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Invia</Button>
+          <Input whileFocus={{ scale:1.02 }} type="text" placeholder={t('contacts.name')} required />
+          <Input whileFocus={{ scale:1.02 }} type="email" placeholder={t('contacts.email')} required />
+          <TextArea whileFocus={{ scale:1.02 }} placeholder={t('contacts.message')} rows="5" required />
+          <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>{t('contacts.send')}</Button>
         </Form>
-        {submitted && <p>Messaggio inviato!</p>}
+        {submitted && <p>{t('contacts.sent')}</p>}
       </div>
     </Section>
   );

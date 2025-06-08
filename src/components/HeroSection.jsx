@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import heroImg from '../assets/img/hero.png';
+import { useLanguage } from './LanguageContext';
 
 const Section = styled(motion.section)`
   position: relative;
@@ -65,6 +66,7 @@ const BtnSecondary = styled(motion(Link))`
 `;
 
 const HeroSection = () => {
+  const { t } = useLanguage();
   return (
     <Section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
       <Background
@@ -80,7 +82,7 @@ const HeroSection = () => {
           whileInView={{ y: 0, opacity: 1 }}
           viewport={{ once: true }}
         >
-          Music &amp; Travel
+          {t('hero.title')}
         </motion.h1>
         <motion.p
           initial={{ y: 30, opacity: 0 }}
@@ -88,14 +90,14 @@ const HeroSection = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.
+          {t('hero.subtitle')}
         </motion.p>
         <CTAWrapper>
           <BtnPrimary to="/eventi" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            Scopri i prossimi eventi
+            {t('hero.cta_events')}
           </BtnPrimary>
           <BtnSecondary to="/shop" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            Visita lo shop
+            {t('hero.cta_shop')}
           </BtnSecondary>
         </CTAWrapper>
       </Content>

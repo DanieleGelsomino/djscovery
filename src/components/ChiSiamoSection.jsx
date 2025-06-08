@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useLanguage } from './LanguageContext';
 
 const Section = styled(motion.section)`
   padding: 2rem 0;
@@ -30,15 +31,17 @@ const ImageWrapper = styled(motion.div)`
   }
 `;
 
-const ChiSiamoSection = () => (
+const ChiSiamoSection = () => {
+  const { t } = useLanguage();
+  return (
   <Section>
     <div className="container">
       <Content>
         <Text initial={{ x: -50, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} viewport={{ once: true }}>
-          <h2>Chi Siamo</h2>
+          <h2>{t('about.title')}</h2>
           <p>
-            Siamo un team di appassionati di musica e viaggi che organizza eventi unici in location indimenticabili. La nostra missione è far scoprire nuovi luoghi attraverso il ritmo della musica.</p>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+            {t('about.p1')}</p>
+          <p>{t('about.p2')}</p>
         </Text>
         <ImageWrapper initial={{ x: 50, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} viewport={{ once: true }}>
           <img src="https://source.unsplash.com/600x400/?dj" alt="Chi siamo" />
@@ -46,6 +49,7 @@ const ChiSiamoSection = () => (
       </Content>
     </div>
   </Section>
-);
+  );
+};
 
 export default ChiSiamoSection;

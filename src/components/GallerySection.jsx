@@ -13,6 +13,7 @@ import img5 from "../assets/img/Testo del paragrafo_HQ.png";
 import img6 from "../assets/img/Testo del paragrafo_HQ2.png";
 import img7 from "../assets/img/hero.png";
 import img8 from "../assets/img/logo-dj.png";
+import { useLanguage } from "./LanguageContext";
 
 const Section = styled.section`
   padding: 2rem 0;
@@ -52,10 +53,12 @@ const SlideContent = styled(motion.div)`
 
 const images = [img1, img2, img3, img4, img5, img6, img7, img8];
 
-const GallerySection = () => (
+const GallerySection = () => {
+  const { t } = useLanguage();
+  return (
   <Section>
     <div className="container">
-      <h2>Gallery</h2>
+      <h2>{t('gallery.title')}</h2>
       <StyledSwiper
         modules={[Autoplay, Pagination, Navigation]}
         autoplay={{ delay: 2500, disableOnInteraction: false }}
@@ -79,6 +82,7 @@ const GallerySection = () => (
       </StyledSwiper>
     </div>
   </Section>
-);
+  );
+};
 
 export default GallerySection;

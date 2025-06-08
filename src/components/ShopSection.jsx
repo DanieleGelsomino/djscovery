@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
 import { FaEuroSign } from 'react-icons/fa';
+import { useLanguage } from './LanguageContext';
 
 const products = [
   { id: 1, name: 'T-shirt Logo', price: 20, image: 'https://source.unsplash.com/300x300/?tshirt' },
@@ -50,11 +51,12 @@ const Button = styled(motion.button)`
 const ShopSection = () => {
   const { addItem } = useCart();
   const [message, setMessage] = useState('');
+  const { t } = useLanguage();
   return (
   <Section>
     <div className="container">
-      <h2>Shop</h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+      <h2>{t('shop.title')}</h2>
+      <p>{t('shop.subtitle')}</p>
       <Grid>
         {products.map(product => (
           <Item key={product.id} initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} whileHover={{ scale: 1.05 }}>
@@ -66,11 +68,11 @@ const ShopSection = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 addItem({ id: product.id, name: product.name, price: product.price });
-                setMessage('Aggiunto al carrello!');
+                setMessage(t('shop.added'));
                 setTimeout(() => setMessage(''), 2000);
               }}
             >
-              Aggiungi al carrello
+              {t('shop.add_to_cart')}
             </Button>
           </Item>
         ))}

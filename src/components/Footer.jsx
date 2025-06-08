@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useLanguage } from './LanguageContext';
 import { FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
 
 const Foot = styled(motion.footer)`
@@ -41,7 +42,9 @@ const Copy = styled.p`
   color: var(--green);
 `;
 
-const Footer = () => (
+const Footer = () => {
+  const { t } = useLanguage();
+  return (
   <Foot initial={{opacity:0}} animate={{opacity:1}}>
     <div className="container">
       <Social>
@@ -55,17 +58,18 @@ const Footer = () => (
           <FaYoutube />
         </motion.a>
       </Social>
-      <p>Lorem ipsum dolor sit amet.</p>
+      <p>{t('footer.text')}</p>
       <Menu>
-        <Link to="/">Home</Link>
-        <Link to="/eventi">Eventi</Link>
-        <Link to="/shop">Shop</Link>
-        <Link to="/chi-siamo">Chi Siamo</Link>
-        <Link to="/contatti">Contatti</Link>
+        <Link to="/">{t('nav.home')}</Link>
+        <Link to="/eventi">{t('nav.events')}</Link>
+        <Link to="/shop">{t('nav.shop')}</Link>
+        <Link to="/chi-siamo">{t('nav.about')}</Link>
+        <Link to="/contatti">{t('nav.contacts')}</Link>
       </Menu>
-      <Copy>&copy; {new Date().getFullYear()} DJSCOVERY</Copy>
+      <Copy>&copy; {new Date().getFullYear()} {t('footer.copy')}</Copy>
     </div>
   </Foot>
-);
+  );
+};
 
 export default Footer;
