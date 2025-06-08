@@ -128,8 +128,14 @@ const CartCount = styled.span`
   background-color: var(--green);
   color: var(--white);
   border-radius: 50%;
-  padding: 2px 6px;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
   font-size: 0.75rem;
+  line-height: 1;
 `;
 
 const Navbar = () => {
