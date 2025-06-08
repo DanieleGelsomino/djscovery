@@ -3,32 +3,35 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
 import { useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign } from 'react-icons/fa';
 
 const eventi = [
   {
     id: 1,
     date: '2024-07-01',
-    place: 'Rome',
+    place: 'Roma',
     time: '21:00',
     price: 25,
     image: 'https://source.unsplash.com/400x300/?concert',
+    description: "Serata di apertura dell'estate con DJ Alpha.",
   },
   {
     id: 2,
     date: '2024-08-15',
-    place: 'Milan',
+    place: 'Milano',
     time: '22:00',
     price: 30,
     image: 'https://source.unsplash.com/400x300/?party',
+    description: 'Ferragosto in musica con i migliori DJ italiani.',
   },
   {
     id: 3,
     date: '2024-09-10',
-    place: 'Naples',
+    place: 'Napoli',
     time: '20:00',
     price: 20,
     image: 'https://source.unsplash.com/400x300/?dj',
+    description: 'Chiusura della stagione estiva sul lungomare.',
   },
 ];
 
@@ -73,7 +76,7 @@ const EventiSection = () => {
   <Section>
     <div className="container">
       <h2>Prossimi Eventi</h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+      <p>Scopri e prenota le nostre serate speciali in tutta Italia.</p>
       <Cards>
         {eventi.map(event => (
           <Card
@@ -87,6 +90,8 @@ const EventiSection = () => {
             <h3><FaMapMarkerAlt /> {event.place}</h3>
             <p><FaCalendarAlt /> {event.date}</p>
             <p><FaClock /> {event.time}</p>
+            <p>{event.description}</p>
+            <p><FaEuroSign /> {event.price}</p>
             <Button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
