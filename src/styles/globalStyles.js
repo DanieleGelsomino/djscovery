@@ -1,12 +1,14 @@
 import { createGlobalStyle } from 'styled-components';
 
 export const theme = {
+  // Main palette used across the app
   colors: {
-    black: '#000000',
-    red: '#851012',
-    yellow: '#fdeb8b',
-    green: '#016221',
+    black: '#111111',
+    red: '#d7263d',
+    yellow: '#ffd166',
+    green: '#21bf73',
     white: '#ffffff',
+    gray: '#222222',
   },
 };
 
@@ -17,6 +19,7 @@ export const GlobalStyles = createGlobalStyle`
     --yellow: ${theme.colors.yellow};
     --green: ${theme.colors.green};
     --white: ${theme.colors.white};
+    --gray: ${theme.colors.gray};
   }
 
   html { scroll-behavior: smooth; }
@@ -28,7 +31,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-size: 17px;
+    font-size: 18px;
     font-family: 'Inter', 'Poppins', Arial, Helvetica, sans-serif;
     background: linear-gradient(135deg, #000, #111);
     color: var(--white);
@@ -41,6 +44,9 @@ export const GlobalStyles = createGlobalStyle`
 
   button {
     border-radius: 4px;
+    border: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
   }
 
   img {
@@ -54,6 +60,9 @@ export const GlobalStyles = createGlobalStyle`
     cursor: pointer;
     font: inherit;
     transition: background-color 0.3s, transform 0.2s;
+    &:focus {
+      outline: none;
+    }
   }
 
   .container {
@@ -76,5 +85,10 @@ export const GlobalStyles = createGlobalStyle`
   a {
     text-decoration: none;
     color: inherit;
+    transition: color 0.3s;
+
+    &:hover {
+      color: var(--yellow);
+    }
   }
 `;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
@@ -45,16 +45,23 @@ const Cards = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-top: 2rem;
+  padding-bottom: 2rem;
 `;
 
 const Card = styled(motion.div)`
   background-color: #111;
   padding: 1rem;
   border-radius: 4px;
+  border: 1px solid var(--gray);
   display: flex;
   flex-direction: column;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+  img {
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
 
   h3 {
     color: var(--yellow);
@@ -73,6 +80,7 @@ const Button = styled(motion.button)`
 const EventiSection = () => {
   const { addItem } = useCart();
   const navigate = useNavigate();
+  const [message, setMessage] = useState('');
   return (
   <Section>
     <div className="container">
@@ -99,6 +107,8 @@ const EventiSection = () => {
               onClick={() => {
                 addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price });
                 navigate('/prenota');
+                setMessage('Aggiunto al carrello!');
+                setTimeout(() => setMessage(''), 2000);
               }}
             >
               Prenota ora
@@ -106,6 +116,7 @@ const EventiSection = () => {
           </Card>
         ))}
       </Cards>
+      {message && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: 'var(--green)', marginTop: '1rem' }}>{message}</motion.p>}
     </div>
   </Section>
   );

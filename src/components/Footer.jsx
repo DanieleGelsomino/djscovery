@@ -9,6 +9,7 @@ const Foot = styled(motion.footer)`
   padding: 2rem 0;
   color: var(--white);
   text-align: center;
+  border-top: 1px solid var(--gray);
 `;
 
 const Social = styled.div`
@@ -19,6 +20,11 @@ const Social = styled.div`
   a {
     color: var(--yellow);
     font-size: 1.5rem;
+    transition: color 0.3s;
+
+    &:hover {
+      color: var(--green);
+    }
   }
 `;
 

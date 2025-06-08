@@ -26,6 +26,7 @@ const Text = styled(motion.div)`
 const ImageWrapper = styled(motion.div)`
   img {
     border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
 `;
 
