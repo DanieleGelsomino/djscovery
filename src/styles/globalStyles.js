@@ -28,8 +28,8 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-size: 16px;
-    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 17px;
+    font-family: 'Inter', 'Poppins', Arial, Helvetica, sans-serif;
     background-color: var(--black);
     color: var(--white);
     line-height: 1.6;
@@ -40,9 +40,12 @@ export const GlobalStyles = createGlobalStyle`
     display: block;
   }
 
-  button {
+  button,
+  input,
+  textarea {
     cursor: pointer;
     font: inherit;
+    transition: background-color 0.3s, transform 0.2s;
   }
 
   .container {
@@ -54,6 +57,8 @@ export const GlobalStyles = createGlobalStyle`
   h1, h2, h3 {
     color: var(--yellow);
     margin-bottom: 0.5rem;
+    font-family: 'Poppins', 'Inter', sans-serif;
+    line-height: 1.2;
   }
 
   p {

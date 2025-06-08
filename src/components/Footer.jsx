@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
 
 const Foot = styled(motion.footer)`
   background-color: #111;
@@ -17,6 +18,7 @@ const Social = styled.div`
 
   a {
     color: var(--yellow);
+    font-size: 1.5rem;
   }
 `;
 
@@ -37,9 +39,15 @@ const Footer = () => (
   <Foot initial={{opacity:0}} animate={{opacity:1}}>
     <div className="container">
       <Social>
-        <motion.a whileHover={{ scale: 1.2 }} href="https://instagram.com/djscovery.tv" target="_blank" rel="noopener noreferrer">Instagram</motion.a>
-        <motion.a whileHover={{ scale: 1.2 }} href="#">Facebook</motion.a>
-        <motion.a whileHover={{ scale: 1.2 }} href="#">YouTube</motion.a>
+        <motion.a whileHover={{ scale: 1.2 }} href="https://instagram.com/djscovery.tv" target="_blank" rel="noopener noreferrer">
+          <FaInstagram />
+        </motion.a>
+        <motion.a whileHover={{ scale: 1.2 }} href="#">
+          <FaFacebook />
+        </motion.a>
+        <motion.a whileHover={{ scale: 1.2 }} href="#">
+          <FaYoutube />
+        </motion.a>
       </Social>
       <p>Lorem ipsum dolor sit amet.</p>
       <Menu>
