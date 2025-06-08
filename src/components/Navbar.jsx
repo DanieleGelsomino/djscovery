@@ -15,8 +15,10 @@ const Nav = styled(motion.nav)`
   top: 0;
   width: 100%;
   z-index: 1000;
-  backdrop-filter: blur(4px);
-  transition: background-color 0.3s ease;
+  backdrop-filter: blur(6px);
+  box-shadow: ${({ scrolled }) =>
+    scrolled ? "0 2px 8px rgba(0,0,0,0.6)" : "none"};
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 `;
 
 const Container = styled.div`
@@ -31,7 +33,7 @@ const Container = styled.div`
 const RightSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 `;
 
 const Logo = styled(motion(Link))`
@@ -48,6 +50,7 @@ const Toggle = styled(motion.button)`
   border: none;
   font-size: 1.5rem;
   color: var(--white);
+  cursor: pointer;
   display: none;
 
   @media (max-width: 768px) {
@@ -67,14 +70,33 @@ const Menu = styled(motion.ul)`
     flex-direction: column;
     background-color: var(--black);
     width: 100%;
+    padding: 1rem 0;
+    transform-origin: top right;
   }
 
   li a {
     color: var(--white);
     padding: 0.5rem 1rem;
+    position: relative;
+    transition: color 0.3s;
 
     &.active {
       color: var(--green);
+    }
+
+    &:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      width: 0%;
+      height: 2px;
+      background: var(--yellow);
+      transition: width 0.3s;
+    }
+
+    &:hover:after {
+      width: 100%;
     }
   }
 `;
@@ -84,13 +106,15 @@ const MenuItem = styled(motion.li)`
     display: block;
     color: var(--white);
     padding: 0.5rem 1rem;
+    font-weight: 500;
   }
 `;
 
-const CartLink = styled(NavLink)`
+const CartLink = styled(motion(NavLink))`
   position: relative;
   display: flex;
   align-items: center;
+  transition: transform 0.2s;
 
   svg {
     color: var(--white);
@@ -141,11 +165,10 @@ const Navbar = () => {
         </Toggle>
         <RightSection>
           <Menu
-            animate={open ? { x: 0, opacity: 1 } : { x: "100%", opacity: 0 }}
+            initial={{ x: '100%' }}
+            animate={open || window.innerWidth > 768 ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
             transition={{ type: "tween" }}
-            style={{
-              display: open || window.innerWidth > 768 ? "flex" : "none",
-            }}
+            style={{ display: open || window.innerWidth > 768 ? "flex" : "none" }}
           >
             <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               <NavLink to="/" onClick={() => setOpen(false)}>
@@ -177,6 +200,8 @@ const Navbar = () => {
             to="/carrello"
             aria-label="Carrello"
             onClick={() => setOpen(false)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
             <FaShoppingBag size={20} />
             {items.length > 0 && <CartCount>{items.length}</CartCount>}

@@ -25,7 +25,7 @@ const Form = styled.form`
 
 const Input = styled(motion.input)`
   padding: 0.75rem;
-  border: 1px solid #333;
+  border: 1px solid var(--gray);
   border-radius: 4px;
   background-color: #111;
   color: var(--white);
@@ -33,7 +33,7 @@ const Input = styled(motion.input)`
 
 const TextArea = styled(motion.textarea)`
   padding: 0.75rem;
-  border: 1px solid #333;
+  border: 1px solid var(--gray);
   border-radius: 4px;
   background-color: #111;
   color: var(--white);

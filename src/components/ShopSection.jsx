@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
@@ -26,6 +26,7 @@ const Item = styled(motion.div)`
   background-color: #111;
   padding: 1rem;
   border-radius: 4px;
+  border: 1px solid var(--gray);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -48,6 +49,7 @@ const Button = styled(motion.button)`
 
 const ShopSection = () => {
   const { addItem } = useCart();
+  const [message, setMessage] = useState('');
   return (
   <Section>
     <div className="container">
@@ -62,13 +64,18 @@ const ShopSection = () => {
             <Button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => addItem({ id: product.id, name: product.name, price: product.price })}
+              onClick={() => {
+                addItem({ id: product.id, name: product.name, price: product.price });
+                setMessage('Aggiunto al carrello!');
+                setTimeout(() => setMessage(''), 2000);
+              }}
             >
               Aggiungi al carrello
             </Button>
           </Item>
         ))}
       </Grid>
+      {message && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: 'var(--green)', marginTop: '1rem' }}>{message}</motion.p>}
     </div>
   </Section>
   );

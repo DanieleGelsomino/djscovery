@@ -6,7 +6,7 @@ import heroImg from '../assets/img/hero.png';
 
 const Section = styled(motion.section)`
   position: relative;
-  height: 70vh;
+  height: 80vh;
   color: var(--white);
   text-align: center;
   overflow: hidden;
@@ -20,6 +20,7 @@ const Background = styled(motion.div)`
   inset: 0;
   background-size: cover;
   background-position: center;
+  transform-origin: center;
 `;
 
 const Overlay = styled(motion.div)`
@@ -68,18 +69,23 @@ const HeroSection = () => {
     <Section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
       <Background
         style={{ backgroundImage: `url(${heroImg})` }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ scale: 1.1, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 1 }}
       />
       <Overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
       <Content>
-        <motion.h1 initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+        <motion.h1
+          initial={{ y: -30, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+        >
           Music &amp; Travel
         </motion.h1>
         <motion.p
           initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.
