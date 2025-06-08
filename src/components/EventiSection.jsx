@@ -42,8 +42,8 @@ const Section = styled.section`
 
 const Cards = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
   margin-top: 2rem;
   padding-bottom: 2rem;
 `;
@@ -51,21 +51,39 @@ const Cards = styled.div`
 const Card = styled(motion.div)`
   background-color: #111;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 8px;
   border: 1px solid var(--gray);
   display: flex;
   flex-direction: column;
-  align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  text-align: left;
 
   img {
-    border-radius: 4px;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 6px;
     margin-bottom: 0.5rem;
   }
 
   h3 {
     color: var(--yellow);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
   }
+
+  p {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0.25rem 0;
+  }
+`;
+
+const CardContent = styled.div`
+  flex: 1;
 `;
 
 const Button = styled(motion.button)`
@@ -75,6 +93,7 @@ const Button = styled(motion.button)`
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
+  align-self: flex-start;
 `;
 
 const EventiSection = () => {
@@ -96,11 +115,13 @@ const EventiSection = () => {
             whileHover={{ scale: 1.05, boxShadow: '0 0 8px var(--green)' }}
           >
             <img src={event.image} alt={event.place} />
-            <h3><FaMapMarkerAlt /> {event.place}</h3>
-            <p><FaCalendarAlt /> {event.date}</p>
-            <p><FaClock /> {event.time}</p>
-            <p>{event.description}</p>
-            <p><FaEuroSign /> {event.price}</p>
+            <CardContent>
+              <h3><FaMapMarkerAlt /> {event.place}</h3>
+              <p><FaCalendarAlt /> {event.date}</p>
+              <p><FaClock /> {event.time}</p>
+              <p>{event.description}</p>
+              <p><FaEuroSign /> {event.price}</p>
+            </CardContent>
             <Button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
