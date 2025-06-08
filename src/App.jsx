@@ -9,6 +9,7 @@ import CartPage from './components/CartPage';
 import ChiSiamoSection from './components/ChiSiamoSection';
 import ContattiSection from './components/ContattiSection';
 import Footer from './components/Footer';
+import TicketBookingForm from './components/TicketBookingForm';
 
 const App = () => {
   const location = useLocation();
@@ -23,6 +24,7 @@ const App = () => {
           <Route path="/carrello" element={<CartPage />} />
           <Route path="/chi-siamo" element={<ChiSiamoSection />} />
           <Route path="/contatti" element={<ContattiSection />} />
+          <Route path="/prenota" element={<TicketBookingForm />} />
         </Routes>
       </AnimatePresence>
       <Footer />
