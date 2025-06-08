@@ -3,8 +3,8 @@ import styled from 'styled-components';
 import { saveBooking } from '../firebase/functions';
 
 const Wrapper = styled.section`
-  padding: 2rem 0;
   text-align: center;
+  background: linear-gradient(180deg, #111, #000);
 `;
 
 const Form = styled.form`
@@ -13,6 +13,10 @@ const Form = styled.form`
   gap: 1rem;
   max-width: 400px;
   margin: 0 auto;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 `;
 
 const Input = styled.input`

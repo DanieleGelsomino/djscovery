@@ -36,8 +36,8 @@ const eventi = [
 ];
 
 const Section = styled.section`
-  padding: 2rem 0;
   text-align: center;
+  background: linear-gradient(180deg, #111, #000);
 `;
 
 const Cards = styled.div`
@@ -54,6 +54,7 @@ const Card = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 
   h3 {
     color: var(--yellow);

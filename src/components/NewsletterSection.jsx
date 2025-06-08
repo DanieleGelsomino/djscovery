@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 const Section = styled.section`
   padding: 3rem 0;
-  background: var(--green);
+  background: linear-gradient(180deg, var(--green), #013a14);
   color: var(--white);
   text-align: center;
 `;
@@ -15,6 +15,10 @@ const Form = styled.form`
   gap: 1rem;
   max-width: 400px;
   margin: 1rem auto 0;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 `;
 
 const Input = styled(motion.input)`
