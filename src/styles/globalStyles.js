@@ -30,9 +30,17 @@ export const GlobalStyles = createGlobalStyle`
   body {
     font-size: 17px;
     font-family: 'Inter', 'Poppins', Arial, Helvetica, sans-serif;
-    background-color: var(--black);
+    background: linear-gradient(135deg, #000, #111);
     color: var(--white);
     line-height: 1.6;
+  }
+
+  section {
+    padding: 2rem 0;
+  }
+
+  button {
+    border-radius: 4px;
   }
 
   img {

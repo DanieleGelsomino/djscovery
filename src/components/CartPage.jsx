@@ -4,14 +4,49 @@ import { useCart } from './CartContext';
 import Spinner from './Spinner';
 
 const Section = styled.section`
-  padding: 2rem 0;
+  display: flex;
+  justify-content: center;
   text-align: center;
+  min-height: calc(100vh - 200px);
+`;
+
+const CartWrapper = styled.div`
+  width: 100%;
+  max-width: 600px;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
 `;
 
 const Item = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background-color: #111;
+  border-radius: 4px;
+
+  span:first-child {
+    text-align: left;
+  }
+
+  button {
+    background-color: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+  }
+`;
+
+const Total = styled.p`
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: var(--yellow);
+  margin-top: 1rem;
 `;
 
 const CartPage = () => {
@@ -30,16 +65,18 @@ const CartPage = () => {
   return (
     <Section>
       <div className="container">
-        <h2>Carrello</h2>
-        {items.length === 0 && <p>Nessun elemento nel carrello.</p>}
-        {items.map((item, idx) => (
-          <Item key={idx}>
-            <span>{item.name}</span>
-            <span>{item.price}€</span>
-            <button onClick={() => removeItem(idx)}>Rimuovi</button>
-          </Item>
-        ))}
-        {items.length > 0 && <p>Total: {total}€</p>}
+        <CartWrapper>
+          <h2>Carrello</h2>
+          {items.length === 0 && <p>Nessun elemento nel carrello.</p>}
+          {items.map((item, idx) => (
+            <Item key={idx}>
+              <span>{item.name}</span>
+              <span>{item.price}€</span>
+              <button onClick={() => removeItem(idx)}>Rimuovi</button>
+            </Item>
+          ))}
+          {items.length > 0 && <Total>Total: {total}€</Total>}
+        </CartWrapper>
       </div>
     </Section>
   );

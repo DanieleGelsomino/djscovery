@@ -3,8 +3,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
 const Section = styled(motion.section)`
-  padding: 2rem 0;
   text-align: center;
+  background: linear-gradient(180deg, #111, #000);
 `;
 
 const Form = styled.form`
@@ -12,6 +12,10 @@ const Form = styled.form`
   flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 
   @media (min-width: 768px) {
     width: 60%;
