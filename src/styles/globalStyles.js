@@ -29,7 +29,7 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     font-size: 16px;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
     background-color: var(--black);
     color: var(--white);
     line-height: 1.6;

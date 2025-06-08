@@ -21,6 +21,12 @@ const Input = styled.input`
   border-radius: 4px;
   background-color: #111;
   color: var(--white);
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--yellow);
+  }
 `;
 
 const Button = styled.button`
@@ -29,6 +35,11 @@ const Button = styled.button`
   color: var(--white);
   border: none;
   border-radius: 4px;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.05);
+  }
 `;
 
 const TicketBookingForm = () => {
