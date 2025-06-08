@@ -8,15 +8,22 @@ const Section = styled.section`
   justify-content: center;
   text-align: center;
   min-height: calc(100vh - 200px);
+  padding: 2rem 0;
 `;
 
 const CartWrapper = styled.div`
   width: 100%;
   max-width: 600px;
+  margin: 0 auto;
   background-color: rgba(255, 255, 255, 0.05);
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+
+  @media (min-width: 768px) {
+    max-width: 800px;
+    padding: 3rem;
+  }
 
   @media (max-width: 480px) {
     padding: 1rem;
@@ -43,6 +50,11 @@ const Item = styled.div`
     border: none;
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
+  }
+
+  @media (min-width: 768px) {
+    gap: 2rem;
+    padding: 1rem 1.5rem;
   }
 
   @media (max-width: 480px) {
