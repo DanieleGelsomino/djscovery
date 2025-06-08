@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { FaShoppingBag } from 'react-icons/fa';
-import { FiMenu, FiX } from 'react-icons/fi';
-import { useCart } from './CartContext';
-import logoImg from '../assets/img/logo-dj.png';
+import React, { useState, useEffect } from "react";
+import { Link, NavLink } from "react-router-dom";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import { FaShoppingBag } from "react-icons/fa";
+import { FiMenu, FiX } from "react-icons/fi";
+import { useCart } from "./CartContext";
+import logoImg from "../assets/img/logo-dj.png";
 
 const Nav = styled(motion.nav)`
   background-color: ${({ scrolled }) =>
-    scrolled ? 'var(--black)' : 'transparent'};
+    scrolled ? "var(--black)" : "transparent"};
   padding: 1rem 0;
   position: sticky;
   top: 0;
@@ -40,7 +40,7 @@ const Logo = styled(motion(Link))`
 `;
 
 const LogoImage = styled.img`
-  height: 40px;
+  height: 6rem;
 `;
 
 const Toggle = styled(motion.button)`
@@ -117,12 +117,17 @@ const Navbar = () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <Nav scrolled={scrolled} initial={{ y: -80 }} animate={{ y: 0 }} transition={{ duration: 0.5 }}>
+    <Nav
+      scrolled={scrolled}
+      initial={{ y: -80 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <Container>
         <Logo whileHover={{ rotate: 2 }} to="/">
           <LogoImage src={logoImg} alt="Djscovery logo" />
@@ -135,31 +140,47 @@ const Navbar = () => {
           {open ? <FiX /> : <FiMenu />}
         </Toggle>
         <RightSection>
-        <Menu
-          animate={open ? { x: 0, opacity: 1 } : { x: '100%', opacity: 0 }}
-          transition={{ type: 'tween' }}
-          style={{ display: open || window.innerWidth > 768 ? 'flex' : 'none' }}
-        >
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
-          </MenuItem>
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/eventi" onClick={() => setOpen(false)}>Eventi</NavLink>
-          </MenuItem>
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
-          </MenuItem>
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>Chi Siamo</NavLink>
-          </MenuItem>
-          <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <NavLink to="/contatti" onClick={() => setOpen(false)}>Contatti</NavLink>
-          </MenuItem>
-        </Menu>
-        <CartLink to="/carrello" aria-label="Carrello" onClick={() => setOpen(false)}>
-          <FaShoppingBag size={20} />
-          {items.length > 0 && <CartCount>{items.length}</CartCount>}
-        </CartLink>
+          <Menu
+            animate={open ? { x: 0, opacity: 1 } : { x: "100%", opacity: 0 }}
+            transition={{ type: "tween" }}
+            style={{
+              display: open || window.innerWidth > 768 ? "flex" : "none",
+            }}
+          >
+            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <NavLink to="/" onClick={() => setOpen(false)}>
+                Home
+              </NavLink>
+            </MenuItem>
+            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <NavLink to="/eventi" onClick={() => setOpen(false)}>
+                Eventi
+              </NavLink>
+            </MenuItem>
+            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <NavLink to="/shop" onClick={() => setOpen(false)}>
+                Shop
+              </NavLink>
+            </MenuItem>
+            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>
+                Chi Siamo
+              </NavLink>
+            </MenuItem>
+            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <NavLink to="/contatti" onClick={() => setOpen(false)}>
+                Contatti
+              </NavLink>
+            </MenuItem>
+          </Menu>
+          <CartLink
+            to="/carrello"
+            aria-label="Carrello"
+            onClick={() => setOpen(false)}
+          >
+            <FaShoppingBag size={20} />
+            {items.length > 0 && <CartCount>{items.length}</CartCount>}
+          </CartLink>
         </RightSection>
       </Container>
     </Nav>
