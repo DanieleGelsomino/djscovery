@@ -57,7 +57,10 @@
     "title": "Carrello",
     "empty": "Nessun elemento nel carrello.",
     "remove": "Rimuovi",
-    "total": "Total"
+    "total": "Total",
+    "quantity": "Qtà",
+    "increase": "Aumenta",
+    "decrease": "Diminuisci"
   },
   "booking": {
     "title": "Prenota il tuo biglietto",
