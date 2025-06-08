@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
+import { FaPaperPlane } from 'react-icons/fa';
 
 const Section = styled.section`
   padding: 3rem 0;
-  background: linear-gradient(180deg, var(--green), #013a14);
+  background: linear-gradient(180deg, #ff7e5f, #feb47b);
   color: var(--white);
   text-align: center;
 `;
@@ -35,6 +36,10 @@ const Button = styled(motion.button)`
   background: var(--yellow);
   color: var(--black);
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 `;
 
 const NewsletterSection = () => {
@@ -55,7 +60,7 @@ const NewsletterSection = () => {
         <Form onSubmit={handleSubmit}>
           <Input type="email" placeholder={t('newsletter.email')} required whileFocus={{ scale: 1.02 }} />
           <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            {t('newsletter.subscribe')}
+            {t('newsletter.subscribe')} <FaPaperPlane />
           </Button>
         </Form>
         {submitted && <p>{t('newsletter.success')}</p>}

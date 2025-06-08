@@ -27,16 +27,25 @@ const Background = styled(motion.div)`
 const Overlay = styled(motion.div)`
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.45);
 `;
 
 const Content = styled.div`
   position: relative;
   z-index: 1;
   padding: 0 1rem;
+
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+  }
+
+  p {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  }
 `;
 
-const CTAWrapper = styled.div`
+const CTAWrapper = styled(motion.div)`
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
@@ -55,6 +64,7 @@ const BtnPrimary = styled(motion(Link))`
   background-color: var(--green);
   color: var(--white);
   font-weight: bold;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 `;
 
 const BtnSecondary = styled(motion(Link))`
@@ -63,6 +73,7 @@ const BtnSecondary = styled(motion(Link))`
   background-color: var(--yellow);
   color: var(--black);
   font-weight: bold;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 `;
 
 const HeroSection = () => {
@@ -92,11 +103,23 @@ const HeroSection = () => {
         >
           {t('hero.subtitle')}
         </motion.p>
-        <CTAWrapper>
-          <BtnPrimary to="/eventi" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <CTAWrapper
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <BtnPrimary
+            to="/eventi"
+            whileHover={{ scale: 1.05, boxShadow: '0 0 12px var(--yellow)' }}
+            whileTap={{ scale: 0.95 }}
+          >
             {t('hero.cta_events')}
           </BtnPrimary>
-          <BtnSecondary to="/shop" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <BtnSecondary
+            to="/shop"
+            whileHover={{ scale: 1.05, boxShadow: '0 0 12px var(--yellow)' }}
+            whileTap={{ scale: 0.95 }}
+          >
             {t('hero.cta_shop')}
           </BtnSecondary>
         </CTAWrapper>
