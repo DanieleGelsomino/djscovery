@@ -1,6 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 import img1 from '../assets/img/Copia di Testo del paragraf.png';
 import img2 from '../assets/img/Copia di Testo del paragrafo.png';
 import img3 from '../assets/img/DJSCOVERY LOGO.png';
@@ -16,18 +20,20 @@ const Section = styled.section`
   text-align: center;
 `;
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.5rem;
+const StyledSwiper = styled(Swiper)`
   margin-top: 1rem;
-`;
 
-const Image = styled(motion.img)`
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 4px;
+  .swiper-slide {
+    display: flex;
+    justify-content: center;
+  }
+
+  img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
 `;
 
 const images = [
@@ -51,11 +57,23 @@ const GallerySection = () => (
   <Section>
     <div className="container">
       <h2>Gallery</h2>
-      <Grid>
+      <StyledSwiper
+        modules={[Autoplay, Pagination]}
+        autoplay={{ delay: 2500, disableOnInteraction: false }}
+        pagination={{ clickable: true }}
+        spaceBetween={10}
+        slidesPerView={1}
+        breakpoints={{
+          640: { slidesPerView: 2 },
+          1024: { slidesPerView: 3 }
+        }}
+      >
         {images.map((img, idx) => (
-          <Image key={idx} src={img} alt="gallery" whileHover={{ scale: 1.05 }} />
+          <SwiperSlide key={idx}>
+            <motion.img src={img} alt="gallery" whileHover={{ scale: 1.05 }} />
+          </SwiperSlide>
         ))}
-      </Grid>
+      </StyledSwiper>
     </div>
   </Section>
 );
