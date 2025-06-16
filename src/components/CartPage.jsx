@@ -34,7 +34,7 @@ const CartWrapper = styled.div`
 
 const Item = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
@@ -60,14 +60,22 @@ const Item = styled.div`
   }
 
   @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    text-align: center;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    text-align: left;
 
     button {
-      width: 100%;
+      width: auto;
       margin-top: 0.5rem;
     }
   }
+`;
+
+const ItemImage = styled.img`
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
 `;
 
 const Quantity = styled.div`
@@ -113,6 +121,7 @@ const CartPage = () => {
           {items.length === 0 && <p>{t('cart.empty')}</p>}
           {items.map((item) => (
             <Item key={item.id}>
+              {item.image && <ItemImage src={item.image} alt={item.name} />}
               <span>{item.name}</span>
               <Quantity>
                 <Control aria-label={t('cart.decrease')} onClick={() => decreaseItem(item.id)}>

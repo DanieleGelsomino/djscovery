@@ -113,7 +113,12 @@ const EventiSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                addItem({ id: event.id, name: `Biglietto ${event.place}`, price: event.price });
+                addItem({
+                  id: event.id,
+                  name: `Biglietto ${event.place}`,
+                  price: event.price,
+                  image: event.image,
+                });
                 navigate('/prenota');
                 setMessage(t('events.added'));
                 setTimeout(() => setMessage(''), 2000);

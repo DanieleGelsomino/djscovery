@@ -67,7 +67,12 @@ const ShopSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                addItem({ id: product.id, name: product.name, price: product.price });
+                addItem({
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  image: product.image,
+                });
                 setMessage(t('shop.added'));
                 setTimeout(() => setMessage(''), 2000);
               }}
