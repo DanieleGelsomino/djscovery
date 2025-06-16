@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { saveBooking } from '../firebase/functions';
+import { sendBooking } from '../api';
 import { useLanguage } from './LanguageContext';
+import Spinner from './Spinner';
 
 const Wrapper = styled.section`
   text-align: center;
@@ -56,6 +57,7 @@ const TicketBookingForm = () => {
   });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
 
   const handleChange = (e) => {
@@ -76,13 +78,16 @@ const TicketBookingForm = () => {
       return;
     }
     setError('');
+    setLoading(true);
     try {
-      await saveBooking(formData);
+      await sendBooking(formData);
       setSuccess(true);
       setFormData({ nome: '', cognome: '', email: '', telefono: '' });
       setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       setError(t('booking.error'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,7 +125,10 @@ const TicketBookingForm = () => {
             onChange={handleChange}
             required
           />
-          <Button type="submit">{t('booking.book')}</Button>
+          <Button type="submit" disabled={loading}>
+            {t('booking.book')}
+          </Button>
+          {loading && <Spinner />}
         </Form>
         {error && <p>{error}</p>}
         {success && <p>{t('booking.success')}</p>}

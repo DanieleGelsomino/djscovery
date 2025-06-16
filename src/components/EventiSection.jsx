@@ -1,40 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign } from 'react-icons/fa';
+import { fetchEvents } from '../api';
+import Spinner from './Spinner';
 
-const eventi = [
-  {
-    id: 1,
-    date: '2024-07-01',
-    place: 'Roma',
-    time: '21:00',
-    price: 25,
-    image: 'https://source.unsplash.com/400x300/?concert',
-    description: "Serata di apertura dell'estate con DJ Alpha.",
-  },
-  {
-    id: 2,
-    date: '2024-08-15',
-    place: 'Milano',
-    time: '22:00',
-    price: 30,
-    image: 'https://source.unsplash.com/400x300/?party',
-    description: 'Ferragosto in musica con i migliori DJ italiani.',
-  },
-  {
-    id: 3,
-    date: '2024-09-10',
-    place: 'Napoli',
-    time: '20:00',
-    price: 20,
-    image: 'https://source.unsplash.com/400x300/?dj',
-    description: 'Chiusura della stagione estiva sul lungomare.',
-  },
-];
 
 const Section = styled.section`
   text-align: center;
@@ -101,14 +74,26 @@ const EventiSection = () => {
   const { addItem } = useCart();
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState([]);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    fetchEvents()
+      .then(setEvents)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
   <Section>
     <div className="container">
       <h2>{t('events.title')}</h2>
       <p>{t('events.subtitle')}</p>
+      {loading && <Spinner aria-label={t('events.loading')} />}
+      {!loading && events.length === 0 && <p>{t('events.none')}</p>}
       <Cards>
-        {eventi.map(event => (
+        {events.map(event => (
           <Card
             key={event.id}
             initial={{ opacity: 0, y: 30 }}
