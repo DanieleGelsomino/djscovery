@@ -36,6 +36,15 @@ export const GlobalStyles = createGlobalStyle`
     background: linear-gradient(135deg, #000, #111);
     color: var(--white);
     line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  #root {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
   }
 
   section {
