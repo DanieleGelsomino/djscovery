@@ -16,6 +16,6 @@ const Disc = styled.div`
   margin: 2rem auto;
 `;
 
-const Spinner = () => <Disc />;
+const Spinner = (props) => <Disc role="status" {...props} />;
 
 export default Spinner;

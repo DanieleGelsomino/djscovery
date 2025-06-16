@@ -26,6 +26,8 @@
   "events": {
     "title": "Prossimi Eventi",
     "subtitle": "Scopri e prenota le nostre serate speciali in tutta Italia.",
+    "loading": "Caricamento eventi...",
+    "none": "Nessun evento disponibile",
     "book_now": "Prenota ora",
     "added": "Aggiunto al carrello!"
   },

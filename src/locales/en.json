@@ -26,6 +26,8 @@
   "events": {
     "title": "Next Events",
     "subtitle": "Discover and book our special nights throughout Italy.",
+    "loading": "Loading events...",
+    "none": "No events available",
     "book_now": "Book now",
     "added": "Added to cart!"
   },
