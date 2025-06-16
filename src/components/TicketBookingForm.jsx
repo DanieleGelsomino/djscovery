@@ -80,6 +80,7 @@ const TicketBookingForm = () => {
       await saveBooking(formData);
       setSuccess(true);
       setFormData({ nome: '', cognome: '', email: '', telefono: '' });
+      setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       setError(t('booking.error'));
     }

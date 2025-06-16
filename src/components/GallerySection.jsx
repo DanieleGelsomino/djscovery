@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/navigation";
 import img1 from "../assets/img/Copia di Testo del paragraf.png";
 import img2 from "../assets/img/Copia di Testo del paragrafo.png";
 import img3 from "../assets/img/DJSCOVERY LOGO.png";
