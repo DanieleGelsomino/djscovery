@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import img1 from '../assets/img/Copia di Testo del paragraf.png';
@@ -10,6 +10,9 @@ import img6 from '../assets/img/Testo del paragrafo_HQ2.png';
 import img7 from '../assets/img/hero.png';
 import img8 from '../assets/img/logo-dj.png';
 import { useLanguage } from './LanguageContext';
+import Spinner from './Spinner';
+
+const ImageModal = lazy(() => import('./ImageModal'));
 
 const Section = styled.section`
   padding: 2rem 0;
@@ -60,42 +63,6 @@ const Info = styled.div`
   }
 `;
 
-const ModalOverlay = styled(motion.div)`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled(motion.div)`
-  background: #111;
-  padding: 1rem;
-  border-radius: 8px;
-  max-width: 90%;
-  width: 600px;
-  text-align: center;
-
-  img {
-    width: 100%;
-    max-height: 60vh;
-    object-fit: contain;
-    border-radius: 6px;
-    margin-bottom: 1rem;
-  }
-`;
-
-const CloseButton = styled.button`
-  align-self: flex-end;
-  background: var(--red);
-  color: var(--white);
-  border: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-`;
 
 const images = [
   { src: img1, place: 'Roma', description: 'Panorama notturno' },
@@ -108,50 +75,81 @@ const images = [
   { src: img8, place: 'Genova', description: 'Stage all\'aperto' },
 ];
 
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 0.5rem;
+`;
+
+const PageButton = styled.button`
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+`;
+
+const GalleryItem = React.memo(({ item, onClick }) => (
+  <Item whileHover={{ scale: 1.02 }} onClick={() => onClick(item)}>
+    <img loading="lazy" src={item.src} alt={item.place} />
+    <Info>
+      <h3>{item.place}</h3>
+      <p>{item.description}</p>
+    </Info>
+  </Item>
+));
+
+const IMAGES_PER_PAGE = 8;
+
 const GallerySection = () => {
   const { t } = useLanguage();
   const [selected, setSelected] = useState(null);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.ceil(images.length / IMAGES_PER_PAGE);
+  const paginatedImages = useMemo(
+    () => images.slice((page - 1) * IMAGES_PER_PAGE, page * IMAGES_PER_PAGE),
+    [page]
+  );
 
   return (
     <Section>
       <div className="container">
         <h2>{t('gallery.title')}</h2>
         <GalleryGrid>
-          {images.map((item, idx) => (
-            <Item
-              key={idx}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => setSelected(item)}
-            >
-              <img src={item.src} alt={item.place} />
-              <Info>
-                <h3>{item.place}</h3>
-                <p>{item.description}</p>
-              </Info>
-            </Item>
+          {paginatedImages.map((item, idx) => (
+            <GalleryItem key={`${page}-${idx}`} item={item} onClick={setSelected} />
           ))}
         </GalleryGrid>
+        {totalPages > 1 && (
+          <PaginationWrapper>
+            <PageButton disabled={page === 1} onClick={() => setPage(page - 1)}>
+              Prev
+            </PageButton>
+            <span>
+              {page} / {totalPages}
+            </span>
+            <PageButton
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </PageButton>
+          </PaginationWrapper>
+        )}
       </div>
       <AnimatePresence>
         {selected && (
-          <ModalOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelected(null)}
-          >
-            <ModalContent
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CloseButton onClick={() => setSelected(null)}>X</CloseButton>
-              <img src={selected.src} alt={selected.place} />
-              <h3>{selected.place}</h3>
-              <p>{selected.description}</p>
-            </ModalContent>
-          </ModalOverlay>
+          <Suspense fallback={<Spinner />}>
+            <ImageModal selected={selected} onClose={() => setSelected(null)} />
+          </Suspense>
         )}
       </AnimatePresence>
     </Section>
