@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import EventiSection from './components/EventiSection';
 import ShopSection from './components/ShopSection';
+import GallerySection from './components/GallerySection';
 import CartPage from './components/CartPage';
 import ChiSiamoSection from './components/ChiSiamoSection';
 import ContattiSection from './components/ContattiSection';
@@ -29,6 +30,7 @@ const App = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/eventi" element={<EventiSection />} />
             <Route path="/shop" element={<ShopSection />} />
+            <Route path="/gallery" element={<GallerySection />} />
             <Route path="/carrello" element={<CartPage />} />
             <Route path="/chi-siamo" element={<ChiSiamoSection />} />
             <Route path="/contatti" element={<ContattiSection />} />
