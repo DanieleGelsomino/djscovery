@@ -9,6 +9,7 @@ import img5 from '../assets/img/Testo del paragrafo_HQ.png';
 import img6 from '../assets/img/Testo del paragrafo_HQ2.png';
 import img7 from '../assets/img/hero.png';
 import img8 from '../assets/img/logo-dj.png';
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import { useLanguage } from './LanguageContext';
 import Spinner from './Spinner';
 
@@ -64,7 +65,7 @@ const Info = styled.div`
 `;
 
 
-const images = [
+const baseImages = [
   { src: img1, place: 'Roma', description: 'Panorama notturno' },
   { src: img2, place: 'Milano', description: 'Evento in piazza' },
   { src: img3, place: 'Napoli', description: 'DJ set al tramonto' },
@@ -74,6 +75,8 @@ const images = [
   { src: img7, place: 'Bari', description: 'Luci e musica' },
   { src: img8, place: 'Genova', description: 'Stage all\'aperto' },
 ];
+
+const images = [...baseImages, ...baseImages];
 
 const PaginationWrapper = styled.div`
   display: flex;
@@ -96,6 +99,15 @@ const PageButton = styled.button`
   }
 `;
 
+const PageNumberButton = styled.button`
+  background: ${({ active }) => (active ? 'var(--yellow)' : 'var(--gray)')};
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+`;
+
 const GalleryItem = React.memo(({ item, onClick }) => (
   <Item whileHover={{ scale: 1.02 }} onClick={() => onClick(item)}>
     <img loading="lazy" src={item.src} alt={item.place} />
@@ -106,7 +118,7 @@ const GalleryItem = React.memo(({ item, onClick }) => (
   </Item>
 ));
 
-const IMAGES_PER_PAGE = 8;
+const IMAGES_PER_PAGE = 4;
 
 const GallerySection = () => {
   const { t } = useLanguage();
@@ -131,16 +143,22 @@ const GallerySection = () => {
         {totalPages > 1 && (
           <PaginationWrapper>
             <PageButton disabled={page === 1} onClick={() => setPage(page - 1)}>
-              Prev
+              <FaArrowLeft />
             </PageButton>
-            <span>
-              {page} / {totalPages}
-            </span>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <PageNumberButton
+                key={i + 1}
+                active={page === i + 1}
+                onClick={() => setPage(i + 1)}
+              >
+                {i + 1}
+              </PageNumberButton>
+            ))}
             <PageButton
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
             >
-              Next
+              <FaArrowRight />
             </PageButton>
           </PaginationWrapper>
         )}
