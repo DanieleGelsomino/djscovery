@@ -203,11 +203,16 @@ const Navbar = () => {
             transition={{ type: 'tween' }}
             style={{ display: open || isDesktop ? 'flex' : 'none' }}
           >
-            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <NavLink to="/" onClick={() => setOpen(false)}>
-                {t('nav.home')}
-              </NavLink>
-            </MenuItem>
+              <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <NavLink to="/" onClick={() => setOpen(false)}>
+                  {t('nav.home')}
+                </NavLink>
+              </MenuItem>
+              <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <NavLink to="/gallery" onClick={() => setOpen(false)}>
+                  {t('nav.gallery')}
+                </NavLink>
+              </MenuItem>
             <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               <NavLink to="/eventi" onClick={() => setOpen(false)}>
                 {t('nav.events')}
