@@ -148,6 +148,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const { items } = useCart();
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -236,7 +237,7 @@ const Navbar = () => {
             whileTap={{ scale: 0.95 }}
           >
             <FaShoppingBag size={20} />
-            {items.length > 0 && <CartCount>{items.length}</CartCount>}
+            {totalItems > 0 && <CartCount>{totalItems}</CartCount>}
           </CartLink>
           <LanguageSelector />
         </RightSection>
