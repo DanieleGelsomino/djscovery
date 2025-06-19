@@ -73,8 +73,8 @@ const EventiSection = () => {
               border: '1px solid var(--gray)',
               color: 'var(--white)',
               textAlign: 'left',
-              maxWidth: 380,
-              margin: '0 auto',
+              width: '100%',
+              margin: 0,
               display: 'flex',
               flexDirection: 'column',
             }}
