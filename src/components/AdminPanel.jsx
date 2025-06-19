@@ -20,11 +20,16 @@ import {
   TableCell,
   TableBody,
   Divider,
+  IconButton,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EventIcon from '@mui/icons-material/Event';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarIcon from '@mui/icons-material/CalendarToday';
+import MenuIcon from '@mui/icons-material/Menu';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const drawerWidth = 240;
 
@@ -41,6 +46,9 @@ const AdminPanel = () => {
   });
   const [message, setMessage] = useState('');
   const [section, setSection] = useState('bookings');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,19 +97,19 @@ const AdminPanel = () => {
       <Toolbar />
       <Divider />
       <List>
-        <ListItem button onClick={() => setSection('bookings')} selected={section === 'bookings'}>
+        <ListItem button onClick={() => {setSection('bookings'); setMobileOpen(false);}} selected={section === 'bookings'}>
           <ListItemIcon>
             <ListAltIcon />
           </ListItemIcon>
           <ListItemText primary="Prenotazioni" />
         </ListItem>
-        <ListItem button onClick={() => setSection('events')} selected={section === 'events'}>
+        <ListItem button onClick={() => {setSection('events'); setMobileOpen(false);}} selected={section === 'events'}>
           <ListItemIcon>
             <CalendarIcon />
           </ListItemIcon>
           <ListItemText primary="Eventi" />
         </ListItem>
-        <ListItem button onClick={() => setSection('create')} selected={section === 'create'}>
+        <ListItem button onClick={() => {setSection('create'); setMobileOpen(false);}} selected={section === 'create'}>
           <ListItemIcon>
             <EventIcon />
           </ListItemIcon>
@@ -117,16 +125,26 @@ const AdminPanel = () => {
       <AppBar position="fixed"
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: 'var(--black)', color: 'var(--yellow)' }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography variant="h6" noWrap component="div">
-            Admin Panel
-          </Typography>
-          <Button color="inherit" onClick={() => { localStorage.removeItem('isAdmin'); navigate('/'); }}>
-            Logout
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isMobile && (
+              <IconButton color="inherit" onClick={() => setMobileOpen(true)}>
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Typography variant="h6" noWrap component="div">
+              Admin Panel
+            </Typography>
+          </Box>
+          <IconButton color="inherit" onClick={() => { localStorage.removeItem('isAdmin'); navigate('/'); }}>
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
       <Drawer
-        variant="permanent"
+        variant={isMobile ? 'temporary' : 'permanent'}
+        open={isMobile ? mobileOpen : true}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
@@ -147,6 +165,7 @@ const AdminPanel = () => {
             <Typography variant="h5" gutterBottom>
               Prenotazioni
             </Typography>
+            <Box sx={{ overflowX: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -169,6 +188,7 @@ const AdminPanel = () => {
                 ))}
               </TableBody>
             </Table>
+            </Box>
           </Box>
         )}
         {section === 'events' && (
@@ -176,6 +196,7 @@ const AdminPanel = () => {
             <Typography variant="h5" gutterBottom>
               Eventi
             </Typography>
+            <Box sx={{ overflowX: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -200,6 +221,7 @@ const AdminPanel = () => {
                 ))}
               </TableBody>
             </Table>
+            </Box>
           </Box>
         )}
         {section === 'create' && (
@@ -213,8 +235,8 @@ const AdminPanel = () => {
             <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             <TextField name="image" label="URL immagine" variant="outlined" value={formData.image} onChange={handleChange} fullWidth />
             <TextField name="description" label="Descrizione" variant="outlined" value={formData.description} onChange={handleChange} fullWidth />
-            <Button type="submit" variant="contained"
-              sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
+            <Button type="submit" variant="contained" fullWidth={isMobile}
+              sx={{ alignSelf: isMobile ? 'stretch' : 'flex-start', backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Crea
             </Button>
             {message && <Typography>{message}</Typography>}
