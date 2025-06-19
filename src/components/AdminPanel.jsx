@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchBookings, createEvent } from '../api';
+import { fetchBookings, createEvent, fetchEvents, deleteEvent } from '../api';
 import {
   Box,
   Drawer,
@@ -23,11 +23,14 @@ import {
 } from '@mui/material';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EventIcon from '@mui/icons-material/Event';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CalendarIcon from '@mui/icons-material/CalendarToday';
 
 const drawerWidth = 240;
 
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
+  const [events, setEvents] = useState([]);
   const [formData, setFormData] = useState({
     date: '',
     place: '',
@@ -46,6 +49,7 @@ const AdminPanel = () => {
       return;
     }
     fetchBookings().then(setBookings).catch(() => {});
+    fetchEvents().then(setEvents).catch(() => {});
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -70,6 +74,16 @@ const AdminPanel = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Eliminare questo evento?')) return;
+    try {
+      await deleteEvent(id);
+      setEvents(events.filter((ev) => ev.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const drawer = (
     <div>
       <Toolbar />
@@ -80,6 +94,12 @@ const AdminPanel = () => {
             <ListAltIcon />
           </ListItemIcon>
           <ListItemText primary="Prenotazioni" />
+        </ListItem>
+        <ListItem button onClick={() => setSection('events')} selected={section === 'events'}>
+          <ListItemIcon>
+            <CalendarIcon />
+          </ListItemIcon>
+          <ListItemText primary="Eventi" />
         </ListItem>
         <ListItem button onClick={() => setSection('create')} selected={section === 'create'}>
           <ListItemIcon>
@@ -94,11 +114,15 @@ const AdminPanel = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar>
+      <AppBar position="fixed"
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: 'var(--black)', color: 'var(--yellow)' }}>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="h6" noWrap component="div">
             Admin Panel
           </Typography>
+          <Button color="inherit" onClick={() => { localStorage.removeItem('isAdmin'); navigate('/'); }}>
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -106,7 +130,12 @@ const AdminPanel = () => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: 'var(--black)',
+            color: 'var(--white)'
+          },
         }}
       >
         {drawer}
@@ -142,6 +171,37 @@ const AdminPanel = () => {
             </Table>
           </Box>
         )}
+        {section === 'events' && (
+          <Box>
+            <Typography variant="h5" gutterBottom>
+              Eventi
+            </Typography>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Luogo</TableCell>
+                  <TableCell>Data</TableCell>
+                  <TableCell>Orario</TableCell>
+                  <TableCell>Azioni</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {events.map((ev) => (
+                  <TableRow key={ev.id}>
+                    <TableCell>{ev.place}</TableCell>
+                    <TableCell>{ev.date}</TableCell>
+                    <TableCell>{ev.time}</TableCell>
+                    <TableCell>
+                      <Button size="small" color="error" onClick={() => handleDelete(ev.id)}>
+                        <DeleteIcon />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
         {section === 'create' && (
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400 }}>
             <Typography variant="h5" gutterBottom>
@@ -153,7 +213,8 @@ const AdminPanel = () => {
             <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             <TextField name="image" label="URL immagine" variant="outlined" value={formData.image} onChange={handleChange} fullWidth />
             <TextField name="description" label="Descrizione" variant="outlined" value={formData.description} onChange={handleChange} fullWidth />
-            <Button type="submit" variant="contained">
+            <Button type="submit" variant="contained"
+              sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Crea
             </Button>
             {message && <Typography>{message}</Typography>}

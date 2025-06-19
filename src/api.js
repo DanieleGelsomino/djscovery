@@ -29,3 +29,9 @@ export const createEvent = async (data) => {
   if (!res.ok) throw new Error('Failed to create event');
   return res.json();
 };
+
+export const deleteEvent = async (id) => {
+  const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete event');
+  return res.json();
+};

@@ -40,6 +40,17 @@ app.post('/api/events', async (req, res) => {
   }
 });
 
+// Delete an event
+app.delete('/api/events/:id', async (req, res) => {
+  try {
+    await db.collection('events').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
 app.post('/api/bookings', async (req, res) => {
   const { nome, cognome, email, telefono } = req.body;
   if (!nome || !cognome || !email || !telefono) {
