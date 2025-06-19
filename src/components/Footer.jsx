@@ -67,7 +67,6 @@ const Footer = () => {
       <Menu>
         <Link to="/">{t('nav.home')}</Link>
         <Link to="/eventi">{t('nav.events')}</Link>
-        <Link to="/shop">{t('nav.shop')}</Link>
         <Link to="/chi-siamo">{t('nav.about')}</Link>
         <Link to="/contatti">{t('nav.contacts')}</Link>
       </Menu>

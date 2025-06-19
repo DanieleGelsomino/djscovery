@@ -2,17 +2,14 @@
   "nav": {
     "home": "Home",
     "events": "Eventi",
-    "shop": "Shop",
     "gallery": "Galleria",
     "about": "Chi Siamo",
-    "contacts": "Contatti",
-    "cart": "Carrello"
+    "contacts": "Contatti"
   },
   "hero": {
     "title": "Music & Travel",
     "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.",
-    "cta_events": "Scopri i prossimi eventi",
-    "cta_shop": "Visita lo shop"
+    "cta_events": "Scopri i prossimi eventi"
   },
   "gallery": {
     "title": "Gallery"
@@ -29,14 +26,7 @@
     "subtitle": "Scopri e prenota le nostre serate speciali in tutta Italia.",
     "loading": "Caricamento eventi...",
     "none": "Nessun evento disponibile",
-    "book_now": "Prenota ora",
-    "added": "Aggiunto al carrello!"
-  },
-  "shop": {
-    "title": "Shop",
-    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "add_to_cart": "Aggiungi al carrello",
-    "added": "Aggiunto al carrello!"
+    "book_now": "Prenota ora"
   },
   "about": {
     "title": "Chi Siamo",
@@ -55,15 +45,6 @@
   "footer": {
     "text": "Lorem ipsum dolor sit amet.",
     "copy": "DJSCOVERY"
-  },
-  "cart": {
-    "title": "Carrello",
-    "empty": "Nessun elemento nel carrello.",
-    "remove": "Rimuovi",
-    "total": "Totale",
-    "quantity": "Qtà",
-    "increase": "Aumenta",
-    "decrease": "Diminuisci"
   },
   "booking": {
     "title": "Prenota il tuo biglietto",

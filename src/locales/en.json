@@ -2,17 +2,14 @@
   "nav": {
     "home": "Home",
     "events": "Events",
-    "shop": "Shop",
     "gallery": "Gallery",
     "about": "About Us",
-    "contacts": "Contacts",
-    "cart": "Cart"
+    "contacts": "Contacts"
   },
   "hero": {
     "title": "Music & Travel",
     "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.",
-    "cta_events": "Discover upcoming events",
-    "cta_shop": "Visit the shop"
+    "cta_events": "Discover upcoming events"
   },
   "gallery": {
     "title": "Gallery"
@@ -29,14 +26,7 @@
     "subtitle": "Discover and book our special nights throughout Italy.",
     "loading": "Loading events...",
     "none": "No events available",
-    "book_now": "Book now",
-    "added": "Added to cart!"
-  },
-  "shop": {
-    "title": "Shop",
-    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "add_to_cart": "Add to cart",
-    "added": "Added to cart!"
+    "book_now": "Book now"
   },
   "about": {
     "title": "About Us",
@@ -55,15 +45,6 @@
   "footer": {
     "text": "Lorem ipsum dolor sit amet.",
     "copy": "DJSCOVERY"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "No items in cart.",
-    "remove": "Remove",
-    "total": "Total",
-    "quantity": "Qty",
-    "increase": "Increase",
-    "decrease": "Decrease"
   },
   "booking": {
     "title": "Book your ticket",

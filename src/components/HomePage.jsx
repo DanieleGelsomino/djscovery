@@ -1,12 +1,12 @@
 import React from 'react';
 import HeroSection from './HeroSection';
-import GallerySection from './GallerySection';
+import HomeGallerySlider from './HomeGallerySlider';
 import NewsletterSection from './NewsletterSection';
 
 const HomePage = () => (
   <>
     <HeroSection />
-    <GallerySection />
+    <HomeGallerySlider />
     <NewsletterSection />
   </>
 );
