@@ -16,10 +16,15 @@ const Section = styled.section`
 
 const Cards = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
   margin-top: 2rem;
   padding-bottom: 2rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
+    justify-content: center;
+  }
 `;
 
 const Card = styled(motion.div)`
@@ -31,6 +36,8 @@ const Card = styled(motion.div)`
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   text-align: left;
+  max-width: 320px;
+  margin: 0 auto;
 
   img {
     width: 100%;
@@ -97,7 +104,7 @@ const EventiSection = () => {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover={{ scale: 1.05, boxShadow: '0 0 8px var(--green)' }}
+            whileHover={{ scale: 1.03 }}
           >
             <img src={event.image || heroImg} alt={event.place} />
             <CardContent>
