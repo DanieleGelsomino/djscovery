@@ -1,4 +1,4 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import img1 from '../assets/img/Copia di Testo del paragraf.png';
@@ -118,17 +118,32 @@ const GalleryItem = React.memo(({ item, onClick }) => (
   </Item>
 ));
 
-const IMAGES_PER_PAGE = 4;
+const getImagesPerPage = () => {
+  const containerWidth = Math.min(window.innerWidth * 0.9, 1200);
+  const columns = Math.max(1, Math.floor(containerWidth / 250));
+  return columns * 2; // show two rows of images
+};
 
 const GallerySection = () => {
   const { t } = useLanguage();
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
+  const [imagesPerPage, setImagesPerPage] = useState(getImagesPerPage());
 
-  const totalPages = Math.ceil(images.length / IMAGES_PER_PAGE);
+  useEffect(() => {
+    const handleResize = () => setImagesPerPage(getImagesPerPage());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [imagesPerPage]);
+
+  const totalPages = Math.ceil(images.length / imagesPerPage);
   const paginatedImages = useMemo(
-    () => images.slice((page - 1) * IMAGES_PER_PAGE, page * IMAGES_PER_PAGE),
-    [page]
+    () => images.slice((page - 1) * imagesPerPage, page * imagesPerPage),
+    [page, imagesPerPage]
   );
 
   return (
