@@ -21,9 +21,10 @@ const Main = styled.main`
 
 const App = () => {
   const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
   return (
     <>
-      <Navbar />
+      {!isAdminRoute && <Navbar />}
       <Main>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -38,7 +39,7 @@ const App = () => {
           </Routes>
         </AnimatePresence>
       </Main>
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </>
   );
 };
