@@ -38,6 +38,15 @@ const Cards = styled.div`
 `;
 
 const MotionCard = motion(MuiCard);
+const StyledCard = styled(MotionCard)`
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 600px) {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+  }
+`;
 const MotionButton = motion(MuiButton);
 
 const EventiSection = () => {
@@ -62,7 +71,7 @@ const EventiSection = () => {
       {!loading && events.length === 0 && <p>{t('events.none')}</p>}
       <Cards>
         {events.map(event => (
-          <MotionCard
+          <StyledCard
             key={event.id}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -75,15 +84,13 @@ const EventiSection = () => {
               textAlign: 'left',
               width: '100%',
               margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
             }}
           >
             <CardMedia
               component="img"
-              height="200"
               image={event.image || heroImg}
               alt={event.place}
+              sx={{ height: { xs: 200, sm: '100%' }, objectFit: 'cover' }}
             />
             <CardContent sx={{ flex: '1 1 auto', padding: '1rem' }}>
               <Typography
@@ -132,8 +139,8 @@ const EventiSection = () => {
               }}
             >
               {t('events.book_now')}
-            </MotionButton>
-          </MotionCard>
+          </MotionButton>
+          </StyledCard>
         ))}
       </Cards>
     </div>
