@@ -12,6 +12,9 @@ import {
   ListItemIcon,
   ListItemText,
   TextField,
+  Snackbar,
+  Alert,
+  Autocomplete,
   Button,
   CssBaseline,
   Table,
@@ -61,11 +64,29 @@ const AdminPanel = () => {
     description: '',
   });
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success');
+  const [placeOptions, setPlaceOptions] = useState([]);
   const [section, setSection] = useState('bookings');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (formData.place.length < 3) {
+      setPlaceOptions([]);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(formData.place)}`,
+      { signal: controller.signal }
+    )
+      .then((res) => res.json())
+      .then((data) => setPlaceOptions(data.map((d) => d.display_name)))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [formData.place]);
 
   useEffect(() => {
     if (localStorage.getItem('isAdmin') !== 'true') {
@@ -95,6 +116,7 @@ const AdminPanel = () => {
     try {
       const data = { ...formData, image: formData.image || heroImg };
       await createEvent(data);
+      setMessageType('success');
       setMessage('Evento creato');
       fetchEvents().then(setEvents).catch(() => {});
       setFormData({
@@ -108,6 +130,7 @@ const AdminPanel = () => {
         description: '',
       });
     } catch (err) {
+      setMessageType('error');
       setMessage('Errore');
     }
   };
@@ -260,15 +283,23 @@ const AdminPanel = () => {
           </Box>
         )}
         {section === 'create' && (
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
             <Typography variant="h5" gutterBottom>
               Crea Evento
             </Typography>
             <TextField name="name" label="Nome Evento" variant="outlined" value={formData.name} onChange={handleChange} fullWidth />
             <TextField name="dj" label="DJ" variant="outlined" value={formData.dj} onChange={handleChange} fullWidth />
-            <TextField name="date" label="Data" variant="outlined" value={formData.date} onChange={handleChange} fullWidth />
-            <TextField name="place" label="Luogo" variant="outlined" value={formData.place} onChange={handleChange} fullWidth />
-            <TextField name="time" label="Orario" variant="outlined" value={formData.time} onChange={handleChange} fullWidth />
+            <TextField type="date" name="date" label="Data" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.date} onChange={handleChange} fullWidth />
+            <Autocomplete
+              freeSolo
+              options={placeOptions}
+              inputValue={formData.place}
+              onInputChange={(e, value) => setFormData({ ...formData, place: value })}
+              renderInput={(params) => (
+                <TextField {...params} label="Luogo" variant="outlined" fullWidth />
+              )}
+            />
+            <TextField type="time" name="time" label="Orario" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.time} onChange={handleChange} fullWidth />
             <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
               Carica Immagine
@@ -279,7 +310,11 @@ const AdminPanel = () => {
               sx={{ alignSelf: isMobile ? 'stretch' : 'flex-start', backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Crea
             </Button>
-            {message && <Typography>{message}</Typography>}
+            <Snackbar open={Boolean(message)} autoHideDuration={3000} onClose={() => setMessage('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+              <Alert severity={messageType} sx={{ width: '100%' }} onClose={() => setMessage('')}>
+                {message}
+              </Alert>
+            </Snackbar>
           </Box>
         )}
       </Box>
