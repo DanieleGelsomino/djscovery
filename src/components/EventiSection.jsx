@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { useCart } from './CartContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign } from 'react-icons/fa';
@@ -71,9 +70,7 @@ const Button = styled(motion.button)`
 `;
 
 const EventiSection = () => {
-  const { addItem } = useCart();
   const navigate = useNavigate();
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const { t } = useLanguage();
@@ -113,15 +110,7 @@ const EventiSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                addItem({
-                  id: event.id,
-                  name: `Biglietto ${event.place}`,
-                  price: event.price,
-                  image: event.image,
-                });
                 navigate('/prenota');
-                setMessage(t('events.added'));
-                setTimeout(() => setMessage(''), 2000);
               }}
             >
               {t('events.book_now')}
@@ -129,7 +118,6 @@ const EventiSection = () => {
           </Card>
         ))}
       </Cards>
-      {message && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: 'var(--green)', marginTop: '1rem' }}>{message}</motion.p>}
     </div>
   </Section>
   );

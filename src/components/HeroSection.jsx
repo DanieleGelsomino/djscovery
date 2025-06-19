@@ -67,14 +67,6 @@ const BtnPrimary = styled(motion(Link))`
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 `;
 
-const BtnSecondary = styled(motion(Link))`
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  background-color: var(--yellow);
-  color: var(--black);
-  font-weight: bold;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-`;
 
 const HeroSection = () => {
   const { t } = useLanguage();
@@ -115,13 +107,6 @@ const HeroSection = () => {
           >
             {t('hero.cta_events')}
           </BtnPrimary>
-          <BtnSecondary
-            to="/shop"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 12px var(--yellow)' }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {t('hero.cta_shop')}
-          </BtnSecondary>
         </CTAWrapper>
       </Content>
     </Section>

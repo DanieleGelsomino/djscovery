@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import { FaShoppingBag } from "react-icons/fa";
 import { FiMenu, FiX } from "react-icons/fi";
-import { useCart } from "./CartContext";
 import { useLanguage } from "./LanguageContext";
 import LanguageSelector from "./LanguageSelector";
 import logoImg from "../assets/img/logo-dj.png";
@@ -115,40 +113,11 @@ const MenuItem = styled(motion.li)`
   }
 `;
 
-const CartLink = styled(motion(NavLink))`
-  position: relative;
-  display: flex;
-  align-items: center;
-  transition: transform 0.2s;
-
-  svg {
-    color: var(--white);
-  }
-`;
-
-const CartCount = styled.span`
-  position: absolute;
-  top: -4px;
-  right: -8px;
-  background-color: var(--green);
-  color: var(--white);
-  border-radius: 50%;
-  height: 1.25rem;
-  min-width: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  font-size: 0.75rem;
-  line-height: 1;
-`;
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
-  const { items } = useCart();
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -219,11 +188,6 @@ const Navbar = () => {
               </NavLink>
             </MenuItem>
             <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <NavLink to="/shop" onClick={() => setOpen(false)}>
-                {t('nav.shop')}
-              </NavLink>
-            </MenuItem>
-            <MenuItem whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               <NavLink to="/chi-siamo" onClick={() => setOpen(false)}>
                 {t('nav.about')}
               </NavLink>
@@ -234,16 +198,6 @@ const Navbar = () => {
               </NavLink>
             </MenuItem>
           </Menu>
-          <CartLink
-            to="/carrello"
-            aria-label={t('nav.cart')}
-            onClick={() => setOpen(false)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <FaShoppingBag size={20} />
-            {totalItems > 0 && <CartCount>{totalItems}</CartCount>}
-          </CartLink>
           <LanguageSelector />
         </RightSection>
       </Container>
