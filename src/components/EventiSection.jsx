@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
-import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign, FaUser } from 'react-icons/fa';
 import { fetchEvents } from '../api';
+import heroImg from '../assets/img/hero.png';
 import Spinner from './Spinner';
 
 
@@ -98,9 +99,11 @@ const EventiSection = () => {
             viewport={{ once: true }}
             whileHover={{ scale: 1.05, boxShadow: '0 0 8px var(--green)' }}
           >
-            <img src={event.image} alt={event.place} />
+            <img src={event.image || heroImg} alt={event.place} />
             <CardContent>
-              <h3><FaMapMarkerAlt /> {event.place}</h3>
+              <h3>{event.name}</h3>
+              <p><FaUser /> {event.dj}</p>
+              <p><FaMapMarkerAlt /> {event.place}</p>
               <p><FaCalendarAlt /> {event.date}</p>
               <p><FaClock /> {event.time}</p>
               <p>{event.description}</p>

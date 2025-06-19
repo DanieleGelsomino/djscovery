@@ -24,6 +24,9 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import heroImg from '../assets/img/hero.png';
+import { theme as appTheme } from '../styles/globalStyles';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EventIcon from '@mui/icons-material/Event';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -32,11 +35,24 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 const drawerWidth = 240;
+const muiTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: { main: appTheme.colors.yellow },
+    secondary: { main: appTheme.colors.red },
+    background: {
+      default: appTheme.colors.black,
+      paper: appTheme.colors.gray,
+    },
+  },
+});
 
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [events, setEvents] = useState([]);
   const [formData, setFormData] = useState({
+    name: '',
+    dj: '',
     date: '',
     place: '',
     time: '',
@@ -64,12 +80,26 @@ const AdminPanel = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((f) => ({ ...f, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createEvent(formData);
+      const data = { ...formData, image: formData.image || heroImg };
+      await createEvent(data);
       setMessage('Evento creato');
+      fetchEvents().then(setEvents).catch(() => {});
       setFormData({
+        name: '',
+        dj: '',
         date: '',
         place: '',
         time: '',
@@ -120,6 +150,7 @@ const AdminPanel = () => {
   );
 
   return (
+    <MuiThemeProvider theme={muiTheme}>
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed"
@@ -200,6 +231,8 @@ const AdminPanel = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Nome</TableCell>
+                  <TableCell>DJ</TableCell>
                   <TableCell>Luogo</TableCell>
                   <TableCell>Data</TableCell>
                   <TableCell>Orario</TableCell>
@@ -209,6 +242,8 @@ const AdminPanel = () => {
               <TableBody>
                 {events.map((ev) => (
                   <TableRow key={ev.id}>
+                    <TableCell>{ev.name}</TableCell>
+                    <TableCell>{ev.dj}</TableCell>
                     <TableCell>{ev.place}</TableCell>
                     <TableCell>{ev.date}</TableCell>
                     <TableCell>{ev.time}</TableCell>
@@ -229,11 +264,16 @@ const AdminPanel = () => {
             <Typography variant="h5" gutterBottom>
               Crea Evento
             </Typography>
+            <TextField name="name" label="Nome Evento" variant="outlined" value={formData.name} onChange={handleChange} fullWidth />
+            <TextField name="dj" label="DJ" variant="outlined" value={formData.dj} onChange={handleChange} fullWidth />
             <TextField name="date" label="Data" variant="outlined" value={formData.date} onChange={handleChange} fullWidth />
             <TextField name="place" label="Luogo" variant="outlined" value={formData.place} onChange={handleChange} fullWidth />
             <TextField name="time" label="Orario" variant="outlined" value={formData.time} onChange={handleChange} fullWidth />
             <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
-            <TextField name="image" label="URL immagine" variant="outlined" value={formData.image} onChange={handleChange} fullWidth />
+            <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+              Carica Immagine
+              <input type="file" hidden accept="image/*" onChange={handleFile} />
+            </Button>
             <TextField name="description" label="Descrizione" variant="outlined" value={formData.description} onChange={handleChange} fullWidth />
             <Button type="submit" variant="contained" fullWidth={isMobile}
               sx={{ alignSelf: isMobile ? 'stretch' : 'flex-start', backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
@@ -244,6 +284,7 @@ const AdminPanel = () => {
         )}
       </Box>
     </Box>
+    </MuiThemeProvider>
   );
 };
 

@@ -20,12 +20,14 @@ app.get('/api/events', async (req, res) => {
 
 // Create a new event
 app.post('/api/events', async (req, res) => {
-  const { date, place, time, price, image, description } = req.body;
-  if (!date || !place || !time || !price || !image || !description) {
+  const { name, dj, date, place, time, price, image, description } = req.body;
+  if (!name || !dj || !date || !place || !time || !image) {
     return res.status(400).json({ error: 'Missing fields' });
   }
   try {
     const doc = await db.collection('events').add({
+      name,
+      dj,
       date,
       place,
       time,
