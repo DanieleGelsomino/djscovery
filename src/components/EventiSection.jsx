@@ -21,31 +21,41 @@ const Cards = styled.div`
   margin-top: 2rem;
   padding-bottom: 2rem;
 
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
-    justify-content: center;
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 `;
 
 const Card = styled(motion.div)`
   background-color: #111;
-  padding: 1rem;
   border-radius: 8px;
   border: 1px solid var(--gray);
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   text-align: left;
-  max-width: 320px;
+  max-width: 380px;
   margin: 0 auto;
+  overflow: hidden;
 
-  img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-bottom: 0.5rem;
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   }
+`;
+
+const CardImage = styled.img`
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+`;
+
+const CardContent = styled.div`
+  flex: 1;
+  padding: 1rem;
 
   h3 {
     color: var(--yellow);
@@ -63,18 +73,15 @@ const Card = styled(motion.div)`
   }
 `;
 
-const CardContent = styled.div`
-  flex: 1;
-`;
-
 const Button = styled(motion.button)`
-  margin-top: 1rem;
+  margin-top: auto;
   background-color: var(--red);
   color: var(--white);
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  align-self: flex-start;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0 8px 8px;
+  width: 100%;
+  font-weight: 600;
 `;
 
 const EventiSection = () => {
@@ -106,7 +113,7 @@ const EventiSection = () => {
             viewport={{ once: true }}
             whileHover={{ scale: 1.03 }}
           >
-            <img src={event.image || heroImg} alt={event.place} />
+            <CardImage src={event.image || heroImg} alt={event.place} />
             <CardContent>
               <h3>{event.name}</h3>
               <p><FaUser /> {event.dj}</p>
