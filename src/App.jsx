@@ -10,6 +10,8 @@ import ChiSiamoSection from './components/ChiSiamoSection';
 import ContattiSection from './components/ContattiSection';
 import Footer from './components/Footer';
 import TicketBookingForm from './components/TicketBookingForm';
+import AdminLogin from './components/AdminLogin';
+import AdminPanel from './components/AdminPanel';
 
 const Main = styled.main`
   flex: 1;
@@ -31,6 +33,8 @@ const App = () => {
             <Route path="/chi-siamo" element={<ChiSiamoSection />} />
             <Route path="/contatti" element={<ContattiSection />} />
             <Route path="/prenota" element={<TicketBookingForm />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/panel" element={<AdminPanel />} />
           </Routes>
         </AnimatePresence>
       </Main>

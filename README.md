@@ -19,6 +19,13 @@ npm run server
 
 Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase.
 
+## Area admin
+
+Imposta la variabile `VITE_ADMIN_PASSWORD` con la password desiderata e visita
+`/admin` per accedere al pannello di amministrazione. Da qui potrai vedere le
+prenotazioni salvate e creare nuovi eventi che compariranno nella sezione eventi
+pubblica.
+
 ## Configurazione Firebase
 
 1. Crea un progetto su [Firebase Console](https://console.firebase.google.com/) e abilita **Firestore**.
