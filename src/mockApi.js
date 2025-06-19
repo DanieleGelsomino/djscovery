@@ -1,6 +1,8 @@
 export let mockEvents = [
   {
     id: '1',
+    name: 'Evento di prova',
+    dj: 'DJ Test',
     place: 'Milano',
     date: '2024-05-10',
     time: '22:00',
