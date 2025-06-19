@@ -7,6 +7,13 @@ import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign, FaUser } from 'reac
 import { fetchEvents } from '../api';
 import heroImg from '../assets/img/hero.png';
 import Spinner from './Spinner';
+import {
+  Card as MuiCard,
+  CardContent,
+  CardMedia,
+  Button as MuiButton,
+  Typography,
+} from '@mui/material';
 
 
 const Section = styled.section`
@@ -30,59 +37,8 @@ const Cards = styled.div`
   }
 `;
 
-const Card = styled(motion.div)`
-  background-color: #111;
-  border-radius: 8px;
-  border: 1px solid var(--gray);
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  text-align: left;
-  max-width: 380px;
-  margin: 0 auto;
-  overflow: hidden;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-  }
-`;
-
-const CardImage = styled.img`
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-`;
-
-const CardContent = styled.div`
-  flex: 1;
-  padding: 1rem;
-
-  h3 {
-    color: var(--yellow);
-    margin-bottom: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  p {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin: 0.25rem 0;
-  }
-`;
-
-const Button = styled(motion.button)`
-  margin-top: auto;
-  background-color: var(--red);
-  color: var(--white);
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 0 0 8px 8px;
-  width: 100%;
-  font-weight: 600;
-`;
+const MotionCard = motion(MuiCard);
+const MotionButton = motion(MuiButton);
 
 const EventiSection = () => {
   const navigate = useNavigate();
@@ -106,33 +62,78 @@ const EventiSection = () => {
       {!loading && events.length === 0 && <p>{t('events.none')}</p>}
       <Cards>
         {events.map(event => (
-          <Card
+          <MotionCard
             key={event.id}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             whileHover={{ scale: 1.03 }}
+            sx={{
+              backgroundColor: '#111',
+              border: '1px solid var(--gray)',
+              color: 'var(--white)',
+              textAlign: 'left',
+              maxWidth: 380,
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
           >
-            <CardImage src={event.image || heroImg} alt={event.place} />
-            <CardContent>
-              <h3>{event.name}</h3>
-              <p><FaUser /> {event.dj}</p>
-              <p><FaMapMarkerAlt /> {event.place}</p>
-              <p><FaCalendarAlt /> {event.date}</p>
-              <p><FaClock /> {event.time}</p>
-              <p>{event.description}</p>
-              <p><FaEuroSign /> {event.price}</p>
+            <CardMedia
+              component="img"
+              height="200"
+              image={event.image || heroImg}
+              alt={event.place}
+            />
+            <CardContent sx={{ flex: '1 1 auto', padding: '1rem' }}>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{
+                  color: 'var(--yellow)',
+                  mb: 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                {event.name}
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
+                <FaUser /> {event.dj}
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
+                <FaMapMarkerAlt /> {event.place}
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
+                <FaCalendarAlt /> {event.date}
+              </Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
+                <FaClock /> {event.time}
+              </Typography>
+              <Typography sx={{ m: '0.25rem 0' }}>{event.description}</Typography>
+              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
+                <FaEuroSign /> {event.price}
+              </Typography>
             </CardContent>
-            <Button
+            <MotionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 navigate('/prenota');
               }}
+              sx={{
+                backgroundColor: 'var(--red)',
+                color: 'var(--white)',
+                borderRadius: 0,
+                padding: '0.75rem 1rem',
+                fontWeight: 600,
+                mt: 'auto',
+              }}
             >
               {t('events.book_now')}
-            </Button>
-          </Card>
+            </MotionButton>
+          </MotionCard>
         ))}
       </Cards>
     </div>
