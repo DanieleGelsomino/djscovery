@@ -105,7 +105,10 @@ const EventiSection = () => {
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {event.name}
                   </Typography>
-                  <Typography variant="body2">Event 2027</Typography>
+                  <Typography variant="body2">{event.dj}</Typography>
+                  <Typography variant="body2">
+                    {event.place} • {event.time}
+                  </Typography>
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: "bold", mt: 1 }}
@@ -116,13 +119,16 @@ const EventiSection = () => {
               </CardMedia>
 
               <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 2, color: "text.secondary" }}
-                >
-                  {event.description}
-                </Typography>
-              </CardContent>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 2, color: "text.secondary" }}
+                  >
+                    {event.description}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {event.place} - {event.time} | € {event.price}
+                  </Typography>
+                </CardContent>
 
               <MotionButton
                 whileHover={{ scale: 1.05 }}
@@ -139,7 +145,7 @@ const EventiSection = () => {
                   fontWeight: 600,
                 }}
               >
-                EVENT
+                {t("events.book_now")}
               </MotionButton>
             </MotionCard>
           ))}
