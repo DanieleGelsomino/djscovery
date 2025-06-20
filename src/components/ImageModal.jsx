@@ -58,7 +58,7 @@ const NavButton = styled.button`
     right: -3rem;
   }
 
-  @media (max-width: 768px) {
+  @media (min-width: 768px) {
     display: none;
   }
 `;
