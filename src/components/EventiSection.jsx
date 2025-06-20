@@ -18,7 +18,8 @@ import {
 
 const Section = styled.section`
   text-align: center;
-  background: linear-gradient(180deg, #111, #000);
+  background-color: #f7f7f7;
+  color: var(--black);
 `;
 
 const Cards = styled.div`
@@ -29,11 +30,11 @@ const Cards = styled.div`
   padding-bottom: 2rem;
 
   @media (min-width: 600px) {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (min-width: 992px) {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
   }
 `;
 
@@ -69,14 +70,17 @@ const EventiSection = () => {
             viewport={{ once: true }}
             whileHover={{ scale: 1.03 }}
             sx={{
-              backgroundColor: '#111',
-              border: '1px solid var(--gray)',
-              color: 'var(--white)',
+              backgroundColor: '#fff',
+              border: '1px solid #ddd',
+              color: 'var(--black)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               textAlign: 'left',
               width: '100%',
               margin: 0,
               display: 'flex',
               flexDirection: 'column',
+              borderRadius: '8px',
+              overflow: 'hidden',
             }}
           >
             <CardMedia
@@ -84,6 +88,7 @@ const EventiSection = () => {
               height="200"
               image={event.image || heroImg}
               alt={event.place}
+              sx={{ borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}
             />
             <CardContent sx={{ flex: '1 1 auto', padding: '1rem' }}>
               <Typography
