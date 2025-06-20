@@ -1,3 +1,5 @@
+import { v4 as uuid } from 'uuid';
+
 export let mockEvents = [
   {
     id: '1',
@@ -135,7 +137,7 @@ export const mockFetchBookings = async () => {
 
 export const mockCreateEvent = async (data) => {
   loadMock();
-  const newEvent = { id: Date.now().toString(), ...data };
+  const newEvent = { id: uuid(), ...data };
   mockEvents.push(newEvent);
   save();
   return newEvent;
@@ -150,7 +152,7 @@ export const mockDeleteEvent = async (id) => {
 
 export const mockSendBooking = async (data) => {
   loadMock();
-  const newBooking = { id: Date.now().toString(), ...data };
+  const newBooking = { id: uuid(), ...data };
   mockBookings.push(newBooking);
   save();
   return newBooking;
