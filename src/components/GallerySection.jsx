@@ -1,4 +1,12 @@
-import React, { useState, useMemo, lazy, Suspense, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
@@ -16,8 +24,8 @@ import img8 from "../assets/img/logo-dj.png";
 const ImageModal = lazy(() => import("./ImageModal"));
 
 const Section = styled.section`
-  padding: 2rem 0;
-  background-color: #222;
+  padding: 1rem 0;
+  background-color: #000;
   color: #fff;
   text-align: center;
   display: flex;
@@ -27,37 +35,31 @@ const Section = styled.section`
 
 const GalleryGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-  justify-items: center;
-  align-items: center;
+  gap: 2px;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
 `;
 
 const Item = styled(motion.div)`
   position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 12px;
   cursor: pointer;
-  aspect-ratio: 4 / 3;
   background-color: #111;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center;
-    display: block;
-    transition: transform 0.4s ease;
-  }
-
-  &:hover img {
-    transform: scale(1.05);
-  }
-
-  &:hover div {
-    opacity: 1;
-    transform: translateY(0);
   }
 `;
 
@@ -68,46 +70,15 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.5);
-  color: var(--white);
-  font-size: 1.25rem;
+  color: white;
+  font-size: 1.1rem;
   font-weight: 600;
   opacity: 0;
-  transform: translateY(10%);
-  transition: all 0.3s ease;
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: 0.4rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-`;
-
-const PageDot = styled.button`
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: white;
-  background: ${({ active }) => (active ? "var(--yellow)" : "#444")};
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${({ active }) => (active ? "var(--yellow)" : "#666")};
-    transform: scale(1.05);
-  }
 `;
 
 const GalleryItem = React.memo(({ item, onClick }) => (
-  <Item whileHover={{ scale: 1.02 }} onClick={onClick}>
-    <img src={item.src} alt={item.place} loading="lazy" />
-    <Overlay>{item.place}</Overlay>
+  <Item onClick={onClick}>
+    <img src={item.src} alt={item.place} loading="lazy" decoding="async" />
   </Item>
 ));
 
@@ -122,61 +93,52 @@ const baseImages = [
   { src: img8, place: "Genova" },
 ];
 
-const images = [...baseImages, ...baseImages];
-
-const getImagesPerPage = () => {
-  const containerWidth = Math.min(window.innerWidth * 0.9, 1200);
-  const columns = Math.max(1, Math.floor(containerWidth / 250));
-  return columns * 2;
-};
+const images = Array(10).fill(baseImages).flat(); // simuliamo un feed lungo
 
 const GallerySection = () => {
   const { t } = useLanguage();
   const [selectedIndex, setSelectedIndex] = useState(null);
-  const [page, setPage] = useState(1);
-  const [imagesPerPage, setImagesPerPage] = useState(getImagesPerPage());
+  const [visibleImages, setVisibleImages] = useState(15);
+  const loaderRef = useRef();
 
-  useEffect(() => {
-    const handleResize = () => setImagesPerPage(getImagesPerPage());
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+  const handleObserver = useCallback((entries) => {
+    const target = entries[0];
+    if (target.isIntersecting) {
+      setVisibleImages((prev) => Math.min(prev + 10, images.length));
+    }
   }, []);
 
-  useEffect(() => setPage(1), [imagesPerPage]);
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.2,
+    });
+    if (loaderRef.current) observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
-  const totalPages = Math.ceil(images.length / imagesPerPage);
   const paginatedImages = useMemo(
-    () => images.slice((page - 1) * imagesPerPage, page * imagesPerPage),
-    [page, imagesPerPage]
+    () => images.slice(0, visibleImages),
+    [visibleImages]
   );
 
   return (
     <Section>
       <div className="container">
-        <h2>{t("gallery.title")}</h2>
+        <motion.h2 layout transition={{ duration: 0.4 }}>
+          {t("gallery.title")}
+        </motion.h2>
         <GalleryGrid>
           {paginatedImages.map((item, idx) => (
             <GalleryItem
-              key={`${page}-${idx}`}
+              key={`${idx}`}
               item={item}
-              onClick={() => setSelectedIndex((page - 1) * imagesPerPage + idx)}
+              onClick={() => setSelectedIndex(idx)}
             />
           ))}
         </GalleryGrid>
-
-        {totalPages > 1 && (
-          <PaginationWrapper>
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <PageDot
-                key={i + 1}
-                active={page === i + 1}
-                onClick={() => setPage(i + 1)}
-              >
-                {i + 1}
-              </PageDot>
-            ))}
-          </PaginationWrapper>
-        )}
+        <div ref={loaderRef} style={{ height: "50px", marginTop: "2rem" }} />
       </div>
 
       <AnimatePresence>
