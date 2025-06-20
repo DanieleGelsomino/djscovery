@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const Backdrop = styled(motion.div)`
   position: fixed;
@@ -29,6 +30,43 @@ const ModalImage = styled.img`
   border-radius: 12px;
   display: block;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+`;
+
+const NavButton = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  padding: 0.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &:first-child {
+    left: -3rem;
+  }
+
+  &:last-child {
+    right: -3rem;
+  }
+
+  @media (max-width: 768px) {
+    &:first-child {
+      left: -1.5rem;
+    }
+
+    &:last-child {
+      right: -1.5rem;
+    }
+  }
 `;
 
 const ImageModal = ({ selectedIndex, setSelectedIndex, images, onClose }) => {
@@ -84,6 +122,22 @@ const ImageModal = ({ selectedIndex, setSelectedIndex, images, onClose }) => {
             src={images[selectedIndex].src}
             alt={images[selectedIndex].place}
           />
+          <NavButton
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedIndex((selectedIndex - 1 + images.length) % images.length);
+            }}
+          >
+            <FaChevronLeft />
+          </NavButton>
+          <NavButton
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedIndex((selectedIndex + 1) % images.length);
+            }}
+          >
+            <FaChevronRight />
+          </NavButton>
         </Wrapper>
       </Backdrop>
     </AnimatePresence>
