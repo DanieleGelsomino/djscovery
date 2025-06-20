@@ -59,13 +59,7 @@ const NavButton = styled.button`
   }
 
   @media (max-width: 768px) {
-    &:first-child {
-      left: -1.5rem;
-    }
-
-    &:last-child {
-      right: -1.5rem;
-    }
+    display: none;
   }
 `;
 
