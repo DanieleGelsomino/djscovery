@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { v4 as uuid } from 'uuid';
 
 const CartContext = createContext();
 
@@ -21,7 +22,7 @@ export const CartProvider = ({ children }) => {
   }, [items]);
 
   const addItem = (item) => {
-    const id = item.id ?? Date.now() + Math.random();
+    const id = item.id ?? uuid();
     setItems((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {
