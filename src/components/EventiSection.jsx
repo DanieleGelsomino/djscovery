@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useLanguage } from './LanguageContext';
-import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEuroSign, FaUser } from 'react-icons/fa';
-import { fetchEvents } from '../api';
-import heroImg from '../assets/img/hero.png';
-import Spinner from './Spinner';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useLanguage } from "./LanguageContext";
+import { fetchEvents } from "../api";
+import heroImg from "../assets/img/hero.png";
+import Spinner from "./Spinner";
 import {
   Card as MuiCard,
   CardContent,
   CardMedia,
   Button as MuiButton,
   Typography,
-} from '@mui/material';
-
+} from "@mui/material";
 
 const Section = styled.section`
   text-align: center;
@@ -55,94 +53,99 @@ const EventiSection = () => {
   }, []);
 
   return (
-  <Section>
-    <div className="container">
-      <h2>{t('events.title')}</h2>
-      <p>{t('events.subtitle')}</p>
-      {loading && <Spinner aria-label={t('events.loading')} />}
-      {!loading && events.length === 0 && <p>{t('events.none')}</p>}
-      <Cards>
-        {events.map(event => (
-          <MotionCard
-            key={event.id}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.03 }}
-            sx={{
-              backgroundColor: '#fff',
-              border: '1px solid #ddd',
-              color: 'var(--black)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              textAlign: 'left',
-              width: '100%',
-              margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              borderRadius: '8px',
-              overflow: 'hidden',
-            }}
-          >
-            <CardMedia
-              component="img"
-              height="200"
-              image={event.image || heroImg}
-              alt={event.place}
-              sx={{ borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}
-            />
-            <CardContent sx={{ flex: '1 1 auto', padding: '1rem' }}>
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{
-                  color: 'var(--yellow)',
-                  mb: 0.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                {event.name}
-              </Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
-                <FaUser /> {event.dj}
-              </Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
-                <FaMapMarkerAlt /> {event.place}
-              </Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
-                <FaCalendarAlt /> {event.date}
-              </Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
-                <FaClock /> {event.time}
-              </Typography>
-              <Typography sx={{ m: '0.25rem 0' }}>{event.description}</Typography>
-              <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.25rem', m: '0.25rem 0' }}>
-                <FaEuroSign /> {event.price}
-              </Typography>
-            </CardContent>
-            <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                navigate('/prenota');
-              }}
+    <Section>
+      <div className="container">
+        <h2>{t("events.title")}</h2>
+        <p>{t("events.subtitle")}</p>
+        {loading && <Spinner aria-label={t("events.loading")} />}
+        {!loading && events.length === 0 && <p>{t("events.none")}</p>}
+        <Cards>
+          {events.map((event) => (
+            <MotionCard
+              key={event.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.03 }}
               sx={{
-                backgroundColor: 'var(--red)',
-                color: 'var(--white)',
-                borderRadius: 0,
-                padding: '0.75rem 1rem',
-                fontWeight: 600,
-                mt: 'auto',
+                backgroundColor: "#fff",
+                border: "1px solid #ddd",
+                color: "var(--black)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                textAlign: "left",
+                width: "100%",
+                margin: 0,
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: "8px",
+                overflow: "hidden",
               }}
             >
-              {t('events.book_now')}
-            </MotionButton>
-          </MotionCard>
-        ))}
-      </Cards>
-    </div>
-  </Section>
+              <CardMedia
+                component="div"
+                sx={{
+                  position: "relative",
+                  height: "220px",
+                  backgroundImage: `url(${event.image || heroImg})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    width: "100%",
+                    padding: "1rem",
+                    background:
+                      "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                    color: "#fff",
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {event.name}
+                  </Typography>
+                  <Typography variant="body2">Event 2027</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: "bold", mt: 1 }}
+                  >
+                    {event.date}
+                  </Typography>
+                </div>
+              </CardMedia>
+
+              <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 2, color: "text.secondary" }}
+                >
+                  {event.description}
+                </Typography>
+              </CardContent>
+
+              <MotionButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/prenota")}
+                sx={{
+                  backgroundColor: "var(--black)",
+                  color: "white",
+                  borderRadius: "20px",
+                  alignSelf: "start",
+                  margin: "0 1rem 1rem",
+                  padding: "0.5rem 1.5rem",
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                }}
+              >
+                EVENT
+              </MotionButton>
+            </MotionCard>
+          ))}
+        </Cards>
+      </div>
+    </Section>
   );
 };
 
