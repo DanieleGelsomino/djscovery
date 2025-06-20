@@ -20,6 +20,9 @@ const Section = styled.section`
   background-color: #222;
   color: #fff;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const GalleryGrid = styled.div`
@@ -27,6 +30,8 @@ const GalleryGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-top: 1.5rem;
+  justify-items: center;
+  align-items: center;
 `;
 
 const Item = styled(motion.div)`
@@ -41,6 +46,7 @@ const Item = styled(motion.div)`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
     transition: transform 0.4s ease;
   }
@@ -73,6 +79,8 @@ const Overlay = styled.div`
 const PaginationWrapper = styled.div`
   display: flex;
   justify-content: center;
+  align-items: center;
+  text-align: center;
   gap: 0.4rem;
   margin-top: 2rem;
   flex-wrap: wrap;
