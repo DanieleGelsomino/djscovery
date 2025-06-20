@@ -1,9 +1,8 @@
 import React from "react";
 import styled from "styled-components";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
-import "swiper/css/navigation";
 import "swiper/css/pagination";
 import img1 from "../assets/img/Copia di Testo del paragraf.png";
 import img2 from "../assets/img/Copia di Testo del paragrafo.png";
@@ -33,8 +32,7 @@ const HomeGallerySlider = () => (
   <Section>
     <div className="container">
       <Swiper
-        modules={[Navigation, Pagination, Autoplay]}
-        navigation
+        modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
         autoplay={{ delay: 3000 }}
         loop
