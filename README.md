@@ -11,9 +11,12 @@ The server binds to `0.0.0.0` on port `5173` (or the next available port) so it 
 
 ## Backend server
 
-Run the API server with:
+Install the dependencies of the API server and then start it:
 
 ```bash
+cd server
+npm install
+cd ..
 npm run server
 ```
 
