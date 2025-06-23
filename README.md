@@ -31,10 +31,12 @@ Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase
 
 ## Area admin
 
-Imposta la variabile `VITE_ADMIN_PASSWORD` con la password desiderata e visita
+Imposta nel file `.env` la variabile `VITE_ADMIN_PASSWORD` con la password desiderata e visita
 `/admin` per accedere al pannello di amministrazione. Da qui potrai vedere le
 prenotazioni salvate e creare nuovi eventi che compariranno nella sezione eventi
-pubblica.
+pubblica. Per utilizzare la selezione di immagini da Google Drive configura anche
+`VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le credenziali del tuo
+progetto Google.
 
 ## Configurazione Firebase
 
