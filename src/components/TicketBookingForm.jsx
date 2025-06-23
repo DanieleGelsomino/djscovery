@@ -4,6 +4,7 @@ import { sendBooking } from '../api';
 import { useLanguage } from './LanguageContext';
 import Spinner from './Spinner';
 import { useToast } from './ToastContext';
+import Container from './Container';
 
 const Wrapper = styled.section`
   text-align: center;
@@ -102,7 +103,7 @@ const TicketBookingForm = () => {
 
   return (
     <Wrapper>
-      <div className="container">
+      <Container>
         <h2>{t('booking.title')}</h2>
         <Form onSubmit={handleSubmit} noValidate>
           <Input
@@ -139,7 +140,7 @@ const TicketBookingForm = () => {
           </Button>
           {loading && <Spinner />}
         </Form>
-      </div>
+      </Container>
     </Wrapper>
   );
 };

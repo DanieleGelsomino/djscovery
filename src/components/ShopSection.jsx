@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useCart } from './CartContext';
 import { FaEuroSign } from 'react-icons/fa';
 import { useLanguage } from './LanguageContext';
+import Container from './Container';
 
 const products = [
   { id: 1, name: 'T-shirt Logo', price: 20, image: 'https://source.unsplash.com/300x300/?tshirt' },
@@ -54,7 +55,7 @@ const ShopSection = () => {
   const { t } = useLanguage();
   return (
   <Section>
-    <div className="container">
+    <Container>
       <h2>{t('shop.title')}</h2>
       <p>{t('shop.subtitle')}</p>
       <Grid>
@@ -83,7 +84,7 @@ const ShopSection = () => {
         ))}
       </Grid>
       {message && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: 'var(--green)', marginTop: '1rem' }}>{message}</motion.p>}
-    </div>
+    </Container>
   </Section>
   );
 };

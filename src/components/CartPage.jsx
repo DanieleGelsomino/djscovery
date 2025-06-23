@@ -4,6 +4,7 @@ import { FaPlus, FaMinus } from 'react-icons/fa';
 import { useCart } from './CartContext';
 import Spinner from './Spinner';
 import { useLanguage } from './LanguageContext';
+import Container from './Container';
 
 const Section = styled.section`
   display: flex;
@@ -115,7 +116,7 @@ const CartPage = () => {
 
   return (
     <Section>
-      <div className="container">
+      <Container>
         <CartWrapper>
           <h2>{t('cart.title')}</h2>
           {items.length === 0 && <p>{t('cart.empty')}</p>}
@@ -138,7 +139,7 @@ const CartPage = () => {
           ))}
           {items.length > 0 && <Total>{t('cart.total')}: {total}€</Total>}
         </CartWrapper>
-      </div>
+      </Container>
     </Section>
   );
 };

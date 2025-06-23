@@ -12,6 +12,7 @@ import img5 from "../assets/img/gallery-3.png";
 import img6 from "../assets/img/gallery-4.png";
 import img7 from "../assets/img/hero.png";
 import img8 from "../assets/img/logo-dj.png";
+import Container from "./Container";
 
 const Section = styled.section`
   background-color: #222;
@@ -38,7 +39,7 @@ const images = [img1, img2, img3, img4, img5, img6, img7, img8];
 
 const HomeGallerySlider = () => (
   <Section>
-    <div className="container">
+    <Container>
       <Swiper
         modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
@@ -58,7 +59,7 @@ const HomeGallerySlider = () => (
           </SwiperSlide>
         ))}
       </Swiper>
-    </div>
+    </Container>
   </Section>
 );
 

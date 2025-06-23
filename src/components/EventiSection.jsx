@@ -6,6 +6,7 @@ import { useLanguage } from "./LanguageContext";
 import { fetchEvents } from "../api";
 import heroImg from "../assets/img/hero.png";
 import Spinner from "./Spinner";
+import Container from "./Container";
 import {
   Card as MuiCard,
   CardContent,
@@ -54,7 +55,7 @@ const EventiSection = () => {
 
   return (
     <Section>
-      <div className="container">
+      <Container>
         <h2>{t("events.title")}</h2>
         <p>{t("events.subtitle")}</p>
         {loading && <Spinner aria-label={t("events.loading")} />}
@@ -150,7 +151,7 @@ const EventiSection = () => {
             </MotionCard>
           ))}
         </Cards>
-      </div>
+      </Container>
     </Section>
   );
 };

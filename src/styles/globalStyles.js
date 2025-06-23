@@ -10,6 +10,11 @@ export const theme = {
     white: '#ffffff',
     gray: '#222222',
   },
+  breakpoints: {
+    mobile: '480px',
+    tablet: '768px',
+    desktop: '1200px',
+  },
 };
 
 export const GlobalStyles = createGlobalStyle`
@@ -31,7 +36,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-size: 18px;
+    font-size: 16px;
     font-family: 'Inter', 'Poppins', Arial, Helvetica, sans-serif;
     background: linear-gradient(135deg, #000, #111);
     color: var(--white);
@@ -39,6 +44,12 @@ export const GlobalStyles = createGlobalStyle`
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+  }
+
+  @media (min-width: ${theme.breakpoints.tablet}) {
+    body {
+      font-size: 18px;
+    }
   }
 
   #root {
@@ -76,8 +87,14 @@ export const GlobalStyles = createGlobalStyle`
 
   .container {
     width: 90%;
-    max-width: 1200px;
+    max-width: ${theme.breakpoints.desktop};
     margin: 0 auto;
+  }
+
+  @media (min-width: ${theme.breakpoints.tablet}) {
+    .container {
+      width: 80%;
+    }
   }
 
   h1, h2, h3 {

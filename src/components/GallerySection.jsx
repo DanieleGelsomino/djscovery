@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
 import Spinner from "./Spinner";
 import { fetchGallery } from "../api";
+import Container from "./Container";
 
 import img1 from "../assets/img/gallery-1.png";
 import img2 from "../assets/img/gallery-2.png";
@@ -140,7 +141,7 @@ const GallerySection = () => {
 
   return (
     <Section>
-      <div className="container">
+      <Container>
         <motion.h2 layout transition={{ duration: 0.4 }}>
           {t("gallery.title")}
         </motion.h2>
@@ -154,7 +155,7 @@ const GallerySection = () => {
           ))}
         </GalleryGrid>
         <div ref={loaderRef} style={{ height: "50px", marginTop: "2rem" }} />
-      </div>
+      </Container>
 
       <AnimatePresence>
         {selectedIndex !== null && (

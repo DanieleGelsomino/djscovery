@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
+import Container from './Container';
 
 const Section = styled(motion.section)`
   padding: 2rem 0;
@@ -35,7 +36,7 @@ const ChiSiamoSection = () => {
   const { t } = useLanguage();
   return (
   <Section>
-    <div className="container">
+    <Container>
       <Content>
         <Text initial={{ x: -50, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} viewport={{ once: true }}>
           <h2>{t('about.title')}</h2>
@@ -47,7 +48,7 @@ const ChiSiamoSection = () => {
           <img src="https://source.unsplash.com/600x400/?dj" alt="Chi siamo" />
         </ImageWrapper>
       </Content>
-    </div>
+    </Container>
   </Section>
   );
 };

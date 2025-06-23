@@ -5,6 +5,7 @@ import { useLanguage } from "./LanguageContext";
 import { FaPaperPlane } from "react-icons/fa";
 import { useToast } from "./ToastContext";
 import heroImg from "../assets/img/newsletter.jpg";
+import Container from "./Container";
 
 const Section = styled.section`
   position: relative;
@@ -78,7 +79,7 @@ const NewsletterSection = () => {
   return (
     <Section>
       <Overlay />
-      <Content className="container">
+      <Content as={Container}>
           <h2>{t("newsletter.title")}</h2>
           <p>{t("newsletter.subtitle")}</p>
           <Form onSubmit={handleSubmit}>
