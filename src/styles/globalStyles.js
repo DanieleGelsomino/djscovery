@@ -52,7 +52,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   button {
-    border-radius: 4px;
+    border-radius: 8px;
     border: none;
     font-weight: 600;
     padding: 0.5rem 1rem;

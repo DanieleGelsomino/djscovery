@@ -32,6 +32,7 @@ import {
   Divider,
   IconButton,
   Grid,
+  Paper,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -59,6 +60,7 @@ const muiTheme = createTheme({
       paper: appTheme.colors.gray,
     },
   },
+  shape: { borderRadius: 12 },
 });
 
 const AdminPanel = () => {
@@ -324,7 +326,8 @@ const handleGallerySubmit = async (e) => {
             width: drawerWidth,
             boxSizing: 'border-box',
             backgroundColor: 'var(--black)',
-            color: 'var(--white)'
+            color: 'var(--white)',
+            borderRadius: '0 12px 12px 0'
           },
         }}
       >
@@ -333,7 +336,7 @@ const handleGallerySubmit = async (e) => {
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
         {section === 'bookings' && (
-          <Box>
+          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
             <Typography variant="h5" gutterBottom>
               Prenotazioni
             </Typography>
@@ -361,10 +364,10 @@ const handleGallerySubmit = async (e) => {
               </TableBody>
             </Table>
             </Box>
-          </Box>
+          </Paper>
         )}
         {section === 'events' && (
-          <Box>
+          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
             <Typography variant="h5" gutterBottom>
               Eventi
             </Typography>
@@ -398,9 +401,10 @@ const handleGallerySubmit = async (e) => {
               </TableBody>
             </Table>
             </Box>
-          </Box>
+          </Paper>
         )}
         {section === 'create' && (
+          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
           <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2} sx={{ maxWidth: 600, width: '100%' }}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
@@ -448,8 +452,10 @@ const handleGallerySubmit = async (e) => {
               </Button>
             </Grid>
           </Grid>
+          </Paper>
         )}
         {section === 'gallery' && (
+          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
           <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2} sx={{ maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
@@ -485,6 +491,7 @@ const handleGallerySubmit = async (e) => {
               </Grid>
             </Grid>
           </Grid>
+          </Paper>
         )}
       </Box>
     </Box>
