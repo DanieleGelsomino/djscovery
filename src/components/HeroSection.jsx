@@ -19,7 +19,8 @@ const Section = styled(motion.section)`
 const Background = styled(motion.div)`
   position: absolute;
   inset: 0;
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
   transform-origin: center;
 `;
