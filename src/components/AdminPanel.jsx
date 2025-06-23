@@ -42,6 +42,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarIcon from '@mui/icons-material/CalendarToday';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AddToDriveIcon from '@mui/icons-material/AddToDrive';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from './ToastContext';
 
@@ -63,6 +64,8 @@ const AdminPanel = () => {
   const [events, setEvents] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [gallerySrc, setGallerySrc] = useState('');
+  const [pickerLoaded, setPickerLoaded] = useState(false);
+  const [oauthToken, setOauthToken] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     dj: '',
@@ -81,6 +84,29 @@ const AdminPanel = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirm, setConfirm] = useState({ open: false, id: null, type: '' });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!apiKey || !clientId) return;
+    const onLoad = () => {
+      window.gapi.load('client:picker', async () => {
+        try {
+          await window.gapi.client.init({ apiKey, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+          await window.gapi.auth2.init({ client_id: clientId, scope: 'https://www.googleapis.com/auth/drive.readonly' });
+          setPickerLoaded(true);
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    };
+    if (window.gapi) {
+      onLoad();
+    } else {
+      const script = document.querySelector('script[src="https://apis.google.com/js/api.js"]');
+      if (script) script.addEventListener('load', onLoad);
+    }
+  }, []);
 
   useEffect(() => {
     if (formData.place.length < 3) {
@@ -130,6 +156,38 @@ const AdminPanel = () => {
       setGallerySrc(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const pickFromDrive = async () => {
+    if (!pickerLoaded) return;
+    try {
+      const auth = await window.gapi.auth2.getAuthInstance().signIn();
+      const token = auth.getAuthResponse().access_token;
+      setOauthToken(token);
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS_IMAGES)
+        .setMimeTypes('image/png,image/jpeg,image/jpg');
+      const picker = new window.google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(token)
+        .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
+        .setCallback(async (data) => {
+          if (data.action === window.google.picker.Action.PICKED) {
+            const id = data.docs[0].id;
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const blob = await res.blob();
+            const reader = new FileReader();
+            reader.onloadend = () => setGallerySrc(reader.result);
+            reader.readAsDataURL(blob);
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    } catch (err) {
+      console.error(err);
+      showToast('Errore Google Drive', 'error');
+    }
   };
 
 const handleGallerySubmit = async (e) => {
@@ -365,10 +423,15 @@ const handleGallerySubmit = async (e) => {
             <Typography variant="h5" gutterBottom>
               Gallery
             </Typography>
-            <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
-              Carica Immagine
-              <input type="file" hidden accept="image/*" onChange={handleGalleryFile} />
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+                Carica Immagine
+                <input type="file" hidden accept="image/*" onChange={handleGalleryFile} />
+              </Button>
+              <Button variant="outlined" onClick={pickFromDrive} sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+                <AddToDriveIcon />
+              </Button>
+            </Box>
             <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Aggiungi
             </Button>
