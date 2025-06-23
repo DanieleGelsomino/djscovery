@@ -401,22 +401,22 @@ const handleGallerySubmit = async (e) => {
           </Box>
         )}
         {section === 'create' && (
-          <Grid container component="form" onSubmit={handleSubmit} spacing={2} sx={{ maxWidth: 600, width: '100%' }}>
+          <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2} sx={{ maxWidth: 600, width: '100%' }}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
                 Crea Evento
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField name="name" label="Nome Evento" variant="outlined" value={formData.name} onChange={handleChange} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField name="dj" label="DJ" variant="outlined" value={formData.dj} onChange={handleChange} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField type="date" name="date" label="Data" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.date} onChange={handleChange} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Autocomplete
                 freeSolo
                 options={placeOptions}
@@ -427,10 +427,10 @@ const handleGallerySubmit = async (e) => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField type="time" name="time" label="Orario" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.time} onChange={handleChange} fullWidth />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             </Grid>
             <Grid item xs={12}>
@@ -450,19 +450,19 @@ const handleGallerySubmit = async (e) => {
           </Grid>
         )}
         {section === 'gallery' && (
-          <Grid container component="form" onSubmit={handleGallerySubmit} spacing={2} sx={{ maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
+          <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2} sx={{ maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
                 Gallery
               </Typography>
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12}>
               <Button variant="outlined" component="label" fullWidth sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
                 Carica Immagine
                 <input type="file" hidden accept="image/*" onChange={handleGalleryFile} />
               </Button>
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12}>
               <Button variant="outlined" onClick={pickFromDrive} fullWidth sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
                 <AddToDriveIcon />
               </Button>

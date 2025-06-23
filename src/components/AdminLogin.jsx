@@ -1,42 +1,6 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-
-const Wrapper = styled.section`
-  text-align: center;
-  min-height: calc(100vh - 200px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  background-color: rgba(0,0,0,0.3);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  width: 100%;
-  max-width: 400px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--gray);
-  border-radius: 4px;
-  background-color: #111;
-  color: var(--white);
-`;
-
-const Button = styled.button`
-  width: 100%;
-  padding: 0.75rem;
-  background-color: var(--red);
-  color: var(--white);
-`;
+import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 
 const AdminLogin = () => {
   const [password, setPassword] = useState('');
@@ -55,19 +19,41 @@ const AdminLogin = () => {
   };
 
   return (
-    <Wrapper>
-      <Form onSubmit={handleSubmit}>
-        <h2>Admin Login</h2>
-        <Input
+    <Box sx={{ textAlign: 'center', minHeight: 'calc(100vh - 200px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Paper
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{
+          p: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          width: '100%',
+          maxWidth: 400,
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+        }}
+      >
+        <Typography variant="h5" gutterBottom>
+          Admin Login
+        </Typography>
+        <TextField
           type="password"
-          placeholder="Password"
+          label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          fullWidth
         />
-        <Button type="submit">Login</Button>
-        {error && <p>{error}</p>}
-      </Form>
-    </Wrapper>
+        <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
+          Login
+        </Button>
+        {error && (
+          <Typography color="error" variant="body2">
+            {error}
+          </Typography>
+        )}
+      </Paper>
+    </Box>
   );
 };
 
