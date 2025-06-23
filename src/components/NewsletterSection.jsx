@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import { Parallax } from "react-parallax";
 import { useLanguage } from "./LanguageContext";
 import { FaPaperPlane } from "react-icons/fa";
 import { useToast } from "./ToastContext";
@@ -13,6 +12,9 @@ const Section = styled.section`
   color: var(--white);
   text-align: center;
   overflow: hidden;
+  background-image: url(${heroImg});
+  background-size: cover;
+  background-position: center;
 `;
 
 const Overlay = styled.div`
@@ -71,10 +73,9 @@ const NewsletterSection = () => {
   };
 
   return (
-    <Parallax bgImage={heroImg} strength={200} bgImageAlt="newsletter">
-      <Section>
-        <Overlay />
-        <Content className="container">
+    <Section>
+      <Overlay />
+      <Content className="container">
           <h2>{t("newsletter.title")}</h2>
           <p>{t("newsletter.subtitle")}</p>
           <Form onSubmit={handleSubmit}>
@@ -93,9 +94,8 @@ const NewsletterSection = () => {
             </Button>
           </Form>
           {/* success handled via toast */}
-        </Content>
-      </Section>
-    </Parallax>
+      </Content>
+    </Section>
   );
 };
 

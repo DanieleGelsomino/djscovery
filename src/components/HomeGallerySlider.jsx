@@ -21,16 +21,16 @@ const Section = styled.section`
 
 const SlideImage = styled.img`
   width: 100%;
-  height: 220px;
+  height: 180px;
   object-fit: cover;
   border-radius: 8px;
 
   @media (min-width: 768px) {
-    height: 300px;
+    height: 220px;
   }
 
   @media (min-width: 1024px) {
-    height: 350px;
+    height: 250px;
   }
 `;
 
@@ -44,6 +44,12 @@ const HomeGallerySlider = () => (
         pagination={{ clickable: true }}
         autoplay={{ delay: 3000 }}
         loop
+        slidesPerView={1}
+        spaceBetween={10}
+        breakpoints={{
+          768: { slidesPerView: 2 },
+          1024: { slidesPerView: 3 },
+        }}
         style={{ borderRadius: "8px" }}
       >
         {images.map((src, idx) => (
