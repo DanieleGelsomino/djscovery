@@ -9,6 +9,7 @@ import {
   uploadGalleryImage,
   deleteGalleryImage,
 } from '../api';
+import { withLoading } from '../loading';
 import {
   Box,
   Drawer,
@@ -114,13 +115,14 @@ const AdminPanel = () => {
       return;
     }
     const controller = new AbortController();
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(formData.place)}`,
-      { signal: controller.signal }
-    )
-      .then((res) => res.json())
-      .then((data) => setPlaceOptions(data.map((d) => d.display_name)))
-      .catch(() => {});
+    withLoading(async () => {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(formData.place)}`,
+        { signal: controller.signal }
+      );
+      const data = await res.json();
+      setPlaceOptions(data.map((d) => d.display_name));
+    }).catch(() => {});
     return () => controller.abort();
   }, [formData.place]);
 
@@ -174,13 +176,15 @@ const AdminPanel = () => {
         .setCallback(async (data) => {
           if (data.action === window.google.picker.Action.PICKED) {
             const id = data.docs[0].id;
-            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
-              headers: { Authorization: `Bearer ${token}` }
+            await withLoading(async () => {
+              const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              const blob = await res.blob();
+              const reader = new FileReader();
+              reader.onloadend = () => setGallerySrc(reader.result);
+              reader.readAsDataURL(blob);
             });
-            const blob = await res.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => setGallerySrc(reader.result);
-            reader.readAsDataURL(blob);
           }
         })
         .build();

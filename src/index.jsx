@@ -8,6 +8,7 @@ import { GlobalStyles, theme } from './styles/globalStyles';
 import { CartProvider } from './components/CartContext';
 import { LanguageProvider } from './components/LanguageContext';
 import { ToastProvider } from './components/ToastContext';
+import { LoadingProvider } from './components/LoadingContext';
 
 const container = document.getElementById('root');
 const root = createRoot(container);
@@ -18,10 +19,12 @@ root.render(
     <LanguageProvider>
       <CartProvider>
         <ToastProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <App />
-          </BrowserRouter>
+          <LoadingProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <App />
+            </BrowserRouter>
+          </LoadingProvider>
         </ToastProvider>
       </CartProvider>
     </LanguageProvider>
