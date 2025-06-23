@@ -47,7 +47,7 @@ pubblica.
 npm install firebase
 ```
 
-Il file `server/index.js` espone l'endpoint `POST /api/bookings` che salva i dati nella collezione `bookings` di Firestore tramite Firebase Admin. Imposta la variabile `GOOGLE_APPLICATION_CREDENTIALS` con il percorso del tuo service account.
+Il file `server/index.js` espone l'endpoint `POST /api/bookings` che salva i dati nella collezione `bookings` di Firestore tramite Firebase Admin. Per autenticare il server imposta la variabile d'ambiente `FIREBASE_SERVICE_ACCOUNT` (o `GOOGLE_APPLICATION_CREDENTIALS`) con il percorso del tuo file JSON di servizio.
 È inoltre disponibile l'endpoint `GET /api/events` che restituisce l'elenco degli eventi.
 
 ## Deploy dell'applicazione
