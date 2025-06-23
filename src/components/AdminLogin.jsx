@@ -18,9 +18,12 @@ const Form = styled.form`
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  width: 100%;
+  max-width: 400px;
 `;
 
 const Input = styled.input`
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--gray);
   border-radius: 4px;
@@ -29,6 +32,7 @@ const Input = styled.input`
 `;
 
 const Button = styled.button`
+  width: 100%;
   padding: 0.75rem;
   background-color: var(--red);
   color: var(--white);

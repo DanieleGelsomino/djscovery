@@ -33,6 +33,7 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
   max-width: 400px;
   margin: 1rem auto 0;
   background-color: rgba(0, 0, 0, 0.25);
@@ -42,12 +43,14 @@ const Form = styled.form`
 `;
 
 const Input = styled(motion.input)`
+  width: 100%;
   padding: 0.75rem;
   border: none;
   border-radius: 4px;
 `;
 
 const Button = styled(motion.button)`
+  width: 100%;
   padding: 0.75rem;
   border: none;
   border-radius: 4px;

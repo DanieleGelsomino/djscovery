@@ -12,6 +12,7 @@ const Form = styled.form`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  width: 100%;
   margin-top: 1rem;
   background-color: rgba(0, 0, 0, 0.25);
   padding: 1.5rem;
@@ -31,6 +32,7 @@ const Form = styled.form`
 `;
 
 const Input = styled(motion.input)`
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--gray);
   border-radius: 4px;
@@ -39,6 +41,7 @@ const Input = styled(motion.input)`
 `;
 
 const TextArea = styled(motion.textarea)`
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--gray);
   border-radius: 4px;
@@ -47,6 +50,7 @@ const TextArea = styled(motion.textarea)`
 `;
 
 const Button = styled(motion.button)`
+  width: 100%;
   padding: 0.75rem;
   background-color: var(--red);
   color: var(--white);
