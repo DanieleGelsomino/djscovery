@@ -21,9 +21,17 @@ const Section = styled.section`
 
 const SlideImage = styled.img`
   width: 100%;
-  height: 400px;
+  height: 220px;
   object-fit: cover;
   border-radius: 8px;
+
+  @media (min-width: 768px) {
+    height: 300px;
+  }
+
+  @media (min-width: 1024px) {
+    height: 350px;
+  }
 `;
 
 const images = [img1, img2, img3, img4, img5, img6, img7, img8];
