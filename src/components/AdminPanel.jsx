@@ -20,8 +20,6 @@ import {
   ListItemIcon,
   ListItemText,
   TextField,
-  Snackbar,
-  Alert,
   Autocomplete,
   Button,
   CssBaseline,
@@ -44,6 +42,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarIcon from '@mui/icons-material/CalendarToday';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ConfirmDialog from './ConfirmDialog';
+import { useToast } from './ToastContext';
 
 const drawerWidth = 240;
 const muiTheme = createTheme({
@@ -73,13 +73,13 @@ const AdminPanel = () => {
     image: '',
     description: '',
   });
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('success');
+  const { showToast } = useToast();
   const [placeOptions, setPlaceOptions] = useState([]);
   const [section, setSection] = useState('bookings');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirm, setConfirm] = useState({ open: false, id: null, type: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -132,18 +132,26 @@ const AdminPanel = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleGallerySubmit = async (e) => {
+const handleGallerySubmit = async (e) => {
     e.preventDefault();
     if (!gallerySrc) return;
     try {
       await uploadGalleryImage(gallerySrc);
       fetchGallery().then(setGallery).catch(() => {});
       setGallerySrc('');
-      setMessageType('success');
-      setMessage('Immagine caricata');
+      showToast('Immagine caricata', 'success');
     } catch (err) {
-      setMessageType('error');
-      setMessage('Errore');
+      showToast('Errore', 'error');
+    }
+  };
+
+  const handleDeleteImage = async (id) => {
+    try {
+      await deleteGalleryImage(id);
+      setGallery(gallery.filter((g) => g.id !== id));
+      showToast('Immagine eliminata', 'success');
+    } catch (err) {
+      showToast('Errore', 'error');
     }
   };
 
@@ -152,8 +160,7 @@ const AdminPanel = () => {
     try {
       const data = { ...formData, image: formData.image || heroImg };
       await createEvent(data);
-      setMessageType('success');
-      setMessage('Evento creato');
+      showToast('Evento creato', 'success');
       fetchEvents().then(setEvents).catch(() => {});
       setFormData({
         name: '',
@@ -166,18 +173,17 @@ const AdminPanel = () => {
         description: '',
       });
     } catch (err) {
-      setMessageType('error');
-      setMessage('Errore');
+      showToast('Errore', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Eliminare questo evento?')) return;
     try {
       await deleteEvent(id);
       setEvents(events.filter((ev) => ev.id !== id));
+      showToast('Evento eliminato', 'success');
     } catch (err) {
-      console.error(err);
+      showToast('Errore', 'error');
     }
   };
 
@@ -313,11 +319,11 @@ const AdminPanel = () => {
                     <TableCell>{ev.date}</TableCell>
                     <TableCell>{ev.time}</TableCell>
                     <TableCell>
-                      <Button size="small" color="error" onClick={() => handleDelete(ev.id)}>
+                      <Button size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: 'event' })}>
                         <DeleteIcon />
                       </Button>
                     </TableCell>
-                  </TableRow>
+                 </TableRow>
                 ))}
               </TableBody>
             </Table>
@@ -352,11 +358,6 @@ const AdminPanel = () => {
               sx={{ alignSelf: isMobile ? 'stretch' : 'flex-start', backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Crea
             </Button>
-            <Snackbar open={Boolean(message)} autoHideDuration={3000} onClose={() => setMessage('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-              <Alert severity={messageType} sx={{ width: '100%' }} onClose={() => setMessage('')}>
-                {message}
-              </Alert>
-            </Snackbar>
           </Box>
         )}
         {section === 'gallery' && (
@@ -371,16 +372,11 @@ const AdminPanel = () => {
             <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
               Aggiungi
             </Button>
-            <Snackbar open={Boolean(message)} autoHideDuration={3000} onClose={() => setMessage('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-              <Alert severity={messageType} sx={{ width: '100%' }} onClose={() => setMessage('')}>
-                {message}
-              </Alert>
-            </Snackbar>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
               {gallery.map((img) => (
                 <Box key={img.id} sx={{ position: 'relative' }}>
                   <img src={img.src} alt="gallery" style={{ width: 100, height: 100, objectFit: 'cover' }} />
-                  <IconButton size="small" color="error" sx={{ position: 'absolute', top: 0, right: 0 }} onClick={() => deleteGalleryImage(img.id).then(() => setGallery(gallery.filter(g => g.id !== img.id))).catch(() => {})}>
+                  <IconButton size="small" color="error" sx={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setConfirm({ open: true, id: img.id, type: 'image' })}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -390,6 +386,18 @@ const AdminPanel = () => {
         )}
       </Box>
     </Box>
+    <ConfirmDialog
+      open={confirm.open}
+      title="Conferma"
+      message="Eliminare definitivamente?"
+      onConfirm={() => {
+        const id = confirm.id;
+        setConfirm({ open: false, id: null, type: '' });
+        if (confirm.type === 'event') handleDelete(id);
+        if (confirm.type === 'image') handleDeleteImage(id);
+      }}
+      onClose={() => setConfirm({ open: false, id: null, type: '' })}
+    />
     </MuiThemeProvider>
   );
 };

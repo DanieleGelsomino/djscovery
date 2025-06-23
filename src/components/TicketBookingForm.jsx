@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { sendBooking } from '../api';
 import { useLanguage } from './LanguageContext';
 import Spinner from './Spinner';
+import { useToast } from './ToastContext';
 
 const Wrapper = styled.section`
   text-align: center;
@@ -55,10 +56,9 @@ const TicketBookingForm = () => {
     email: '',
     telefono: '',
   });
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -70,22 +70,20 @@ const TicketBookingForm = () => {
     e.preventDefault();
     const { nome, cognome, email, telefono } = formData;
     if (!nome || !cognome || !email || !telefono) {
-      setError(t('booking.required'));
+      showToast(t('booking.required'), 'error');
       return;
     }
     if (!validateEmail(email)) {
-      setError(t('booking.invalid_email'));
+      showToast(t('booking.invalid_email'), 'error');
       return;
     }
-    setError('');
     setLoading(true);
     try {
       await sendBooking(formData);
-      setSuccess(true);
+      showToast(t('booking.success'), 'success');
       setFormData({ nome: '', cognome: '', email: '', telefono: '' });
-      setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
-      setError(t('booking.error'));
+      showToast(t('booking.error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -130,8 +128,6 @@ const TicketBookingForm = () => {
           </Button>
           {loading && <Spinner />}
         </Form>
-        {error && <p>{error}</p>}
-        {success && <p>{t('booking.success')}</p>}
       </div>
     </Wrapper>
   );

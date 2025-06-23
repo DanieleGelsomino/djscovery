@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
 import { FaPaperPlane } from 'react-icons/fa';
+import { useToast } from './ToastContext';
 
 const Section = styled.section`
   padding: 3rem 0;
@@ -45,10 +46,12 @@ const Button = styled(motion.button)`
 const NewsletterSection = () => {
   const [submitted, setSubmitted] = useState(false);
   const { t } = useLanguage();
+  const { showToast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
+    showToast(t('newsletter.success'), 'success');
     setTimeout(() => setSubmitted(false), 2000);
   };
 
@@ -63,7 +66,7 @@ const NewsletterSection = () => {
             {t('newsletter.subscribe')} <FaPaperPlane />
           </Button>
         </Form>
-        {submitted && <p>{t('newsletter.success')}</p>}
+        {/* success handled via toast */}
       </div>
     </Section>
   );
