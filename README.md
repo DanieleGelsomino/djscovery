@@ -17,6 +17,13 @@ Run the API server with:
 npm run server
 ```
 
+After configuring Firebase credentials you can create the required Firestore collections with:
+
+```bash
+cd server
+npm run setup
+```
+
 Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase.
 
 ## Area admin
