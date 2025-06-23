@@ -14,6 +14,7 @@ const Form = styled.form`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  width: 100%;
   max-width: 400px;
   margin: 0 auto;
   background-color: rgba(0, 0, 0, 0.25);
@@ -31,6 +32,7 @@ const Form = styled.form`
 `;
 
 const Input = styled.input`
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid #333;
   border-radius: 4px;
@@ -45,6 +47,7 @@ const Input = styled.input`
 `;
 
 const Button = styled.button`
+  width: 100%;
   padding: 0.75rem;
   background-color: var(--red);
   color: var(--white);
