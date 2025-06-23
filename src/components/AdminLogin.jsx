@@ -31,7 +31,8 @@ const AdminLogin = () => {
           width: '100%',
           maxWidth: 400,
           backgroundColor: 'rgba(0,0,0,0.3)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          borderRadius: 3
         }}
       >
         <Typography variant="h5" gutterBottom>
