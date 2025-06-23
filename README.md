@@ -38,6 +38,10 @@ pubblica. Per utilizzare la selezione di immagini da Google Drive configura anch
 `VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le credenziali del tuo
  progetto Google.
 
+Se il server API è in esecuzione su un dominio o porta diversa è possibile
+specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
+In questo modo tutte le richieste verranno indirizzate correttamente al backend.
+
 Le immagini caricate nella sezione Gallery del pannello verranno mostrate
 nella pagina pubblica "/gallery" insieme a quelle predefinite.
 

@@ -144,6 +144,7 @@ const AdminPanel = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData((f) => ({ ...f, image: reader.result }));
+      showToast('Immagine caricata', 'success');
     };
     reader.readAsDataURL(file);
   };
