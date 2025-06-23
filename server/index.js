@@ -81,7 +81,43 @@ app.get('/api/bookings', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to load bookings' });
+  res.status(500).json({ error: 'Failed to load bookings' });
+  }
+});
+
+// Retrieve gallery images
+app.get('/api/gallery', async (req, res) => {
+  try {
+    const snapshot = await db.collection('gallery').orderBy('createdAt', 'desc').get();
+    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load gallery' });
+  }
+});
+
+// Add an image to the gallery
+app.post('/api/gallery', async (req, res) => {
+  const { src } = req.body;
+  if (!src) return res.status(400).json({ error: 'Missing src' });
+  try {
+    const doc = await db.collection('gallery').add({ src, createdAt: new Date() });
+    res.json({ id: doc.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save image' });
+  }
+});
+
+// Delete an image from the gallery
+app.delete('/api/gallery/:id', async (req, res) => {
+  try {
+    await db.collection('gallery').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete image' });
   }
 });
 

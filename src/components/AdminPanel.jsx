@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchBookings, createEvent, fetchEvents, deleteEvent } from '../api';
+import {
+  fetchBookings,
+  createEvent,
+  fetchEvents,
+  deleteEvent,
+  fetchGallery,
+  uploadGalleryImage,
+  deleteGalleryImage,
+} from '../api';
 import {
   Box,
   Drawer,
@@ -53,6 +61,8 @@ const muiTheme = createTheme({
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [events, setEvents] = useState([]);
+  const [gallery, setGallery] = useState([]);
+  const [gallerySrc, setGallerySrc] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     dj: '',
@@ -95,6 +105,7 @@ const AdminPanel = () => {
     }
     fetchBookings().then(setBookings).catch(() => {});
     fetchEvents().then(setEvents).catch(() => {});
+    fetchGallery().then(setGallery).catch(() => {});
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -109,6 +120,31 @@ const AdminPanel = () => {
       setFormData((f) => ({ ...f, image: reader.result }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleGalleryFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setGallerySrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGallerySubmit = async (e) => {
+    e.preventDefault();
+    if (!gallerySrc) return;
+    try {
+      await uploadGalleryImage(gallerySrc);
+      fetchGallery().then(setGallery).catch(() => {});
+      setGallerySrc('');
+      setMessageType('success');
+      setMessage('Immagine caricata');
+    } catch (err) {
+      setMessageType('error');
+      setMessage('Errore');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -167,6 +203,12 @@ const AdminPanel = () => {
             <EventIcon />
           </ListItemIcon>
           <ListItemText primary="Crea Evento" />
+        </ListItem>
+        <ListItem button onClick={() => {setSection('gallery'); setMobileOpen(false);}} selected={section === 'gallery'}>
+          <ListItemIcon>
+            <EventIcon />
+          </ListItemIcon>
+          <ListItemText primary="Gallery" />
         </ListItem>
       </List>
     </div>
@@ -315,6 +357,35 @@ const AdminPanel = () => {
                 {message}
               </Alert>
             </Snackbar>
+          </Box>
+        )}
+        {section === 'gallery' && (
+          <Box component="form" onSubmit={handleGallerySubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
+            <Typography variant="h5" gutterBottom>
+              Gallery
+            </Typography>
+            <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+              Carica Immagine
+              <input type="file" hidden accept="image/*" onChange={handleGalleryFile} />
+            </Button>
+            <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
+              Aggiungi
+            </Button>
+            <Snackbar open={Boolean(message)} autoHideDuration={3000} onClose={() => setMessage('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+              <Alert severity={messageType} sx={{ width: '100%' }} onClose={() => setMessage('')}>
+                {message}
+              </Alert>
+            </Snackbar>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+              {gallery.map((img) => (
+                <Box key={img.id} sx={{ position: 'relative' }}>
+                  <img src={img.src} alt="gallery" style={{ width: 100, height: 100, objectFit: 'cover' }} />
+                  <IconButton size="small" color="error" sx={{ position: 'absolute', top: 0, right: 0 }} onClick={() => deleteGalleryImage(img.id).then(() => setGallery(gallery.filter(g => g.id !== img.id))).catch(() => {})}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
           </Box>
         )}
       </Box>
