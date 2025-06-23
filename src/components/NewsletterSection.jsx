@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { Parallax } from "react-parallax";
 import { useLanguage } from "./LanguageContext";
 import { FaPaperPlane } from "react-icons/fa";
 import { useToast } from "./ToastContext";
@@ -11,10 +12,19 @@ const Section = styled.section`
   padding: 3rem 0;
   color: var(--white);
   text-align: center;
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-    url(${heroImg});
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
+`;
+
+const Overlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+  z-index: 0;
+`;
+
+const Content = styled.div`
+  position: relative;
+  z-index: 1;
 `;
 
 const Form = styled.form`
@@ -61,28 +71,31 @@ const NewsletterSection = () => {
   };
 
   return (
-    <Section>
-      <div className="container">
-        <h2>{t("newsletter.title")}</h2>
-        <p>{t("newsletter.subtitle")}</p>
-        <Form onSubmit={handleSubmit}>
-          <Input
-            type="email"
-            placeholder={t("newsletter.email")}
-            required
-            whileFocus={{ scale: 1.02 }}
-          />
-          <Button
-            type="submit"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {t("newsletter.subscribe")} <FaPaperPlane />
-          </Button>
-        </Form>
-        {/* success handled via toast */}
-      </div>
-    </Section>
+    <Parallax bgImage={heroImg} strength={200} bgImageAlt="newsletter">
+      <Section>
+        <Overlay />
+        <Content className="container">
+          <h2>{t("newsletter.title")}</h2>
+          <p>{t("newsletter.subtitle")}</p>
+          <Form onSubmit={handleSubmit}>
+            <Input
+              type="email"
+              placeholder={t("newsletter.email")}
+              required
+              whileFocus={{ scale: 1.02 }}
+            />
+            <Button
+              type="submit"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {t("newsletter.subscribe")} <FaPaperPlane />
+            </Button>
+          </Form>
+          {/* success handled via toast */}
+        </Content>
+      </Section>
+    </Parallax>
   );
 };
 
