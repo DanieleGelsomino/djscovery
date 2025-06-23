@@ -4,12 +4,17 @@ import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
 import { FaPaperPlane } from 'react-icons/fa';
 import { useToast } from './ToastContext';
+import heroImg from '../assets/img/hero.png';
 
 const Section = styled.section`
+  position: relative;
   padding: 3rem 0;
-  background: linear-gradient(180deg, #ff7e5f, #feb47b);
   color: var(--white);
   text-align: center;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url(${heroImg});
+  background-size: cover;
+  background-position: center;
 `;
 
 const Form = styled.form`
