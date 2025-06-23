@@ -41,6 +41,8 @@ pubblica. Per utilizzare la selezione di immagini da Google Drive configura anch
 Se il server API è in esecuzione su un dominio o porta diversa è possibile
 specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
 In questo modo tutte le richieste verranno indirizzate correttamente al backend.
+Per disabilitare le API di test e inviare le richieste reali al server imposta
+`VITE_MOCK=false` sempre nello stesso file.
 
 Le immagini caricate nella sezione Gallery del pannello verranno mostrate
 nella pagina pubblica "/gallery" insieme a quelle predefinite.

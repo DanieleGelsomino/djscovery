@@ -4,7 +4,8 @@ import { db } from './firebase.js';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Allow large payloads for base64 images when creating events
+app.use(express.json({ limit: '10mb' }));
 
 // Get all events
 app.get('/api/events', async (_req, res) => {
