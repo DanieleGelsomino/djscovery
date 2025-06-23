@@ -113,9 +113,12 @@ export let mockBookings = [
   }
 ];
 
+export let mockGallery = [];
+
 const save = () => {
   localStorage.setItem('mockEvents', JSON.stringify(mockEvents));
   localStorage.setItem('mockBookings', JSON.stringify(mockBookings));
+  localStorage.setItem('mockGallery', JSON.stringify(mockGallery));
 };
 
 export const loadMock = () => {
@@ -123,6 +126,8 @@ export const loadMock = () => {
   if (e) mockEvents = JSON.parse(e);
   const b = localStorage.getItem('mockBookings');
   if (b) mockBookings = JSON.parse(b);
+  const g = localStorage.getItem('mockGallery');
+  if (g) mockGallery = JSON.parse(g);
 };
 
 export const mockFetchEvents = async () => {
@@ -156,4 +161,24 @@ export const mockSendBooking = async (data) => {
   mockBookings.push(newBooking);
   save();
   return newBooking;
+};
+
+export const mockFetchGallery = async () => {
+  loadMock();
+  return mockGallery;
+};
+
+export const mockUploadGalleryImage = async (src) => {
+  loadMock();
+  const img = { id: uuid(), src };
+  mockGallery.push(img);
+  save();
+  return img;
+};
+
+export const mockDeleteGalleryImage = async (id) => {
+  loadMock();
+  mockGallery = mockGallery.filter((g) => g.id !== id);
+  save();
+  return { success: true };
 };

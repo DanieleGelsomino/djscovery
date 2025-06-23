@@ -36,7 +36,10 @@ Imposta nel file `.env` la variabile `VITE_ADMIN_PASSWORD` con la password desid
 prenotazioni salvate e creare nuovi eventi che compariranno nella sezione eventi
 pubblica. Per utilizzare la selezione di immagini da Google Drive configura anche
 `VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le credenziali del tuo
-progetto Google.
+ progetto Google.
+
+Le immagini caricate nella sezione Gallery del pannello verranno mostrate
+nella pagina pubblica "/gallery" insieme a quelle predefinite.
 
 ## Configurazione Firebase
 

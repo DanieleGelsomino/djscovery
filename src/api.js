@@ -4,6 +4,9 @@ import {
   mockFetchBookings,
   mockCreateEvent,
   mockDeleteEvent,
+  mockFetchGallery,
+  mockUploadGalleryImage,
+  mockDeleteGalleryImage,
 } from './mockApi';
 
 const useMock = import.meta.env.VITE_MOCK !== 'false';
@@ -52,14 +55,14 @@ export const deleteEvent = async (id) => {
 };
 
 export const fetchGallery = async () => {
-  if (useMock) return [];
+  if (useMock) return mockFetchGallery();
   const res = await fetch('/api/gallery');
   if (!res.ok) throw new Error('Failed to load gallery');
   return res.json();
 };
 
 export const uploadGalleryImage = async (src) => {
-  if (useMock) return { id: Date.now().toString(), src };
+  if (useMock) return mockUploadGalleryImage(src);
   const res = await fetch('/api/gallery', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,7 +73,7 @@ export const uploadGalleryImage = async (src) => {
 };
 
 export const deleteGalleryImage = async (id) => {
-  if (useMock) return { success: true };
+  if (useMock) return mockDeleteGalleryImage(id);
   const res = await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete image');
   return res.json();
