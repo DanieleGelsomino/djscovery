@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { useLanguage } from './LanguageContext';
-import { FaPaperPlane } from 'react-icons/fa';
-import { useToast } from './ToastContext';
-import heroImg from '../assets/img/hero.png';
+import React, { useState } from "react";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import { useLanguage } from "./LanguageContext";
+import { FaPaperPlane } from "react-icons/fa";
+import { useToast } from "./ToastContext";
+import heroImg from "../assets/img/newsletter.jpg";
 
 const Section = styled.section`
   position: relative;
@@ -56,19 +56,28 @@ const NewsletterSection = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
-    showToast(t('newsletter.success'), 'success');
+    showToast(t("newsletter.success"), "success");
     setTimeout(() => setSubmitted(false), 2000);
   };
 
   return (
     <Section>
       <div className="container">
-        <h2>{t('newsletter.title')}</h2>
-        <p>{t('newsletter.subtitle')}</p>
+        <h2>{t("newsletter.title")}</h2>
+        <p>{t("newsletter.subtitle")}</p>
         <Form onSubmit={handleSubmit}>
-          <Input type="email" placeholder={t('newsletter.email')} required whileFocus={{ scale: 1.02 }} />
-          <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            {t('newsletter.subscribe')} <FaPaperPlane />
+          <Input
+            type="email"
+            placeholder={t("newsletter.email")}
+            required
+            whileFocus={{ scale: 1.02 }}
+          />
+          <Button
+            type="submit"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {t("newsletter.subscribe")} <FaPaperPlane />
           </Button>
         </Form>
         {/* success handled via toast */}
