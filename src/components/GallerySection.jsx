@@ -11,6 +11,7 @@ import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
 import Spinner from "./Spinner";
+import { fetchGallery } from "../api";
 
 import img1 from "../assets/img/gallery-1.png";
 import img2 from "../assets/img/gallery-2.png";
@@ -93,20 +94,34 @@ const baseImages = [
   { src: img8, place: "Genova" },
 ];
 
-const images = Array(10).fill(baseImages).flat(); // simuliamo un feed lungo
-
 const GallerySection = () => {
   const { t } = useLanguage();
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [visibleImages, setVisibleImages] = useState(15);
+  const [galleryImages, setGalleryImages] = useState([]);
   const loaderRef = useRef();
 
-  const handleObserver = useCallback((entries) => {
-    const target = entries[0];
-    if (target.isIntersecting) {
-      setVisibleImages((prev) => Math.min(prev + 10, images.length));
-    }
+  const images = useMemo(
+    () => [
+      ...galleryImages.map((g) => ({ src: g.src, place: "" })),
+      ...Array(10).fill(baseImages).flat(),
+    ],
+    [galleryImages]
+  );
+
+  useEffect(() => {
+    fetchGallery().then(setGalleryImages).catch(() => {});
   }, []);
+
+  const handleObserver = useCallback(
+    (entries) => {
+      const target = entries[0];
+      if (target.isIntersecting) {
+        setVisibleImages((prev) => Math.min(prev + 10, images.length));
+      }
+    },
+    [images.length]
+  );
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
@@ -120,7 +135,7 @@ const GallerySection = () => {
 
   const paginatedImages = useMemo(
     () => images.slice(0, visibleImages),
-    [visibleImages]
+    [visibleImages, images]
   );
 
   return (
