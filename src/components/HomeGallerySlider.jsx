@@ -4,12 +4,12 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
-import img1 from "../assets/img/Copia di Testo del paragraf.png";
-import img2 from "../assets/img/Copia di Testo del paragrafo.png";
-import img3 from "../assets/img/DJSCOVERY LOGO.png";
-import img4 from "../assets/img/LOGO PRINCIPALE.png";
-import img5 from "../assets/img/Testo del paragrafo_HQ.png";
-import img6 from "../assets/img/Testo del paragrafo_HQ2.png";
+import img1 from "../assets/img/gallery-1.png";
+import img2 from "../assets/img/gallery-2.png";
+import img3 from "../assets/img/djscovery-logo.png";
+import img4 from "../assets/img/logo-principale.png";
+import img5 from "../assets/img/gallery-3.png";
+import img6 from "../assets/img/gallery-4.png";
 import img7 from "../assets/img/hero.png";
 import img8 from "../assets/img/logo-dj.png";
 

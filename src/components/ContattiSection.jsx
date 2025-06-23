@@ -9,8 +9,8 @@ const Section = styled(motion.section)`
 `;
 
 const Form = styled.form`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1rem;
   background-color: rgba(0, 0, 0, 0.25);
@@ -21,6 +21,12 @@ const Form = styled.form`
   @media (min-width: 768px) {
     width: 60%;
     margin: 1rem auto 0;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  textarea,
+  button {
+    grid-column: span 2;
   }
 `;
 
