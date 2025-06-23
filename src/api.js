@@ -50,3 +50,28 @@ export const deleteEvent = async (id) => {
   if (!res.ok) throw new Error('Failed to delete event');
   return res.json();
 };
+
+export const fetchGallery = async () => {
+  if (useMock) return [];
+  const res = await fetch('/api/gallery');
+  if (!res.ok) throw new Error('Failed to load gallery');
+  return res.json();
+};
+
+export const uploadGalleryImage = async (src) => {
+  if (useMock) return { id: Date.now().toString(), src };
+  const res = await fetch('/api/gallery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ src }),
+  });
+  if (!res.ok) throw new Error('Failed to save image');
+  return res.json();
+};
+
+export const deleteGalleryImage = async (id) => {
+  if (useMock) return { success: true };
+  const res = await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete image');
+  return res.json();
+};
