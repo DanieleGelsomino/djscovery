@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
 import { FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa';
+import Container from './Container';
 
 const Foot = styled(motion.footer)`
   background-color: #111;
@@ -51,7 +52,7 @@ const Footer = () => {
   const { t } = useLanguage();
   return (
   <Foot initial={{opacity:0}} animate={{opacity:1}}>
-    <div className="container">
+    <Container>
       <Social>
         <motion.a whileHover={{ scale: 1.2 }} href="https://instagram.com/djscovery.tv" target="_blank" rel="noopener noreferrer">
           <FaInstagram />
@@ -71,7 +72,7 @@ const Footer = () => {
         <Link to="/contatti">{t('nav.contacts')}</Link>
       </Menu>
       <Copy>&copy; {new Date().getFullYear()} {t('footer.copy')}</Copy>
-    </div>
+    </Container>
   </Foot>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useLanguage } from './LanguageContext';
+import Container from './Container';
 
 const Section = styled(motion.section)`
   text-align: center;
@@ -71,7 +72,7 @@ const ContattiSection = () => {
 
   return (
     <Section>
-      <div className="container">
+      <Container>
         <h2>{t('contacts.title')}</h2>
         <p>{t('contacts.subtitle')}</p>
         <Form as={motion.form} onSubmit={handleSubmit} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
@@ -81,7 +82,7 @@ const ContattiSection = () => {
           <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>{t('contacts.send')}</Button>
         </Form>
         {submitted && <p>{t('contacts.sent')}</p>}
-      </div>
+      </Container>
     </Section>
   );
 };
