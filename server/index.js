@@ -6,8 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Get events from Firestore
-app.get('/api/events', async (req, res) => {
+// Get all events
+app.get('/api/events', async (_req, res) => {
   try {
     const snapshot = await db.collection('events').get();
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -15,6 +15,18 @@ app.get('/api/events', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to load events' });
+  }
+});
+
+// Get single event
+app.get('/api/events/:id', async (req, res) => {
+  try {
+    const doc = await db.collection('events').doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Not found' });
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load event' });
   }
 });
 
@@ -39,6 +51,27 @@ app.post('/api/events', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+// Update an event
+app.put('/api/events/:id', async (req, res) => {
+  const { name, dj, date, place, time, price, image, description } = req.body;
+  try {
+    await db.collection('events').doc(req.params.id).update({
+      name,
+      dj,
+      date,
+      place,
+      time,
+      price,
+      image,
+      description,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update event' });
   }
 });
 
@@ -74,7 +107,7 @@ app.post('/api/bookings', async (req, res) => {
 });
 
 // Retrieve all bookings
-app.get('/api/bookings', async (req, res) => {
+app.get('/api/bookings', async (_req, res) => {
   try {
     const snapshot = await db.collection('bookings').orderBy('createdAt', 'desc').get();
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -118,6 +151,29 @@ app.delete('/api/gallery/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete image' });
+  }
+});
+
+// Get a single booking
+app.get('/api/bookings/:id', async (req, res) => {
+  try {
+    const doc = await db.collection('bookings').doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Not found' });
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load booking' });
+  }
+});
+
+// Delete a booking
+app.delete('/api/bookings/:id', async (req, res) => {
+  try {
+    await db.collection('bookings').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete booking' });
   }
 });
 
