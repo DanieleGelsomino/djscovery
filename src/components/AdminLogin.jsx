@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 import logo from '../assets/img/djscovery-logo.png';
 import heroImg from '../assets/img/hero.png';
+import { login } from '../api';
 
 const AdminLogin = () => {
   const [password, setPassword] = useState('');
@@ -15,13 +16,13 @@ const AdminLogin = () => {
     }
   }, [navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const expected = import.meta.env.VITE_ADMIN_PASSWORD || 'admin';
-    if (password === expected) {
+    try {
+      await login(password);
       localStorage.setItem('isAdmin', 'true');
       navigate('/admin/panel');
-    } else {
+    } catch (err) {
       setError('Password errata');
     }
   };

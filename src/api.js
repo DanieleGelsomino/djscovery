@@ -13,6 +13,22 @@ import { withLoading } from './loading';
 const useMock = import.meta.env.VITE_MOCK !== 'false';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+export const login = async (password) => {
+  if (useMock) {
+    if (password === (import.meta.env.VITE_ADMIN_PASSWORD || 'admin')) return { success: true };
+    throw new Error('Invalid password');
+  }
+  return withLoading(async () => {
+    const res = await fetch(`${API_BASE}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) throw new Error('Invalid password');
+    return res.json();
+  });
+};
+
 export const fetchEvents = async () => {
   if (useMock) return mockFetchEvents();
   return withLoading(async () => {
