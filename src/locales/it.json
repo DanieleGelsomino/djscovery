@@ -19,7 +19,8 @@
     "subtitle": "Rimani aggiornato sugli eventi esclusivi",
     "email": "Email",
     "subscribe": "Iscriviti",
-    "success": "Grazie per la tua iscrizione!"
+    "success": "Grazie per la tua iscrizione!",
+    "error": "Errore durante l'iscrizione"
   },
   "events": {
     "title": "Prossimi Eventi",

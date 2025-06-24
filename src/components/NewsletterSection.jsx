@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
 import { FaPaperPlane } from "react-icons/fa";
 import { useToast } from "./ToastContext";
+import { subscribeNewsletter } from "../api";
 import heroImg from "../assets/img/newsletter.jpg";
 
 const Section = styled.section`
@@ -64,39 +65,50 @@ const Button = styled(motion.button)`
 `;
 
 const NewsletterSection = () => {
-  const [submitted, setSubmitted] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
   const { showToast } = useToast();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    showToast(t("newsletter.success"), "success");
-    setTimeout(() => setSubmitted(false), 2000);
+    setLoading(true);
+    try {
+      await subscribeNewsletter(email);
+      setEmail("");
+      showToast(t("newsletter.success"), "success");
+    } catch {
+      showToast(t("newsletter.error"), "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Section>
       <Overlay />
       <Content className="container">
-          <h2>{t("newsletter.title")}</h2>
-          <p>{t("newsletter.subtitle")}</p>
-          <Form onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              placeholder={t("newsletter.email")}
-              required
-              whileFocus={{ scale: 1.02 }}
-            />
-            <Button
-              type="submit"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {t("newsletter.subscribe")} <FaPaperPlane />
-            </Button>
-          </Form>
-          {/* success handled via toast */}
+        <h2>{t("newsletter.title")}</h2>
+        <p>{t("newsletter.subtitle")}</p>
+        <Form onSubmit={handleSubmit}>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t("newsletter.email")}
+            required
+            whileFocus={{ scale: 1.02 }}
+          />
+          <Button
+            type="submit"
+            disabled={loading}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {t("newsletter.subscribe")} <FaPaperPlane />
+          </Button>
+        </Form>
+        {/* success handled via toast */}
       </Content>
     </Section>
   );
