@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import logo from '../assets/img/djscovery-logo.png';
 
 const AdminLogin = () => {
   const [password, setPassword] = useState('');
@@ -50,6 +51,11 @@ const AdminLogin = () => {
           borderRadius: 3,
         }}
       >
+        <img
+          src={logo}
+          alt="Djscovery logo"
+          style={{ width: '150px', alignSelf: 'center', marginBottom: '1rem' }}
+        />
         <Typography variant="h5" gutterBottom>
           Admin Login
         </Typography>
@@ -58,7 +64,14 @@ const AdminLogin = () => {
           label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          variant="outlined"
           fullWidth
+          sx={{
+            '& .MuiOutlinedInput-root': { color: '#fff' },
+            '& .MuiInputLabel-root': { color: '#fff' },
+          }}
+          InputLabelProps={{ style: { color: '#fff' } }}
+          InputProps={{ style: { color: '#fff' } }}
         />
         <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
           Login

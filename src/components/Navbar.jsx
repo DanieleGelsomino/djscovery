@@ -3,6 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { FiMenu, FiX } from "react-icons/fi";
+import { FaUserCircle } from "react-icons/fa";
 import { useLanguage } from "./LanguageContext";
 import LanguageSelector from "./LanguageSelector";
 import logoImg from "../assets/img/logo-dj.png";
@@ -34,6 +35,13 @@ const RightSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1.5rem;
+`;
+
+const LoginLink = styled(motion(Link))`
+  font-size: 2rem;
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
 `;
 
 const Logo = styled(motion(Link))`
@@ -199,6 +207,14 @@ const Navbar = () => {
             </MenuItem>
           </Menu>
           <LanguageSelector />
+          <LoginLink
+            to="/admin"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Admin login"
+          >
+            <FaUserCircle />
+          </LoginLink>
         </RightSection>
       </Container>
     </Nav>
