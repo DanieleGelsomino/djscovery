@@ -27,7 +27,8 @@
     "subtitle": "Scopri e prenota le nostre serate speciali in tutta Italia.",
     "loading": "Caricamento eventi...",
     "none": "Nessun evento disponibile",
-    "book_now": "Prenota ora"
+    "book_now": "Prenota ora",
+    "sold_out": "Esaurito"
   },
   "about": {
     "title": "Chi Siamo",

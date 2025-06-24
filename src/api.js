@@ -3,6 +3,7 @@ import {
   mockSendBooking,
   mockFetchBookings,
   mockCreateEvent,
+  mockUpdateEvent,
   mockDeleteEvent,
   mockFetchGallery,
   mockUploadGalleryImage,
@@ -71,6 +72,19 @@ export const createEvent = async (data) => {
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Failed to create event");
+    return res.json();
+  });
+};
+
+export const updateEvent = async (id, data) => {
+  if (useMock) return mockUpdateEvent(id, data);
+  return withLoading(async () => {
+    const res = await fetch(`${API_BASE}/api/events/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update event");
     return res.json();
   });
 };

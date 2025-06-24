@@ -11,6 +11,7 @@ export let mockEvents = [
     price: "15",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "2",
@@ -22,6 +23,7 @@ export let mockEvents = [
     price: "18",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "3",
@@ -33,6 +35,7 @@ export let mockEvents = [
     price: "20",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "4",
@@ -44,6 +47,7 @@ export let mockEvents = [
     price: "22",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "5",
@@ -55,6 +59,7 @@ export let mockEvents = [
     price: "17",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "6",
@@ -66,6 +71,7 @@ export let mockEvents = [
     price: "19",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "7",
@@ -77,6 +83,7 @@ export let mockEvents = [
     price: "16",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "8",
@@ -88,6 +95,7 @@ export let mockEvents = [
     price: "21",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
   {
     id: "9",
@@ -99,6 +107,7 @@ export let mockEvents = [
     price: "24",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    soldOut: false,
   },
 ];
 
@@ -150,6 +159,13 @@ export const mockCreateEvent = async (data) => {
   mockEvents.push(newEvent);
   save();
   return newEvent;
+};
+
+export const mockUpdateEvent = async (id, data) => {
+  loadMock();
+  mockEvents = mockEvents.map((e) => (e.id === id ? { ...e, ...data } : e));
+  save();
+  return { success: true };
 };
 
 export const mockDeleteEvent = async (id) => {

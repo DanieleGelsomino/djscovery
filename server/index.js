@@ -41,7 +41,17 @@ app.get("/api/events/:id", async (req, res) => {
 
 // Create a new event
 app.post("/api/events", async (req, res) => {
-  const { name, dj, date, place, time, price, image, description } = req.body;
+  const {
+    name,
+    dj,
+    date,
+    place,
+    time,
+    price,
+    image,
+    description,
+    soldOut = false,
+  } = req.body;
   if (!name || !dj || !date || !place || !time || !image) {
     return res.status(400).json({ error: "Missing fields" });
   }
@@ -55,6 +65,7 @@ app.post("/api/events", async (req, res) => {
       price,
       image,
       description,
+      soldOut,
     });
     res.json({ id: doc.id });
   } catch (err) {
@@ -65,7 +76,8 @@ app.post("/api/events", async (req, res) => {
 
 // Update an event
 app.put("/api/events/:id", async (req, res) => {
-  const { name, dj, date, place, time, price, image, description } = req.body;
+  const { name, dj, date, place, time, price, image, description, soldOut } =
+    req.body;
   try {
     await db.collection("events").doc(req.params.id).update({
       name,
@@ -76,6 +88,7 @@ app.put("/api/events/:id", async (req, res) => {
       price,
       image,
       description,
+      ...(soldOut !== undefined && { soldOut }),
     });
     res.json({ success: true });
   } catch (err) {
