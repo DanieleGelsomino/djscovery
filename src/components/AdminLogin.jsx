@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { useLanguage } from './LanguageContext';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import logo from '../assets/img/ADMIN.png';
 import heroImg from '../assets/img/hero.png';
@@ -11,6 +12,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -108,6 +110,14 @@ const AdminLogin = () => {
             {error}
           </Typography>
         )}
+        <Button
+          component={Link}
+          to="/"
+          variant="outlined"
+          sx={{ mt: 1, color: 'var(--yellow)', borderColor: 'var(--yellow)' }}
+        >
+          {t('nav.home')}
+        </Button>
       </Paper>
     </Box>
   );
