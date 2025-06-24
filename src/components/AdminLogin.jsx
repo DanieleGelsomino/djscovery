@@ -1,29 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import logo from '../assets/img/ADMIN.png';
 import heroImg from '../assets/img/hero.png';
-import { login } from '../api';
+import { auth } from '../firebase/config';
 
 const AdminLogin = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem('isAdmin') === 'true') {
-      navigate('/admin/panel');
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        localStorage.setItem('isAdmin', 'true');
+        navigate('/admin/panel');
+      }
+    });
+    return unsubscribe;
   }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      await login(password);
+      await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem('isAdmin', 'true');
       navigate('/admin/panel');
     } catch (err) {
-      setError('Password errata');
+      setError('Credenziali non valide');
     }
   };
 
@@ -65,6 +72,20 @@ const AdminLogin = () => {
         <Typography variant="h5" gutterBottom>
           Admin Login
         </Typography>
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          variant="outlined"
+          fullWidth
+          sx={{
+            '& .MuiOutlinedInput-root': { color: '#fff' },
+            '& .MuiInputLabel-root': { color: '#fff' },
+          }}
+          InputLabelProps={{ style: { color: '#fff' } }}
+          InputProps={{ style: { color: '#fff' } }}
+        />
         <TextField
           type="password"
           label="Password"
