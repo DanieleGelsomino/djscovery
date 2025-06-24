@@ -36,12 +36,12 @@ Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase
 
 ## Area admin
 
-Imposta la variabile `ADMIN_PASSWORD` nel file `server/.env` con la password desiderata e visita
-`/admin` per accedere al pannello di amministrazione. Da qui potrai vedere le
-prenotazioni salvate e creare nuovi eventi che compariranno nella sezione eventi
-pubblica. Per utilizzare la selezione di immagini da Google Drive configura anche
-`VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le credenziali del tuo progetto Google.
-Imposta inoltre `VITE_MOCK=false` nel file `.env` per abilitare le chiamate al backend.
+Abilita **Email/Password** su Firebase Authentication e crea l'utente amministratore.
+Visita quindi `/admin` per accedere al pannello di amministrazione e gestire
+prenotazioni ed eventi. Per utilizzare la selezione di immagini da Google Drive
+configura inoltre `VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le
+credenziali del tuo progetto Google. Imposta `VITE_MOCK=false` nel file `.env`
+per abilitare le chiamate al backend.
 
 Se il server API è in esecuzione su un dominio o porta diversa è possibile
 specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
@@ -62,7 +62,7 @@ npm install firebase
 ```
 
 Il file `server/index.js` espone l'endpoint `POST /api/bookings` che salva i dati nella collezione `bookings` di Firestore tramite Firebase Admin. Per autenticare il server imposta la variabile d'ambiente `FIREBASE_SERVICE_ACCOUNT` (o `GOOGLE_APPLICATION_CREDENTIALS`) con il percorso del tuo file JSON di servizio.
-Sono inoltre disponibili gli endpoint `GET /api/events` e `POST /api/login` per recuperare gli eventi e effettuare l'accesso all'area admin.
+Sono inoltre disponibili gli endpoint `GET /api/events` e `GET /api/gallery` per recuperare gli eventi e le immagini. L'accesso all'area admin avviene ora tramite Firebase Authentication.
 
 ## Deploy dell'applicazione
 
