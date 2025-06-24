@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 
@@ -6,6 +6,12 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem('isAdmin') === 'true') {
+      navigate('/admin/panel');
+    }
+  }, [navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -19,7 +25,16 @@ const AdminLogin = () => {
   };
 
   return (
-    <Box sx={{ textAlign: 'center', minHeight: 'calc(100vh - 200px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <Box
+      sx={{
+        textAlign: 'center',
+        minHeight: 'calc(100vh - 200px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+      }}
+    >
       <Paper
         component="form"
         onSubmit={handleSubmit}
@@ -32,7 +47,7 @@ const AdminLogin = () => {
           maxWidth: 400,
           backgroundColor: 'rgba(0,0,0,0.3)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          borderRadius: 3
+          borderRadius: 3,
         }}
       >
         <Typography variant="h5" gutterBottom>

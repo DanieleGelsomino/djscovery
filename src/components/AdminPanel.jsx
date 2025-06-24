@@ -333,10 +333,10 @@ const handleGallerySubmit = async (e) => {
       >
         {drawer}
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }} className="container">
         <Toolbar />
         {section === 'bookings' && (
-          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
+          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
             <Typography variant="h5" gutterBottom>
               Prenotazioni
             </Typography>
@@ -367,7 +367,7 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'events' && (
-          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
+          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
             <Typography variant="h5" gutterBottom>
               Eventi
             </Typography>
@@ -404,8 +404,8 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'create' && (
-          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
-          <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2} sx={{ maxWidth: 600, width: '100%' }}>
+          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, maxWidth: 600, mx: 'auto' }}>
+          <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
                 Crea Evento
@@ -455,8 +455,8 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'gallery' && (
-          <Paper sx={{ p: 2, mb: 3, boxShadow: 3 }}>
-          <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2} sx={{ maxWidth: isMobile ? '100%' : 400, width: '100%' }}>
+          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, maxWidth: isMobile ? '100%' : 400, mx: 'auto' }}>
+          <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
                 Gallery
