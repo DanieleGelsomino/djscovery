@@ -91,6 +91,26 @@ const EventiSection = () => {
                   backgroundPosition: "center",
                 }}
               >
+                {event.soldOut && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {t("events.sold_out")}
+                  </div>
+                )}
                 <div
                   style={{
                     position: "absolute",
@@ -130,23 +150,25 @@ const EventiSection = () => {
                   </Typography>
                 </CardContent>
 
-              <MotionButton
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/prenota")}
-                sx={{
-                  backgroundColor: "var(--black)",
-                  color: "white",
-                  borderRadius: "20px",
-                  alignSelf: "start",
-                  margin: "0 1rem 1rem",
-                  padding: "0.5rem 1.5rem",
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                }}
-              >
-                {t("events.book_now")}
-              </MotionButton>
+              {!event.soldOut && (
+                <MotionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/prenota")}
+                  sx={{
+                    backgroundColor: "var(--black)",
+                    color: "white",
+                    borderRadius: "20px",
+                    alignSelf: "start",
+                    margin: "0 1rem 1rem",
+                    padding: "0.5rem 1.5rem",
+                    textTransform: "uppercase",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t("events.book_now")}
+                </MotionButton>
+              )}
             </MotionCard>
           ))}
         </Cards>

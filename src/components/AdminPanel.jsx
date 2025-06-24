@@ -4,6 +4,7 @@ import {
   fetchBookings,
   createEvent,
   fetchEvents,
+  updateEvent,
   deleteEvent,
   fetchGallery,
   uploadGalleryImage,
@@ -29,6 +30,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Switch,
   Divider,
   IconButton,
   Grid,
@@ -87,6 +89,7 @@ const AdminPanel = () => {
     price: '',
     image: '',
     description: '',
+    soldOut: false,
   });
   const { showToast } = useToast();
   const [placeOptions, setPlaceOptions] = useState([]);
@@ -180,6 +183,44 @@ const AdminPanel = () => {
     reader.readAsDataURL(file);
   };
 
+  const pickEventImageFromDrive = async () => {
+    if (!pickerLoaded) return;
+    try {
+      const auth = await window.gapi.auth2.getAuthInstance().signIn();
+      const token = auth.getAuthResponse().access_token;
+      const view = new window.google.picker.DocsView(
+        window.google.picker.ViewId.DOCS_IMAGES
+      ).setMimeTypes('image/png,image/jpeg,image/jpg');
+      const picker = new window.google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(token)
+        .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
+        .setCallback(async (data) => {
+          if (data.action === window.google.picker.Action.PICKED) {
+            const id = data.docs[0].id;
+            await withLoading(async () => {
+              const res = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              const blob = await res.blob();
+              const reader = new FileReader();
+              reader.onloadend = () =>
+                setFormData((f) => ({ ...f, image: reader.result }));
+              reader.readAsDataURL(blob);
+            });
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    } catch (err) {
+      console.error(err);
+      showToast('Errore Google Drive', 'error');
+    }
+  };
+
   const pickFromDrive = async () => {
     if (!pickerLoaded) return;
     try {
@@ -252,6 +293,7 @@ const handleGallerySubmit = async (e) => {
         price: '',
         image: '',
         description: '',
+        soldOut: false,
       });
     } catch (err) {
       showToast('Errore', 'error');
@@ -263,6 +305,16 @@ const handleGallerySubmit = async (e) => {
       await deleteEvent(id);
       setEvents(events.filter((ev) => ev.id !== id));
       showToast('Evento eliminato', 'success');
+    } catch (err) {
+      showToast('Errore', 'error');
+    }
+  };
+
+  const handleToggleSoldOut = async (id, value) => {
+    try {
+      await updateEvent(id, { soldOut: value });
+      setEvents(events.map((e) => (e.id === id ? { ...e, soldOut: value } : e)));
+      showToast('Aggiornato', 'success');
     } catch (err) {
       showToast('Errore', 'error');
     }
@@ -399,6 +451,7 @@ const handleGallerySubmit = async (e) => {
                   <TableCell>Luogo</TableCell>
                   <TableCell>Data</TableCell>
                   <TableCell>Orario</TableCell>
+                  <TableCell>Sold Out</TableCell>
                   <TableCell>Azioni</TableCell>
                 </TableRow>
               </TableHead>
@@ -410,6 +463,15 @@ const handleGallerySubmit = async (e) => {
                     <TableCell>{ev.place}</TableCell>
                     <TableCell>{ev.date}</TableCell>
                     <TableCell>{ev.time}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={!!ev.soldOut}
+                        onChange={(e) =>
+                          handleToggleSoldOut(ev.id, e.target.checked)
+                        }
+                        color="warning"
+                      />
+                    </TableCell>
                     <TableCell>
                       <Button size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: 'event' })}>
                         <DeleteIcon />
@@ -457,9 +519,23 @@ const handleGallerySubmit = async (e) => {
               <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             </Grid>
             <Grid item xs={12}>
+              <Typography component="div" sx={{ display: 'flex', alignItems: 'center' }}>
+                Sold Out
+                <Switch
+                  checked={formData.soldOut}
+                  onChange={(e) => setFormData({ ...formData, soldOut: e.target.checked })}
+                  color="warning"
+                  sx={{ ml: 1 }}
+                />
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
               <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
                 Carica Immagine
                 <input type="file" hidden accept="image/*" onChange={handleFile} />
+              </Button>
+              <Button onClick={pickEventImageFromDrive} variant="outlined" sx={{ ml: 2, color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+                <AddToDriveIcon />
               </Button>
             </Grid>
             <Grid item xs={12}>

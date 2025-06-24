@@ -12,6 +12,7 @@ async function setup() {
     price: '',
     image: '',
     description: 'Example document',
+    soldOut: false,
   });
   // Create sample booking
   await db.collection('bookings').doc('sample').set({
