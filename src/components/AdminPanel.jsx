@@ -87,10 +87,12 @@ const AdminPanel = () => {
     place: '',
     time: '',
     price: '',
+    capacity: '',
     image: '',
     description: '',
     soldOut: false,
   });
+  const [editingId, setEditingId] = useState(null);
   const { showToast } = useToast();
   const [placeOptions, setPlaceOptions] = useState([]);
   const [section, setSection] = useState('bookings');
@@ -281,8 +283,13 @@ const handleGallerySubmit = async (e) => {
     e.preventDefault();
     try {
       const data = { ...formData, image: formData.image || heroImg };
-      await createEvent(data);
-      showToast('Evento creato', 'success');
+      if (editingId) {
+        await updateEvent(editingId, data);
+        showToast('Evento aggiornato', 'success');
+      } else {
+        await createEvent(data);
+        showToast('Evento creato', 'success');
+      }
       fetchEvents().then(setEvents).catch(() => {});
       setFormData({
         name: '',
@@ -291,10 +298,12 @@ const handleGallerySubmit = async (e) => {
         place: '',
         time: '',
         price: '',
+        capacity: '',
         image: '',
         description: '',
         soldOut: false,
       });
+      setEditingId(null);
     } catch (err) {
       showToast('Errore', 'error');
     }
@@ -308,6 +317,23 @@ const handleGallerySubmit = async (e) => {
     } catch (err) {
       showToast('Errore', 'error');
     }
+  };
+
+  const handleEdit = (ev) => {
+    setFormData({
+      name: ev.name,
+      dj: ev.dj,
+      date: ev.date,
+      place: ev.place,
+      time: ev.time,
+      price: ev.price,
+      capacity: ev.capacity || '',
+      image: ev.image,
+      description: ev.description,
+      soldOut: !!ev.soldOut,
+    });
+    setEditingId(ev.id);
+    setSection('create');
   };
 
   const handleToggleSoldOut = async (id, value) => {
@@ -451,6 +477,7 @@ const handleGallerySubmit = async (e) => {
                   <TableCell>Luogo</TableCell>
                   <TableCell>Data</TableCell>
                   <TableCell>Orario</TableCell>
+                  <TableCell>Capienza</TableCell>
                   <TableCell>Sold Out</TableCell>
                   <TableCell>Azioni</TableCell>
                 </TableRow>
@@ -463,6 +490,7 @@ const handleGallerySubmit = async (e) => {
                     <TableCell>{ev.place}</TableCell>
                     <TableCell>{ev.date}</TableCell>
                     <TableCell>{ev.time}</TableCell>
+                    <TableCell>{ev.capacity || '-'}</TableCell>
                     <TableCell>
                       <Switch
                         checked={!!ev.soldOut}
@@ -473,6 +501,9 @@ const handleGallerySubmit = async (e) => {
                       />
                     </TableCell>
                     <TableCell>
+                      <Button size="small" onClick={() => handleEdit(ev)} sx={{ mr: 1 }} color="primary">
+                        Modifica
+                      </Button>
                       <Button size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: 'event' })}>
                         <DeleteIcon />
                       </Button>
@@ -489,7 +520,7 @@ const handleGallerySubmit = async (e) => {
           <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
-                Crea Evento
+                {editingId ? 'Modifica Evento' : 'Crea Evento'}
               </Typography>
             </Grid>
             <Grid item xs={12}>
@@ -519,6 +550,9 @@ const handleGallerySubmit = async (e) => {
               <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
             </Grid>
             <Grid item xs={12}>
+              <TextField name="capacity" label="Capienza" variant="outlined" value={formData.capacity} onChange={handleChange} fullWidth />
+            </Grid>
+            <Grid item xs={12}>
               <Typography component="div" sx={{ display: 'flex', alignItems: 'center' }}>
                 Sold Out
                 <Switch
@@ -543,8 +577,13 @@ const handleGallerySubmit = async (e) => {
             </Grid>
             <Grid item xs={12}>
               <Button type="submit" variant="contained" fullWidth={isMobile} sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
-                Crea
+                {editingId ? 'Salva' : 'Crea'}
               </Button>
+              {editingId && (
+                <Button onClick={() => { setEditingId(null); setFormData({ name: '', dj: '', date: '', place: '', time: '', price: '', capacity: '', image: '', description: '', soldOut: false }); }} variant="text" sx={{ ml: 2, color: 'var(--yellow)' }}>
+                  Annulla
+                </Button>
+              )}
             </Grid>
           </Grid>
           </Paper>

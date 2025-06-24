@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { sendBooking } from '../api';
 import { useLanguage } from './LanguageContext';
@@ -61,6 +62,8 @@ const Button = styled.button`
 `;
 
 const TicketBookingForm = () => {
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('event');
   const [formData, setFormData] = useState({
     nome: '',
     cognome: '',
@@ -90,7 +93,7 @@ const TicketBookingForm = () => {
     }
     setLoading(true);
     try {
-      await sendBooking(formData);
+      await sendBooking({ ...formData, eventId });
       showToast(t('booking.success'), 'success');
       setFormData({ nome: '', cognome: '', email: '', telefono: '' });
     } catch (err) {

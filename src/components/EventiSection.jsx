@@ -154,7 +154,7 @@ const EventiSection = () => {
                 <MotionButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/prenota")}
+                  onClick={() => navigate(`/prenota?event=${event.id}`)}
                   sx={{
                     backgroundColor: "var(--black)",
                     color: "white",
