@@ -7,6 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Simple admin login
+app.post('/api/login', (req, res) => {
+  const { password } = req.body;
+  const expected = process.env.ADMIN_PASSWORD || 'admin';
+  if (password === expected) return res.json({ success: true });
+  res.status(401).json({ error: 'Unauthorized' });
+});
+
 // Get all events
 app.get('/api/events', async (_req, res) => {
   try {
