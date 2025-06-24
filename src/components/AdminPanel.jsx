@@ -63,6 +63,13 @@ const muiTheme = createTheme({
   shape: { borderRadius: 12 },
 });
 
+const glass = {
+  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+};
+
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [events, setEvents] = useState([]);
@@ -297,7 +304,7 @@ const handleGallerySubmit = async (e) => {
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: 'var(--black)', color: 'var(--yellow)' }}>
+        sx={{ ...glass, zIndex: (theme) => theme.zIndex.drawer + 1, color: 'var(--yellow)' }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {isMobile && (
@@ -323,9 +330,9 @@ const handleGallerySubmit = async (e) => {
           width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
+            ...glass,
             width: drawerWidth,
             boxSizing: 'border-box',
-            backgroundColor: 'var(--black)',
             color: 'var(--white)',
             borderRadius: '0 12px 12px 0'
           },
@@ -336,7 +343,7 @@ const handleGallerySubmit = async (e) => {
       <Box component="main" sx={{ flexGrow: 1, p: 3 }} className="container">
         <Toolbar />
         {section === 'bookings' && (
-          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
+          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
             <Typography variant="h5" gutterBottom>
               Prenotazioni
             </Typography>
@@ -367,7 +374,7 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'events' && (
-          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
+          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
             <Typography variant="h5" gutterBottom>
               Eventi
             </Typography>
@@ -404,7 +411,7 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'create' && (
-          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, maxWidth: 600, mx: 'auto' }}>
+          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, maxWidth: 600, mx: 'auto' }}>
           <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
@@ -455,7 +462,7 @@ const handleGallerySubmit = async (e) => {
           </Paper>
         )}
         {section === 'gallery' && (
-          <Paper sx={{ p: 3, mb: 4, boxShadow: 3, maxWidth: isMobile ? '100%' : 400, mx: 'auto' }}>
+          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, maxWidth: isMobile ? '100%' : 400, mx: 'auto' }}>
           <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2}>
             <Grid item xs={12}>
               <Typography variant="h5" gutterBottom>
