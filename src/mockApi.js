@@ -11,6 +11,7 @@ export let mockEvents = [
     price: "15",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -23,6 +24,7 @@ export let mockEvents = [
     price: "18",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -35,6 +37,7 @@ export let mockEvents = [
     price: "20",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -47,6 +50,7 @@ export let mockEvents = [
     price: "22",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -59,6 +63,7 @@ export let mockEvents = [
     price: "17",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -71,6 +76,7 @@ export let mockEvents = [
     price: "19",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -83,6 +89,7 @@ export let mockEvents = [
     price: "16",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -95,6 +102,7 @@ export let mockEvents = [
     price: "21",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
   {
@@ -107,6 +115,7 @@ export let mockEvents = [
     price: "24",
     image: "",
     description: "Lorem ipsum dolor sit amet.",
+    capacity: 100,
     soldOut: false,
   },
 ];
@@ -119,6 +128,7 @@ export let mockBookings = [
     email: "mario@example.com",
     telefono: "3331234567",
     quantity: 1,
+    eventId: "1",
   },
 ];
 
@@ -179,6 +189,18 @@ export const mockSendBooking = async (data) => {
   loadMock();
   const newBooking = { id: uuid(), ...data };
   mockBookings.push(newBooking);
+  if (data.eventId) {
+    const eventIndex = mockEvents.findIndex((e) => e.id === data.eventId);
+    if (eventIndex !== -1) {
+      const bookingsForEvent = mockBookings.filter(
+        (b) => b.eventId === data.eventId
+      ).length;
+      const event = mockEvents[eventIndex];
+      if (event.capacity && bookingsForEvent >= event.capacity) {
+        mockEvents[eventIndex] = { ...event, soldOut: true };
+      }
+    }
+  }
   save();
   return newBooking;
 };

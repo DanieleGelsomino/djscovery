@@ -12,6 +12,7 @@ async function setup() {
     price: '',
     image: '',
     description: 'Example document',
+    capacity: 100,
     soldOut: false,
   });
   // Create sample booking
@@ -20,6 +21,7 @@ async function setup() {
     cognome: 'User',
     email: 'example@example.com',
     telefono: '0000000000',
+    eventId: 'sample',
     createdAt: now,
   });
   // Create sample gallery image

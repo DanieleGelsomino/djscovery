@@ -50,6 +50,7 @@ app.post("/api/events", async (req, res) => {
     price,
     image,
     description,
+    capacity,
     soldOut = false,
   } = req.body;
   if (!name || !dj || !date || !place || !time || !image) {
@@ -65,6 +66,7 @@ app.post("/api/events", async (req, res) => {
       price,
       image,
       description,
+      capacity,
       soldOut,
     });
     res.json({ id: doc.id });
@@ -76,8 +78,18 @@ app.post("/api/events", async (req, res) => {
 
 // Update an event
 app.put("/api/events/:id", async (req, res) => {
-  const { name, dj, date, place, time, price, image, description, soldOut } =
-    req.body;
+  const {
+    name,
+    dj,
+    date,
+    place,
+    time,
+    price,
+    image,
+    description,
+    capacity,
+    soldOut,
+  } = req.body;
   try {
     await db.collection("events").doc(req.params.id).update({
       name,
@@ -88,6 +100,7 @@ app.put("/api/events/:id", async (req, res) => {
       price,
       image,
       description,
+      capacity,
       ...(soldOut !== undefined && { soldOut }),
     });
     res.json({ success: true });
@@ -109,19 +122,39 @@ app.delete("/api/events/:id", async (req, res) => {
 });
 
 app.post("/api/bookings", async (req, res) => {
-  const { nome, cognome, email, telefono } = req.body;
+  const { nome, cognome, email, telefono, eventId } = req.body;
   if (!nome || !cognome || !email || !telefono) {
     return res.status(400).json({ error: "Missing fields" });
   }
   try {
-    await db.collection("bookings").add({
+    const doc = await db.collection("bookings").add({
       nome,
       cognome,
       email,
       telefono,
+      eventId,
       createdAt: new Date(),
     });
-    res.json({ success: true });
+
+    if (eventId) {
+      const eventDoc = await db.collection("events").doc(eventId).get();
+      if (eventDoc.exists) {
+        const eventData = eventDoc.data();
+        if (eventData.capacity) {
+          const count = (
+            await db
+              .collection("bookings")
+              .where("eventId", "==", eventId)
+              .get()
+          ).size;
+          if (count >= eventData.capacity) {
+            await db.collection("events").doc(eventId).update({ soldOut: true });
+          }
+        }
+      }
+    }
+
+    res.json({ id: doc.id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to save booking" });
