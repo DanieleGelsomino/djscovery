@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 import logo from '../assets/img/djscovery-logo.png';
+import heroImg from '../assets/img/hero.png';
 
 const AdminLogin = () => {
   const [password, setPassword] = useState('');
@@ -29,7 +30,10 @@ const AdminLogin = () => {
     <Box
       sx={{
         textAlign: 'center',
-        minHeight: 'calc(100vh - 200px)',
+        minHeight: '100vh',
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${heroImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -46,8 +50,9 @@ const AdminLogin = () => {
           gap: 2,
           width: '100%',
           maxWidth: 400,
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           borderRadius: 3,
         }}
       >
