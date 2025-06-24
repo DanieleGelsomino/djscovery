@@ -107,4 +107,11 @@ export const GlobalStyles = createGlobalStyle`
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
+
+  input:-internal-autofill-selected {
+    appearance: menulist-button;
+    background-image: none !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: fieldtext !important;
+  }
 `;
