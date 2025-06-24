@@ -23,7 +23,8 @@ npm run server
 Create a `.env` file inside the `server` directory by copying `.env.example` and
 set your backend configuration values (e.g. `PORT`, `FIREBASE_SERVICE_ACCOUNT` or
 `GOOGLE_APPLICATION_CREDENTIALS`, and `FIREBASE_PROJECT_ID`) before starting the
-API server.
+API server. To enable newsletter subscriptions via Brevo, configure also
+`BREVO_API_KEY` and `BREVO_LIST_ID` with your account details.
 
 After configuring Firebase credentials you can create the required Firestore collections with:
 
