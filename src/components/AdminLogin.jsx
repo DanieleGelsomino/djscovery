@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
-import logo from '../assets/img/djscovery-logo.png';
+import logo from '../assets/img/ADMIN.png';
 import heroImg from '../assets/img/hero.png';
 
 const AdminLogin = () => {
@@ -58,8 +58,8 @@ const AdminLogin = () => {
       >
         <img
           src={logo}
-          alt="Djscovery logo"
-          style={{ width: '150px', alignSelf: 'center', marginBottom: '1rem' }}
+          alt="Admin logo"
+          style={{ width: '200px', alignSelf: 'center', marginBottom: '1rem' }}
         />
         <Typography variant="h5" gutterBottom>
           Admin Login
