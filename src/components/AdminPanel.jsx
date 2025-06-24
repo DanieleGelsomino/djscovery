@@ -48,6 +48,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AddToDriveIcon from '@mui/icons-material/AddToDrive';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from './ToastContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase/config';
 
 const drawerWidth = 240;
 const muiTheme = createTheme({
@@ -266,6 +268,16 @@ const handleGallerySubmit = async (e) => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error(err);
+    }
+    localStorage.removeItem('isAdmin');
+    navigate('/admin');
+  };
+
   const drawer = (
     <div>
       <Toolbar />
@@ -316,7 +328,7 @@ const handleGallerySubmit = async (e) => {
               Admin Panel
             </Typography>
           </Box>
-          <IconButton color="inherit" onClick={() => { localStorage.removeItem('isAdmin'); navigate('/'); }}>
+          <IconButton color="inherit" onClick={handleLogout}>
             <LogoutIcon />
           </IconButton>
         </Toolbar>
