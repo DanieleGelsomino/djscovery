@@ -22,6 +22,10 @@
     "success": "Thank you for subscribing!",
     "error": "Subscription failed"
   },
+  "youtube": {
+    "title": "Latest Videos",
+    "subtitle": "Watch our newest clips from YouTube"
+  },
   "events": {
     "title": "Next Events",
     "subtitle": "Discover and book our special nights throughout Italy.",
