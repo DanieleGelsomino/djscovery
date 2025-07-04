@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { useLanguage } from './LanguageContext';
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
+import { useLanguage } from "./LanguageContext";
 
 const Section = styled.section`
   background-color: #000;
@@ -42,10 +42,10 @@ const VideoWrapper = styled.div`
 `;
 
 const fallbackIds = [
-  'dQw4w9WgXcQ',
-  '3JZ_D3ELwOQ',
-  'L_jWHffIx5E',
-  'M7FIvfx5J10'
+  "dQw4w9WgXcQ",
+  "3JZ_D3ELwOQ",
+  "L_jWHffIx5E",
+  "M7FIvfx5J10",
 ];
 
 const YouTubeSection = () => {
@@ -53,21 +53,33 @@ const YouTubeSection = () => {
   const [videos, setVideos] = useState([]);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    const channelId = import.meta.env.VITE_YOUTUBE_CHANNEL_ID;
-    if (!apiKey || !channelId) return;
+    const apiKey = "AIzaSyAyG0exdTU2vkRqDLdwRiu0PEKznNkfOTo";
+    const handle = "@djscoverytv";
+
+    if (!apiKey || !handle) return;
 
     fetch(
-      `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=4`
+      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${apiKey}`
     )
+      .then((res) => res.json())
+      .then((data) => {
+        const ch = data.items?.[0]?.id;
+        if (!ch) throw new Error("Canale non trovato");
+        return fetch(
+          `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${ch}&part=snippet,id&order=date&maxResults=4`
+        );
+      })
       .then((res) => res.json())
       .then((data) => {
         const vids = (data.items || [])
           .filter((it) => it.id && it.id.videoId)
           .map((it) => it.id.videoId);
-        if (vids.length) setVideos(vids);
+        setVideos(vids.length ? vids : fallbackIds);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Errore caricamento video:", err);
+        setVideos(fallbackIds);
+      });
   }, []);
 
   const ids = videos.length ? videos : fallbackIds;
@@ -75,14 +87,14 @@ const YouTubeSection = () => {
   return (
     <Section>
       <div className="container">
-        <h2>{t('youtube.title')}</h2>
-        <p>{t('youtube.subtitle')}</p>
+        <h2>{t("youtube.title")}</h2>
+        <p>{t("youtube.subtitle")}</p>
         <VideosGrid>
           {ids.map((id) => (
             <VideoWrapper key={id}>
               <iframe
                 src={`https://www.youtube.com/embed/${id}`}
-                title="YouTube video player"
+                title={`YouTube video ${id}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               ></iframe>
