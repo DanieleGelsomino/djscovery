@@ -48,6 +48,11 @@ Se il server API è in esecuzione su un dominio o porta diversa è possibile
 specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
 In questo modo tutte le richieste verranno indirizzate correttamente al backend.
 
+Per mostrare i video più recenti del canale YouTube nella home page è
+necessario impostare anche `VITE_YOUTUBE_API_KEY` e
+`VITE_YOUTUBE_CHANNEL_ID` nel file `.env` con i valori del proprio progetto
+Google.
+
 Le immagini caricate nella sezione Gallery del pannello verranno mostrate
 nella pagina pubblica "/gallery" insieme a quelle predefinite.
 

@@ -22,6 +22,10 @@
     "success": "Grazie per la tua iscrizione!",
     "error": "Errore durante l'iscrizione"
   },
+  "youtube": {
+    "title": "Ultimi Video",
+    "subtitle": "Guarda i nuovi videoclip dal nostro canale YouTube"
+  },
   "events": {
     "title": "Prossimi Eventi",
     "subtitle": "Scopri e prenota le nostre serate speciali in tutta Italia.",
