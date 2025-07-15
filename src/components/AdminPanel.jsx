@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchBookings,
   createEvent,
@@ -9,8 +9,8 @@ import {
   fetchGallery,
   uploadGalleryImage,
   deleteGalleryImage,
-} from '../api';
-import { withLoading } from '../loading';
+} from "../api";
+import { withLoading } from "../loading";
 import {
   Box,
   Drawer,
@@ -37,26 +37,30 @@ import {
   Paper,
   useMediaQuery,
   useTheme,
-} from '@mui/material';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import heroImg from '../assets/img/hero.png';
-import { theme as appTheme } from '../styles/globalStyles';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import EventIcon from '@mui/icons-material/Event';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CalendarIcon from '@mui/icons-material/CalendarToday';
-import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout';
-import AddToDriveIcon from '@mui/icons-material/AddToDrive';
-import ConfirmDialog from './ConfirmDialog';
-import { useToast } from './ToastContext';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/config';
+} from "@mui/material";
+import {
+  ThemeProvider as MuiThemeProvider,
+  createTheme,
+} from "@mui/material/styles";
+import heroImg from "../assets/img/hero.png";
+import { theme as appTheme } from "../styles/globalStyles";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import EventIcon from "@mui/icons-material/Event";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CalendarIcon from "@mui/icons-material/CalendarToday";
+import MenuIcon from "@mui/icons-material/Menu";
+import LogoutIcon from "@mui/icons-material/Logout";
+import AddToDriveIcon from "@mui/icons-material/AddToDrive";
+import ConfirmDialog from "./ConfirmDialog";
+import { useToast } from "./ToastContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase/config";
+import { uploadToCloudinary } from "../api/cloudinary";
 
 const drawerWidth = 240;
 const muiTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: { main: appTheme.colors.yellow },
     secondary: { main: appTheme.colors.red },
     background: {
@@ -68,38 +72,38 @@ const muiTheme = createTheme({
 });
 
 const glass = {
-  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+  border: "1px solid rgba(255, 255, 255, 0.2)",
 };
 
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [events, setEvents] = useState([]);
   const [gallery, setGallery] = useState([]);
-  const [gallerySrc, setGallerySrc] = useState('');
+  const [gallerySrc, setGallerySrc] = useState("");
   const [pickerLoaded, setPickerLoaded] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    dj: '',
-    date: '',
-    place: '',
-    time: '',
-    price: '',
-    capacity: '',
-    image: '',
-    description: '',
+    name: "",
+    dj: "",
+    date: "",
+    place: "",
+    time: "",
+    price: "",
+    capacity: "",
+    image: "",
+    description: "",
     soldOut: false,
   });
   const [editingId, setEditingId] = useState(null);
   const { showToast } = useToast();
   const [placeOptions, setPlaceOptions] = useState([]);
-  const [section, setSection] = useState('bookings');
+  const [section, setSection] = useState("bookings");
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [confirm, setConfirm] = useState({ open: false, id: null, type: '' });
+  const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -107,10 +111,18 @@ const AdminPanel = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!apiKey || !clientId) return;
     const onLoad = () => {
-      window.gapi.load('client:picker', async () => {
+      window.gapi.load("client:picker", async () => {
         try {
-          await window.gapi.client.init({ apiKey, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-          await window.gapi.auth2.init({ client_id: clientId, scope: 'https://www.googleapis.com/auth/drive.readonly' });
+          await window.gapi.client.init({
+            apiKey,
+            discoveryDocs: [
+              "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+            ],
+          });
+          await window.gapi.auth2.init({
+            client_id: clientId,
+            scope: "https://www.googleapis.com/auth/drive.readonly",
+          });
           setPickerLoaded(true);
         } catch (err) {
           console.error(err);
@@ -120,16 +132,16 @@ const AdminPanel = () => {
     if (window.gapi) {
       onLoad();
     } else {
-      const src = 'https://apis.google.com/js/api.js';
+      const src = "https://apis.google.com/js/api.js";
       let script = document.querySelector(`script[src="${src}"]`);
       if (!script) {
-        script = document.createElement('script');
+        script = document.createElement("script");
         script.src = src;
         script.async = true;
         document.body.appendChild(script);
       }
-      script.addEventListener('load', onLoad);
-      return () => script.removeEventListener('load', onLoad);
+      script.addEventListener("load", onLoad);
+      return () => script.removeEventListener("load", onLoad);
     }
   }, []);
 
@@ -141,7 +153,9 @@ const AdminPanel = () => {
     const controller = new AbortController();
     withLoading(async () => {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(formData.place)}`,
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
+          formData.place
+        )}`,
         { signal: controller.signal }
       );
       const data = await res.json();
@@ -151,48 +165,61 @@ const AdminPanel = () => {
   }, [formData.place]);
 
   useEffect(() => {
-    if (localStorage.getItem('isAdmin') !== 'true') {
-      navigate('/admin');
+    if (localStorage.getItem("isAdmin") !== "true") {
+      navigate("/admin");
       return;
     }
-    fetchBookings().then(setBookings).catch(() => {});
-    fetchEvents().then(setEvents).catch(() => {});
-    fetchGallery().then(setGallery).catch(() => {});
+    fetchBookings()
+      .then(setBookings)
+      .catch(() => {});
+    fetchEvents()
+      .then(setEvents)
+      .catch(() => {});
+    fetchGallery()
+      .then(setGallery)
+      .catch(() => {});
   }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((f) => ({ ...f, image: reader.result }));
-      showToast('Immagine caricata', 'success');
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadToCloudinary(file);
+      setFormData((f) => ({ ...f, image: url }));
+      showToast("Immagine caricata", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Errore nel caricamento immagine", "error");
+    }
   };
 
-  const handleGalleryFile = (e) => {
+  const handleGalleryFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setGallerySrc(reader.result);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadToCloudinary(file);
+      setGallerySrc(url);
+      showToast("Immagine caricata", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Errore nel caricamento immagine", "error");
+    }
   };
 
-  const pickEventImageFromDrive = async () => {
+  const pickImageFromDrive = async (onImagePicked) => {
     if (!pickerLoaded) return;
     try {
       const auth = await window.gapi.auth2.getAuthInstance().signIn();
       const token = auth.getAuthResponse().access_token;
+
       const view = new window.google.picker.DocsView(
         window.google.picker.ViewId.DOCS_IMAGES
-      ).setMimeTypes('image/png,image/jpeg,image/jpg');
+      ).setMimeTypes("image/png,image/jpeg,image/jpg");
+
       const picker = new window.google.picker.PickerBuilder()
         .addView(view)
         .setOAuthToken(token)
@@ -209,63 +236,46 @@ const AdminPanel = () => {
               );
               const blob = await res.blob();
               const reader = new FileReader();
-              reader.onloadend = () =>
-                setFormData((f) => ({ ...f, image: reader.result }));
+              reader.onloadend = () => onImagePicked(reader.result);
               reader.readAsDataURL(blob);
             });
           }
         })
         .build();
+
       picker.setVisible(true);
     } catch (err) {
       console.error(err);
-      showToast('Errore Google Drive', 'error');
+      showToast("Errore Google Drive", "error");
     }
   };
 
-  const pickFromDrive = async () => {
-    if (!pickerLoaded) return;
-    try {
-      const auth = await window.gapi.auth2.getAuthInstance().signIn();
-      const token = auth.getAuthResponse().access_token;
-      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS_IMAGES)
-        .setMimeTypes('image/png,image/jpeg,image/jpg');
-      const picker = new window.google.picker.PickerBuilder()
-        .addView(view)
-        .setOAuthToken(token)
-        .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
-        .setCallback(async (data) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const id = data.docs[0].id;
-            await withLoading(async () => {
-              const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              const blob = await res.blob();
-              const reader = new FileReader();
-              reader.onloadend = () => setGallerySrc(reader.result);
-              reader.readAsDataURL(blob);
-            });
-          }
-        })
-        .build();
-      picker.setVisible(true);
-    } catch (err) {
-      console.error(err);
-      showToast('Errore Google Drive', 'error');
-    }
+  // 🔴 Per EVENTI
+  const pickEventImageFromDrive = () => {
+    pickImageFromDrive((base64) => {
+      setFormData((f) => ({ ...f, image: base64 }));
+    });
   };
 
-const handleGallerySubmit = async (e) => {
+  // 🔵 Per GALLERY
+  const pickFromDrive = () => {
+    pickImageFromDrive((base64) => {
+      setGallerySrc(base64);
+    });
+  };
+
+  const handleGallerySubmit = async (e) => {
     e.preventDefault();
     if (!gallerySrc) return;
     try {
       await uploadGalleryImage(gallerySrc);
-      fetchGallery().then(setGallery).catch(() => {});
-      setGallerySrc('');
-      showToast('Immagine caricata', 'success');
+      fetchGallery()
+        .then(setGallery)
+        .catch(() => {});
+      setGallerySrc("");
+      showToast("Immagine caricata", "success");
     } catch (err) {
-      showToast('Errore', 'error');
+      showToast("Errore", "error");
     }
   };
 
@@ -273,9 +283,9 @@ const handleGallerySubmit = async (e) => {
     try {
       await deleteGalleryImage(id);
       setGallery(gallery.filter((g) => g.id !== id));
-      showToast('Immagine eliminata', 'success');
+      showToast("Immagine eliminata", "success");
     } catch (err) {
-      showToast('Errore', 'error');
+      showToast("Errore", "error");
     }
   };
 
@@ -285,27 +295,29 @@ const handleGallerySubmit = async (e) => {
       const data = { ...formData, image: formData.image || heroImg };
       if (editingId) {
         await updateEvent(editingId, data);
-        showToast('Evento aggiornato', 'success');
+        showToast("Evento aggiornato", "success");
       } else {
         await createEvent(data);
-        showToast('Evento creato', 'success');
+        showToast("Evento creato", "success");
       }
-      fetchEvents().then(setEvents).catch(() => {});
+      fetchEvents()
+        .then(setEvents)
+        .catch(() => {});
       setFormData({
-        name: '',
-        dj: '',
-        date: '',
-        place: '',
-        time: '',
-        price: '',
-        capacity: '',
-        image: '',
-        description: '',
+        name: "",
+        dj: "",
+        date: "",
+        place: "",
+        time: "",
+        price: "",
+        capacity: "",
+        image: "",
+        description: "",
         soldOut: false,
       });
       setEditingId(null);
     } catch (err) {
-      showToast('Errore', 'error');
+      showToast("Errore", "error");
     }
   };
 
@@ -313,9 +325,9 @@ const handleGallerySubmit = async (e) => {
     try {
       await deleteEvent(id);
       setEvents(events.filter((ev) => ev.id !== id));
-      showToast('Evento eliminato', 'success');
+      showToast("Evento eliminato", "success");
     } catch (err) {
-      showToast('Errore', 'error');
+      showToast("Errore", "error");
     }
   };
 
@@ -327,22 +339,24 @@ const handleGallerySubmit = async (e) => {
       place: ev.place,
       time: ev.time,
       price: ev.price,
-      capacity: ev.capacity || '',
+      capacity: ev.capacity || "",
       image: ev.image,
       description: ev.description,
       soldOut: !!ev.soldOut,
     });
     setEditingId(ev.id);
-    setSection('create');
+    setSection("create");
   };
 
   const handleToggleSoldOut = async (id, value) => {
     try {
       await updateEvent(id, { soldOut: value });
-      setEvents(events.map((e) => (e.id === id ? { ...e, soldOut: value } : e)));
-      showToast('Aggiornato', 'success');
+      setEvents(
+        events.map((e) => (e.id === id ? { ...e, soldOut: value } : e))
+      );
+      showToast("Aggiornato", "success");
     } catch (err) {
-      showToast('Errore', 'error');
+      showToast("Errore", "error");
     }
   };
 
@@ -352,8 +366,8 @@ const handleGallerySubmit = async (e) => {
     } catch (err) {
       console.error(err);
     }
-    localStorage.removeItem('isAdmin');
-    navigate('/admin');
+    localStorage.removeItem("isAdmin");
+    navigate("/admin");
   };
 
   const drawer = (
@@ -361,25 +375,53 @@ const handleGallerySubmit = async (e) => {
       <Toolbar />
       <Divider />
       <List>
-        <ListItem button onClick={() => {setSection('bookings'); setMobileOpen(false);}} selected={section === 'bookings'}>
+        <ListItem
+          button
+          onClick={() => {
+            setSection("bookings");
+            setMobileOpen(false);
+          }}
+          selected={section === "bookings"}
+        >
           <ListItemIcon>
             <ListAltIcon />
           </ListItemIcon>
           <ListItemText primary="Prenotazioni" />
         </ListItem>
-        <ListItem button onClick={() => {setSection('events'); setMobileOpen(false);}} selected={section === 'events'}>
+        <ListItem
+          button
+          onClick={() => {
+            setSection("events");
+            setMobileOpen(false);
+          }}
+          selected={section === "events"}
+        >
           <ListItemIcon>
             <CalendarIcon />
           </ListItemIcon>
           <ListItemText primary="Eventi" />
         </ListItem>
-        <ListItem button onClick={() => {setSection('create'); setMobileOpen(false);}} selected={section === 'create'}>
+        <ListItem
+          button
+          onClick={() => {
+            setSection("create");
+            setMobileOpen(false);
+          }}
+          selected={section === "create"}
+        >
           <ListItemIcon>
             <EventIcon />
           </ListItemIcon>
           <ListItemText primary="Crea Evento" />
         </ListItem>
-        <ListItem button onClick={() => {setSection('gallery'); setMobileOpen(false);}} selected={section === 'gallery'}>
+        <ListItem
+          button
+          onClick={() => {
+            setSection("gallery");
+            setMobileOpen(false);
+          }}
+          selected={section === "gallery"}
+        >
           <ListItemIcon>
             <EventIcon />
           </ListItemIcon>
@@ -391,259 +433,479 @@ const handleGallerySubmit = async (e) => {
 
   return (
     <MuiThemeProvider theme={muiTheme}>
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <AppBar position="fixed"
-        sx={{ ...glass, zIndex: (theme) => theme.zIndex.drawer + 1, color: 'var(--yellow)' }}>
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {isMobile && (
-              <IconButton color="inherit" onClick={() => setMobileOpen(true)}>
-                <MenuIcon />
-              </IconButton>
-            )}
-            <Typography variant="h6" noWrap component="div">
-              Admin Panel
-            </Typography>
-          </Box>
-          <IconButton color="inherit" onClick={handleLogout}>
-            <LogoutIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        variant={isMobile ? 'temporary' : 'permanent'}
-        open={isMobile ? mobileOpen : true}
-        onClose={() => setMobileOpen(false)}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
+        <AppBar
+          position="fixed"
+          sx={{
             ...glass,
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            color: 'var(--white)',
-            borderRadius: '0 12px 12px 0'
-          },
-        }}
-      >
-        {drawer}
-      </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }} className="container">
-        <Toolbar />
-        {section === 'bookings' && (
-          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
-            <Typography variant="h5" gutterBottom>
-              Prenotazioni
-            </Typography>
-            <Box sx={{ overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nome</TableCell>
-                  <TableCell>Cognome</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Telefono</TableCell>
-                  <TableCell>Biglietti</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {bookings.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell>{b.nome}</TableCell>
-                    <TableCell>{b.cognome}</TableCell>
-                    <TableCell>{b.email}</TableCell>
-                    <TableCell>{b.telefono}</TableCell>
-                    <TableCell>{b.quantity || 1}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </Box>
-          </Paper>
-        )}
-        {section === 'events' && (
-          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: 'auto' }}>
-            <Typography variant="h5" gutterBottom>
-              Eventi
-            </Typography>
-            <Box sx={{ overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nome</TableCell>
-                  <TableCell>DJ</TableCell>
-                  <TableCell>Luogo</TableCell>
-                  <TableCell>Data</TableCell>
-                  <TableCell>Orario</TableCell>
-                  <TableCell>Capienza</TableCell>
-                  <TableCell>Sold Out</TableCell>
-                  <TableCell>Azioni</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {events.map((ev) => (
-                  <TableRow key={ev.id}>
-                    <TableCell>{ev.name}</TableCell>
-                    <TableCell>{ev.dj}</TableCell>
-                    <TableCell>{ev.place}</TableCell>
-                    <TableCell>{ev.date}</TableCell>
-                    <TableCell>{ev.time}</TableCell>
-                    <TableCell>{ev.capacity || '-'}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={!!ev.soldOut}
-                        onChange={(e) =>
-                          handleToggleSoldOut(ev.id, e.target.checked)
-                        }
-                        color="warning"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button size="small" onClick={() => handleEdit(ev)} sx={{ mr: 1 }} color="primary">
-                        Modifica
-                      </Button>
-                      <Button size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: 'event' })}>
-                        <DeleteIcon />
-                      </Button>
-                    </TableCell>
-                 </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </Box>
-          </Paper>
-        )}
-        {section === 'create' && (
-          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, maxWidth: 600, mx: 'auto' }}>
-          <Grid container direction="column" component="form" onSubmit={handleSubmit} spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h5" gutterBottom>
-                {editingId ? 'Modifica Evento' : 'Crea Evento'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField name="name" label="Nome Evento" variant="outlined" value={formData.name} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField name="dj" label="DJ" variant="outlined" value={formData.dj} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField type="date" name="date" label="Data" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.date} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <Autocomplete
-                freeSolo
-                options={placeOptions}
-                inputValue={formData.place}
-                onInputChange={(e, value) => setFormData({ ...formData, place: value })}
-                renderInput={(params) => (
-                  <TextField {...params} label="Luogo" variant="outlined" fullWidth />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField type="time" name="time" label="Orario" InputLabelProps={{ shrink: true }} variant="outlined" value={formData.time} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField name="price" label="Prezzo" variant="outlined" value={formData.price} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField name="capacity" label="Capienza" variant="outlined" value={formData.capacity} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography component="div" sx={{ display: 'flex', alignItems: 'center' }}>
-                Sold Out
-                <Switch
-                  checked={formData.soldOut}
-                  onChange={(e) => setFormData({ ...formData, soldOut: e.target.checked })}
-                  color="warning"
-                  sx={{ ml: 1 }}
-                />
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Button variant="outlined" component="label" sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
-                Carica Immagine
-                <input type="file" hidden accept="image/*" onChange={handleFile} />
-              </Button>
-              <Button onClick={pickEventImageFromDrive} variant="outlined" sx={{ ml: 2, color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
-                <AddToDriveIcon />
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField name="description" label="Descrizione" variant="outlined" value={formData.description} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={12}>
-              <Button type="submit" variant="contained" fullWidth={isMobile} sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
-                {editingId ? 'Salva' : 'Crea'}
-              </Button>
-              {editingId && (
-                <Button onClick={() => { setEditingId(null); setFormData({ name: '', dj: '', date: '', place: '', time: '', price: '', capacity: '', image: '', description: '', soldOut: false }); }} variant="text" sx={{ ml: 2, color: 'var(--yellow)' }}>
-                  Annulla
-                </Button>
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            color: "var(--yellow)",
+          }}
+        >
+          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {isMobile && (
+                <IconButton color="inherit" onClick={() => setMobileOpen(true)}>
+                  <MenuIcon />
+                </IconButton>
               )}
-            </Grid>
-          </Grid>
-          </Paper>
-        )}
-        {section === 'gallery' && (
-          <Paper sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, maxWidth: isMobile ? '100%' : 400, mx: 'auto' }}>
-          <Grid container direction="column" component="form" onSubmit={handleGallerySubmit} spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h5" gutterBottom>
-                Gallery
+              <Typography variant="h6" noWrap component="div">
+                Admin Panel
               </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Button variant="outlined" component="label" fullWidth sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
-                Carica Immagine
-                <input type="file" hidden accept="image/*" onChange={handleGalleryFile} />
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Button variant="outlined" onClick={pickFromDrive} fullWidth sx={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
-                <AddToDriveIcon />
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Button type="submit" variant="contained" fullWidth sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
-                Aggiungi
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Grid container spacing={1}>
-                {gallery.map((img) => (
-                  <Grid item key={img.id} xs={4} sm={3} md={2} sx={{ position: 'relative' }}>
-                    <img src={img.src} alt="gallery" style={{ width: '100%', height: 100, objectFit: 'cover' }} />
-                    <IconButton size="small" color="error" sx={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setConfirm({ open: true, id: img.id, type: 'image' })}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Grid>
-                ))}
+            </Box>
+            <IconButton color="inherit" onClick={handleLogout}>
+              <LogoutIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+        <Drawer
+          variant={isMobile ? "temporary" : "permanent"}
+          open={isMobile ? mobileOpen : true}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: {
+              ...glass,
+              width: drawerWidth,
+              boxSizing: "border-box",
+              color: "var(--white)",
+              borderRadius: "0 12px 12px 0",
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Box component="main" sx={{ flexGrow: 1, p: 3 }} className="container">
+          <Toolbar />
+          {section === "bookings" && (
+            <Paper
+              sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: "auto" }}
+            >
+              <Typography variant="h5" gutterBottom>
+                Prenotazioni
+              </Typography>
+              <Box sx={{ overflowX: "auto" }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nome</TableCell>
+                      <TableCell>Cognome</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Telefono</TableCell>
+                      <TableCell>Biglietti</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bookings.map((b) => (
+                      <TableRow key={b.id}>
+                        <TableCell>{b.nome}</TableCell>
+                        <TableCell>{b.cognome}</TableCell>
+                        <TableCell>{b.email}</TableCell>
+                        <TableCell>{b.telefono}</TableCell>
+                        <TableCell>{b.quantity || 1}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Paper>
+          )}
+          {section === "events" && (
+            <Paper
+              sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: "auto" }}
+            >
+              <Typography variant="h5" gutterBottom>
+                Eventi
+              </Typography>
+              <Box sx={{ overflowX: "auto" }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nome</TableCell>
+                      <TableCell>DJ</TableCell>
+                      <TableCell>Luogo</TableCell>
+                      <TableCell>Data</TableCell>
+                      <TableCell>Orario</TableCell>
+                      <TableCell>Capienza</TableCell>
+                      <TableCell>Sold Out</TableCell>
+                      <TableCell>Azioni</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {events.map((ev) => (
+                      <TableRow key={ev.id}>
+                        <TableCell>{ev.name}</TableCell>
+                        <TableCell>{ev.dj}</TableCell>
+                        <TableCell>{ev.place}</TableCell>
+                        <TableCell>{ev.date}</TableCell>
+                        <TableCell>{ev.time}</TableCell>
+                        <TableCell>{ev.capacity || "-"}</TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={!!ev.soldOut}
+                            onChange={(e) =>
+                              handleToggleSoldOut(ev.id, e.target.checked)
+                            }
+                            color="warning"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            onClick={() => handleEdit(ev)}
+                            sx={{ mr: 1 }}
+                            color="primary"
+                          >
+                            Modifica
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              setConfirm({
+                                open: true,
+                                id: ev.id,
+                                type: "event",
+                              })
+                            }
+                          >
+                            <DeleteIcon />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Paper>
+          )}
+          {section === "create" && (
+            <Paper
+              sx={{
+                ...glass,
+                p: 3,
+                mb: 4,
+                boxShadow: 3,
+                maxWidth: 600,
+                mx: "auto",
+              }}
+            >
+              <Grid
+                container
+                direction="column"
+                component="form"
+                onSubmit={handleSubmit}
+                spacing={2}
+              >
+                <Grid item xs={12}>
+                  <Typography variant="h5" gutterBottom>
+                    {editingId ? "Modifica Evento" : "Crea Evento"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="name"
+                    label="Nome Evento"
+                    variant="outlined"
+                    value={formData.name}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="dj"
+                    label="DJ"
+                    variant="outlined"
+                    value={formData.dj}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    type="date"
+                    name="date"
+                    label="Data"
+                    InputLabelProps={{ shrink: true }}
+                    variant="outlined"
+                    value={formData.date}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Autocomplete
+                    freeSolo
+                    options={placeOptions}
+                    inputValue={formData.place}
+                    onInputChange={(e, value) =>
+                      setFormData({ ...formData, place: value })
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Luogo"
+                        variant="outlined"
+                        fullWidth
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    type="time"
+                    name="time"
+                    label="Orario"
+                    InputLabelProps={{ shrink: true }}
+                    variant="outlined"
+                    value={formData.time}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="price"
+                    label="Prezzo"
+                    variant="outlined"
+                    value={formData.price}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="capacity"
+                    label="Capienza"
+                    variant="outlined"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography
+                    component="div"
+                    sx={{ display: "flex", alignItems: "center" }}
+                  >
+                    Sold Out
+                    <Switch
+                      checked={formData.soldOut}
+                      onChange={(e) =>
+                        setFormData({ ...formData, soldOut: e.target.checked })
+                      }
+                      color="warning"
+                      sx={{ ml: 1 }}
+                    />
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    sx={{
+                      color: "var(--yellow)",
+                      borderColor: "var(--yellow)",
+                    }}
+                  >
+                    Carica Immagine
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleFile}
+                    />
+                  </Button>
+                  <Button
+                    onClick={pickEventImageFromDrive}
+                    variant="outlined"
+                    sx={{
+                      ml: 2,
+                      color: "var(--yellow)",
+                      borderColor: "var(--yellow)",
+                    }}
+                  >
+                    <AddToDriveIcon />
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="description"
+                    label="Descrizione"
+                    variant="outlined"
+                    value={formData.description}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth={isMobile}
+                    sx={{
+                      backgroundColor: "var(--red)",
+                      "&:hover": { backgroundColor: "#c62828" },
+                    }}
+                  >
+                    {editingId ? "Salva" : "Crea"}
+                  </Button>
+                  {editingId && (
+                    <Button
+                      onClick={() => {
+                        setEditingId(null);
+                        setFormData({
+                          name: "",
+                          dj: "",
+                          date: "",
+                          place: "",
+                          time: "",
+                          price: "",
+                          capacity: "",
+                          image: "",
+                          description: "",
+                          soldOut: false,
+                        });
+                      }}
+                      variant="text"
+                      sx={{ ml: 2, color: "var(--yellow)" }}
+                    >
+                      Annulla
+                    </Button>
+                  )}
+                </Grid>
               </Grid>
-            </Grid>
-          </Grid>
-          </Paper>
-        )}
+            </Paper>
+          )}
+          {section === "gallery" && (
+            <Paper
+              sx={{
+                ...glass,
+                p: 3,
+                mb: 4,
+                boxShadow: 3,
+                maxWidth: isMobile ? "100%" : 400,
+                mx: "auto",
+              }}
+            >
+              <Grid
+                container
+                direction="column"
+                component="form"
+                onSubmit={handleGallerySubmit}
+                spacing={2}
+              >
+                <Grid item xs={12}>
+                  <Typography variant="h5" gutterBottom>
+                    Gallery
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    sx={{
+                      color: "var(--yellow)",
+                      borderColor: "var(--yellow)",
+                    }}
+                  >
+                    Carica Immagine
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleGalleryFile}
+                    />
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                    onClick={pickFromDrive}
+                    fullWidth
+                    sx={{
+                      color: "var(--yellow)",
+                      borderColor: "var(--yellow)",
+                    }}
+                  >
+                    <AddToDriveIcon />
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    sx={{
+                      backgroundColor: "var(--red)",
+                      "&:hover": { backgroundColor: "#c62828" },
+                    }}
+                  >
+                    Aggiungi
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <Grid container spacing={1}>
+                    {gallery.map((img) => (
+                      <Grid
+                        item
+                        key={img.id}
+                        xs={4}
+                        sm={3}
+                        md={2}
+                        sx={{ position: "relative" }}
+                      >
+                        <img
+                          src={img.src}
+                          alt="gallery"
+                          style={{
+                            width: "100%",
+                            height: 100,
+                            objectFit: "cover",
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          sx={{ position: "absolute", top: 0, right: 0 }}
+                          onClick={() =>
+                            setConfirm({
+                              open: true,
+                              id: img.id,
+                              type: "image",
+                            })
+                          }
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
+        </Box>
       </Box>
-    </Box>
-    <ConfirmDialog
-      open={confirm.open}
-      title="Conferma"
-      message="Eliminare definitivamente?"
-      onConfirm={() => {
-        const id = confirm.id;
-        setConfirm({ open: false, id: null, type: '' });
-        if (confirm.type === 'event') handleDelete(id);
-        if (confirm.type === 'image') handleDeleteImage(id);
-      }}
-      onClose={() => setConfirm({ open: false, id: null, type: '' })}
-    />
+      <ConfirmDialog
+        open={confirm.open}
+        title="Conferma"
+        message="Eliminare definitivamente?"
+        onConfirm={() => {
+          const id = confirm.id;
+          setConfirm({ open: false, id: null, type: "" });
+          if (confirm.type === "event") handleDelete(id);
+          if (confirm.type === "image") handleDeleteImage(id);
+        }}
+        onClose={() => setConfirm({ open: false, id: null, type: "" })}
+      />
     </MuiThemeProvider>
   );
 };
 
 export default AdminPanel;
-

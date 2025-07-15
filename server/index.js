@@ -2,15 +2,14 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { db } from "./firebase.js";
-import fetch from "node-fetch"; // se usi Node <18, altrimenti puoi rimuovere
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
-app.use(express.json({ limit: "10mb" })); // oppure 20mb se necessario
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// --- API LOGIN ADMIN ---
+// --- LOGIN ---
 app.post("/api/login", (req, res) => {
   const { password } = req.body;
   const expected = process.env.ADMIN_PASSWORD || "admin";
@@ -25,6 +24,7 @@ app.get("/api/events", async (_req, res) => {
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(data);
   } catch (err) {
+    console.error("❌ /api/events:", err.message);
     res.status(500).json({ error: "Failed to load events" });
   }
 });
@@ -34,6 +34,7 @@ app.post("/api/events", async (req, res) => {
     const docRef = await db.collection("events").add(req.body);
     res.json({ id: docRef.id });
   } catch (err) {
+    console.error("❌ /api/events POST:", err.message);
     res.status(500).json({ error: "Failed to create event" });
   }
 });
@@ -43,6 +44,7 @@ app.put("/api/events/:id", async (req, res) => {
     await db.collection("events").doc(req.params.id).update(req.body);
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ /api/events PUT:", err.message);
     res.status(500).json({ error: "Failed to update event" });
   }
 });
@@ -52,6 +54,7 @@ app.delete("/api/events/:id", async (req, res) => {
     await db.collection("events").doc(req.params.id).delete();
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ /api/events DELETE:", err.message);
     res.status(500).json({ error: "Failed to delete event" });
   }
 });
@@ -66,6 +69,7 @@ app.get("/api/bookings", async (_req, res) => {
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(data);
   } catch (err) {
+    console.error("❌ /api/bookings:", err.message);
     res.status(500).json({ error: "Failed to load bookings" });
   }
 });
@@ -75,6 +79,7 @@ app.post("/api/bookings", async (req, res) => {
   if (!nome || !cognome || !email || !telefono) {
     return res.status(400).json({ error: "Missing fields" });
   }
+
   try {
     const doc = await db.collection("bookings").add({
       nome,
@@ -108,6 +113,7 @@ app.post("/api/bookings", async (req, res) => {
 
     res.json({ id: doc.id });
   } catch (err) {
+    console.error("❌ /api/bookings POST:", err.message);
     res.status(500).json({ error: "Failed to save booking" });
   }
 });
@@ -122,6 +128,7 @@ app.get("/api/gallery", async (_req, res) => {
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(data);
   } catch (err) {
+    console.error("❌ /api/gallery:", err.message);
     res.status(500).json({ error: "Failed to load gallery" });
   }
 });
@@ -129,6 +136,7 @@ app.get("/api/gallery", async (_req, res) => {
 app.post("/api/gallery", async (req, res) => {
   const { src } = req.body;
   if (!src) return res.status(400).json({ error: "Missing src" });
+
   try {
     const docRef = await db.collection("gallery").add({
       src,
@@ -136,6 +144,7 @@ app.post("/api/gallery", async (req, res) => {
     });
     res.json({ id: docRef.id });
   } catch (err) {
+    console.error("❌ /api/gallery POST:", err.message);
     res.status(500).json({ error: "Failed to save image" });
   }
 });
@@ -145,6 +154,7 @@ app.delete("/api/gallery/:id", async (req, res) => {
     await db.collection("gallery").doc(req.params.id).delete();
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ /api/gallery DELETE:", err.message);
     res.status(500).json({ error: "Failed to delete image" });
   }
 });
@@ -177,13 +187,13 @@ app.post("/api/newsletter", async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Brevo error:", errorText);
+      console.error("❌ Brevo API error:", errorText);
       return res.status(500).json({ error: "Failed to subscribe" });
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error("Brevo exception:", err);
+    console.error("❌ Brevo exception:", err.message);
     res.status(500).json({ error: "Failed to subscribe" });
   }
 });
