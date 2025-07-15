@@ -2,12 +2,15 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { db } from "./firebase.js";
+import fetch from "node-fetch"; // se usi Node <18, altrimenti puoi rimuovere
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // oppure 20mb se necessario
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Simple admin login
+// --- API LOGIN ADMIN ---
 app.post("/api/login", (req, res) => {
   const { password } = req.body;
   const expected = process.env.ADMIN_PASSWORD || "admin";
@@ -15,109 +18,55 @@ app.post("/api/login", (req, res) => {
   res.status(401).json({ error: "Unauthorized" });
 });
 
-// Get all events
+// --- EVENTI ---
 app.get("/api/events", async (_req, res) => {
   try {
     const snapshot = await db.collection("events").get();
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(data);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to load events" });
   }
 });
 
-// Get single event
-app.get("/api/events/:id", async (req, res) => {
-  try {
-    const doc = await db.collection("events").doc(req.params.id).get();
-    if (!doc.exists) return res.status(404).json({ error: "Not found" });
-    res.json({ id: doc.id, ...doc.data() });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to load event" });
-  }
-});
-
-// Create a new event
 app.post("/api/events", async (req, res) => {
-  const {
-    name,
-    dj,
-    date,
-    place,
-    time,
-    price,
-    image,
-    description,
-    capacity,
-    soldOut = false,
-  } = req.body;
-  if (!name || !dj || !date || !place || !time || !image) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
   try {
-    const doc = await db.collection("events").add({
-      name,
-      dj,
-      date,
-      place,
-      time,
-      price,
-      image,
-      description,
-      capacity,
-      soldOut,
-    });
-    res.json({ id: doc.id });
+    const docRef = await db.collection("events").add(req.body);
+    res.json({ id: docRef.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to create event" });
   }
 });
 
-// Update an event
 app.put("/api/events/:id", async (req, res) => {
-  const {
-    name,
-    dj,
-    date,
-    place,
-    time,
-    price,
-    image,
-    description,
-    capacity,
-    soldOut,
-  } = req.body;
   try {
-    await db.collection("events").doc(req.params.id).update({
-      name,
-      dj,
-      date,
-      place,
-      time,
-      price,
-      image,
-      description,
-      capacity,
-      ...(soldOut !== undefined && { soldOut }),
-    });
+    await db.collection("events").doc(req.params.id).update(req.body);
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to update event" });
   }
 });
 
-// Delete an event
 app.delete("/api/events/:id", async (req, res) => {
   try {
     await db.collection("events").doc(req.params.id).delete();
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to delete event" });
+  }
+});
+
+// --- PRENOTAZIONI ---
+app.get("/api/bookings", async (_req, res) => {
+  try {
+    const snapshot = await db
+      .collection("bookings")
+      .orderBy("createdAt", "desc")
+      .get();
+    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load bookings" });
   }
 });
 
@@ -148,7 +97,10 @@ app.post("/api/bookings", async (req, res) => {
               .get()
           ).size;
           if (count >= eventData.capacity) {
-            await db.collection("events").doc(eventId).update({ soldOut: true });
+            await db
+              .collection("events")
+              .doc(eventId)
+              .update({ soldOut: true });
           }
         }
       }
@@ -156,28 +108,12 @@ app.post("/api/bookings", async (req, res) => {
 
     res.json({ id: doc.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to save booking" });
   }
 });
 
-// Retrieve all bookings
-app.get("/api/bookings", async (_req, res) => {
-  try {
-    const snapshot = await db
-      .collection("bookings")
-      .orderBy("createdAt", "desc")
-      .get();
-    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to load bookings" });
-  }
-});
-
-// Retrieve gallery images
-app.get("/api/gallery", async (req, res) => {
+// --- GALLERY ---
+app.get("/api/gallery", async (_req, res) => {
   try {
     const snapshot = await db
       .collection("gallery")
@@ -186,73 +122,47 @@ app.get("/api/gallery", async (req, res) => {
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(data);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to load gallery" });
   }
 });
 
-// Add an image to the gallery
 app.post("/api/gallery", async (req, res) => {
   const { src } = req.body;
   if (!src) return res.status(400).json({ error: "Missing src" });
   try {
-    const doc = await db
-      .collection("gallery")
-      .add({ src, createdAt: new Date() });
-    res.json({ id: doc.id });
+    const docRef = await db.collection("gallery").add({
+      src,
+      createdAt: new Date(),
+    });
+    res.json({ id: docRef.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to save image" });
   }
 });
 
-// Delete an image from the gallery
 app.delete("/api/gallery/:id", async (req, res) => {
   try {
     await db.collection("gallery").doc(req.params.id).delete();
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to delete image" });
   }
 });
 
-// Get a single booking
-app.get("/api/bookings/:id", async (req, res) => {
-  try {
-    const doc = await db.collection("bookings").doc(req.params.id).get();
-    if (!doc.exists) return res.status(404).json({ error: "Not found" });
-    res.json({ id: doc.id, ...doc.data() });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to load booking" });
-  }
-});
-
-// Delete a booking
-app.delete("/api/bookings/:id", async (req, res) => {
-  try {
-    await db.collection("bookings").doc(req.params.id).delete();
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to delete booking" });
-  }
-});
-
-// Subscribe to newsletter via Brevo
+// --- NEWSLETTER ---
 app.post("/api/newsletter", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Missing email" });
 
   const apiKey = process.env.BREVO_API_KEY;
   const listId = process.env.BREVO_LIST_ID;
+
   if (!apiKey || !listId) {
     return res.status(500).json({ error: "Brevo not configured" });
   }
 
   try {
-    const resp = await fetch("https://api.brevo.com/v3/contacts", {
+    const response = await fetch("https://api.brevo.com/v3/contacts", {
       method: "POST",
       headers: {
         "api-key": apiKey,
@@ -265,20 +175,21 @@ app.post("/api/newsletter", async (req, res) => {
       }),
     });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.error("Brevo error:", text);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Brevo error:", errorText);
       return res.status(500).json({ error: "Failed to subscribe" });
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("Brevo exception:", err);
     res.status(500).json({ error: "Failed to subscribe" });
   }
 });
 
+// --- AVVIO SERVER ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`✅ Server avviato su http://localhost:${PORT}`);
 });
