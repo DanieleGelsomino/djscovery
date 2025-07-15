@@ -58,12 +58,13 @@ const AdminLogin = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
-          width: '100%',
-          maxWidth: 400,
+          width: 400,
+          maxWidth: '100%',
+          minHeight: 400,
           backgroundColor: 'rgba(255,255,255,0.15)',
           backdropFilter: 'blur(8px)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-          borderRadius: 3,
+          borderRadius: 0,
         }}
       >
         <img
@@ -82,8 +83,11 @@ const AdminLogin = () => {
           variant="outlined"
           fullWidth
           sx={{
-            '& .MuiOutlinedInput-root': { color: '#fff' },
+            '& .MuiOutlinedInput-root': {
+              color: '#fff',
+            },
             '& .MuiInputLabel-root': { color: '#fff' },
+            '& fieldset': { borderRadius: 0 },
           }}
           InputLabelProps={{ style: { color: '#fff' } }}
           InputProps={{ style: { color: '#fff' } }}
@@ -96,13 +100,24 @@ const AdminLogin = () => {
           variant="outlined"
           fullWidth
           sx={{
-            '& .MuiOutlinedInput-root': { color: '#fff' },
+            '& .MuiOutlinedInput-root': {
+              color: '#fff',
+            },
             '& .MuiInputLabel-root': { color: '#fff' },
+            '& fieldset': { borderRadius: 0 },
           }}
           InputLabelProps={{ style: { color: '#fff' } }}
           InputProps={{ style: { color: '#fff' } }}
         />
-        <Button type="submit" variant="contained" sx={{ backgroundColor: 'var(--red)', '&:hover': { backgroundColor: '#c62828' } }}>
+        <Button
+          type="submit"
+          variant="contained"
+          sx={{
+            backgroundColor: 'var(--red)',
+            '&:hover': { backgroundColor: '#c62828' },
+            borderRadius: 0,
+          }}
+        >
           Login
         </Button>
         {error && (
@@ -114,7 +129,7 @@ const AdminLogin = () => {
           component={Link}
           to="/"
           variant="outlined"
-          sx={{ mt: 1, color: 'var(--yellow)', borderColor: 'var(--yellow)' }}
+          sx={{ mt: 1, color: 'var(--yellow)', borderColor: 'var(--yellow)', borderRadius: 0 }}
         >
           {t('nav.home')}
         </Button>
