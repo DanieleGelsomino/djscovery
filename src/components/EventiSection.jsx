@@ -106,6 +106,7 @@ const EventiSection = () => {
                       color: "#fff",
                       fontSize: "1.5rem",
                       fontWeight: "bold",
+                      zIndex: 99,
                     }}
                   >
                     {t("events.sold_out")}
@@ -139,16 +140,16 @@ const EventiSection = () => {
               </CardMedia>
 
               <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 2, color: "text.secondary" }}
-                  >
-                    {event.description}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {event.place} - {event.time} | € {event.price}
-                  </Typography>
-                </CardContent>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 2, color: "text.secondary" }}
+                >
+                  {event.description}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {event.place} - {event.time} | € {event.price}
+                </Typography>
+              </CardContent>
 
               {!event.soldOut && (
                 <MotionButton

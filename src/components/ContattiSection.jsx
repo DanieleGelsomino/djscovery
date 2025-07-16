@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { useLanguage } from './LanguageContext';
+import React, { useState } from "react";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import { useLanguage } from "./LanguageContext";
 
 const Section = styled(motion.section)`
   text-align: center;
@@ -47,6 +47,7 @@ const TextArea = styled(motion.textarea)`
   border-radius: 4px;
   background-color: #111;
   color: var(--white);
+  resize: none;
 `;
 
 const Button = styled(motion.button)`
@@ -72,15 +73,42 @@ const ContattiSection = () => {
   return (
     <Section>
       <div className="container">
-        <h2>{t('contacts.title')}</h2>
-        <p>{t('contacts.subtitle')}</p>
-        <Form as={motion.form} onSubmit={handleSubmit} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-          <Input whileFocus={{ scale:1.02 }} type="text" placeholder={t('contacts.name')} required />
-          <Input whileFocus={{ scale:1.02 }} type="email" placeholder={t('contacts.email')} required />
-          <TextArea whileFocus={{ scale:1.02 }} placeholder={t('contacts.message')} rows="5" required />
-          <Button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>{t('contacts.send')}</Button>
+        <h2>{t("contacts.title")}</h2>
+        <p>{t("contacts.subtitle")}</p>
+        <Form
+          as={motion.form}
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <Input
+            whileFocus={{ scale: 1.02 }}
+            type="text"
+            placeholder={t("contacts.name")}
+            required
+          />
+          <Input
+            whileFocus={{ scale: 1.02 }}
+            type="email"
+            placeholder={t("contacts.email")}
+            required
+          />
+          <TextArea
+            whileFocus={{ scale: 1.02 }}
+            placeholder={t("contacts.message")}
+            rows="5"
+            required
+          />
+          <Button
+            type="submit"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {t("contacts.send")}
+          </Button>
         </Form>
-        {submitted && <p>{t('contacts.sent')}</p>}
+        {submitted && <p>{t("contacts.sent")}</p>}
       </div>
     </Section>
   );
