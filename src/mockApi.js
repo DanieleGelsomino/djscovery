@@ -192,9 +192,9 @@ export const mockSendBooking = async (data) => {
   if (data.eventId) {
     const eventIndex = mockEvents.findIndex((e) => e.id === data.eventId);
     if (eventIndex !== -1) {
-      const bookingsForEvent = mockBookings.filter(
-        (b) => b.eventId === data.eventId
-      ).length;
+      const bookingsForEvent = mockBookings
+        .filter((b) => b.eventId === data.eventId)
+        .reduce((sum, b) => sum + (b.quantity || 1), 0);
       const event = mockEvents[eventIndex];
       if (event.capacity && bookingsForEvent >= event.capacity) {
         mockEvents[eventIndex] = { ...event, soldOut: true };

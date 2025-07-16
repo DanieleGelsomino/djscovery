@@ -69,21 +69,26 @@ const TicketBookingForm = () => {
     cognome: '',
     email: '',
     telefono: '',
+    quantity: 1,
   });
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
   const { showToast } = useToast();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: name === 'quantity' ? Number(value) : value,
+    });
   };
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { nome, cognome, email, telefono } = formData;
-    if (!nome || !cognome || !email || !telefono) {
+    const { nome, cognome, email, telefono, quantity } = formData;
+    if (!nome || !cognome || !email || !telefono || !quantity) {
       showToast(t('booking.required'), 'error');
       return;
     }
@@ -93,9 +98,9 @@ const TicketBookingForm = () => {
     }
     setLoading(true);
     try {
-      await sendBooking({ ...formData, eventId });
+      await sendBooking({ ...formData, quantity: Number(quantity), eventId });
       showToast(t('booking.success'), 'success');
-      setFormData({ nome: '', cognome: '', email: '', telefono: '' });
+      setFormData({ nome: '', cognome: '', email: '', telefono: '', quantity: 1 });
     } catch (err) {
       showToast(t('booking.error'), 'error');
     } finally {
@@ -134,6 +139,15 @@ const TicketBookingForm = () => {
             name="telefono"
             placeholder={t('booking.phone')}
             value={formData.telefono}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            type="number"
+            name="quantity"
+            min="1"
+            placeholder={t('booking.quantity')}
+            value={formData.quantity}
             onChange={handleChange}
             required
           />

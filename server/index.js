@@ -75,8 +75,8 @@ app.get("/api/bookings", async (_req, res) => {
 });
 
 app.post("/api/bookings", async (req, res) => {
-  const { nome, cognome, email, telefono, eventId } = req.body;
-  if (!nome || !cognome || !email || !telefono) {
+  const { nome, cognome, email, telefono, quantity = 1, eventId } = req.body;
+  if (!nome || !cognome || !email || !telefono || !quantity) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
@@ -86,6 +86,7 @@ app.post("/api/bookings", async (req, res) => {
       cognome,
       email,
       telefono,
+      quantity: Number(quantity),
       eventId,
       createdAt: new Date(),
     });
@@ -95,12 +96,14 @@ app.post("/api/bookings", async (req, res) => {
       if (eventDoc.exists) {
         const eventData = eventDoc.data();
         if (eventData.capacity) {
-          const count = (
-            await db
-              .collection("bookings")
-              .where("eventId", "==", eventId)
-              .get()
-          ).size;
+          const snapshot = await db
+            .collection("bookings")
+            .where("eventId", "==", eventId)
+            .get();
+          const count = snapshot.docs.reduce(
+            (sum, d) => sum + (d.data().quantity || 1),
+            0
+          );
           if (count >= eventData.capacity) {
             await db
               .collection("events")

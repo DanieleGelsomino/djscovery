@@ -58,6 +58,7 @@
     "surname": "Last Name",
     "email": "Email",
     "phone": "Phone",
+    "quantity": "Quantity",
     "book": "Book",
     "required": "All fields are required",
     "invalid_email": "Invalid email",

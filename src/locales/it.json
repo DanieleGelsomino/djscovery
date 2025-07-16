@@ -58,6 +58,7 @@
     "surname": "Cognome",
     "email": "Email",
     "phone": "Telefono",
+    "quantity": "Quantità",
     "book": "Prenota",
     "required": "Tutti i campi sono obbligatori",
     "invalid_email": "Email non valida",
