@@ -72,10 +72,9 @@ const muiTheme = createTheme({
 });
 
 const glass = {
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-  border: "1px solid rgba(255, 255, 255, 0.2)",
+  backgroundColor: "rgba(34, 34, 34, 0.85)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.6)",
 };
 
 const AdminPanel = () => {
@@ -441,6 +440,7 @@ const AdminPanel = () => {
             ...glass,
             zIndex: (theme) => theme.zIndex.drawer + 1,
             color: "var(--yellow)",
+            backgroundImage: "linear-gradient(90deg, #141414, #333)",
           }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -473,6 +473,7 @@ const AdminPanel = () => {
               boxSizing: "border-box",
               color: "var(--white)",
               borderRadius: "0 12px 12px 0",
+              backgroundImage: "linear-gradient(180deg, #1c1c1c, #2a2a2a)",
             },
           }}
         >
@@ -482,7 +483,14 @@ const AdminPanel = () => {
           <Toolbar />
           {section === "bookings" && (
             <Paper
-              sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: "auto" }}
+              sx={{
+                ...glass,
+                p: 3,
+                mb: 4,
+                boxShadow: 4,
+                borderRadius: 2,
+                overflowX: "auto",
+              }}
             >
               <Typography variant="h5" gutterBottom>
                 Prenotazioni
@@ -515,7 +523,14 @@ const AdminPanel = () => {
           )}
           {section === "events" && (
             <Paper
-              sx={{ ...glass, p: 3, mb: 4, boxShadow: 3, overflowX: "auto" }}
+              sx={{
+                ...glass,
+                p: 3,
+                mb: 4,
+                boxShadow: 4,
+                borderRadius: 2,
+                overflowX: "auto",
+              }}
             >
               <Typography variant="h5" gutterBottom>
                 Eventi
@@ -588,7 +603,8 @@ const AdminPanel = () => {
                 ...glass,
                 p: 3,
                 mb: 4,
-                boxShadow: 3,
+                boxShadow: 4,
+                borderRadius: 2,
                 maxWidth: 600,
                 mx: "auto",
               }}
@@ -787,7 +803,8 @@ const AdminPanel = () => {
                 ...glass,
                 p: 3,
                 mb: 4,
-                boxShadow: 3,
+                boxShadow: 4,
+                borderRadius: 2,
                 maxWidth: isMobile ? "100%" : 400,
                 mx: "auto",
               }}
