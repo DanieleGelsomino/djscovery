@@ -1,20 +1,38 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { db } from "./firebase.js";
-import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// --- LOGIN ---
-app.post("/api/login", (req, res) => {
+// --- AUTH ---
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+  const token = authHeader.split(" ")[1];
+  try {
+    jwt.verify(token, process.env.JWT_SECRET || "secret");
+    next();
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
+
+app.post("/api/login", async (req, res) => {
   const { password } = req.body;
-  const expected = process.env.ADMIN_PASSWORD || "admin";
-  if (password === expected) return res.json({ success: true });
-  res.status(401).json({ error: "Unauthorized" });
+  const hash = process.env.ADMIN_PASSWORD_HASH;
+  if (!password || !hash) return res.status(401).json({ error: "Unauthorized" });
+  const match = await bcrypt.compare(password, hash);
+  if (!match) return res.status(401).json({ error: "Unauthorized" });
+  const token = jwt.sign({ role: "admin" }, process.env.JWT_SECRET || "secret", {
+    expiresIn: "1h",
+  });
+  res.json({ token });
 });
 
 // --- EVENTI ---
@@ -29,7 +47,11 @@ app.get("/api/events", async (_req, res) => {
   }
 });
 
-app.post("/api/events", async (req, res) => {
+app.post("/api/events", authenticate, async (req, res) => {
+  const { name, date } = req.body;
+  if (!name || !date) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
   try {
     const docRef = await db.collection("events").add(req.body);
     res.json({ id: docRef.id });
@@ -39,7 +61,7 @@ app.post("/api/events", async (req, res) => {
   }
 });
 
-app.put("/api/events/:id", async (req, res) => {
+app.put("/api/events/:id", authenticate, async (req, res) => {
   try {
     await db.collection("events").doc(req.params.id).update(req.body);
     res.json({ success: true });
@@ -49,7 +71,7 @@ app.put("/api/events/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/events/:id", async (req, res) => {
+app.delete("/api/events/:id", authenticate, async (req, res) => {
   try {
     await db.collection("events").doc(req.params.id).delete();
     res.json({ success: true });
@@ -133,7 +155,7 @@ app.get("/api/gallery", async (_req, res) => {
   }
 });
 
-app.post("/api/gallery", async (req, res) => {
+app.post("/api/gallery", authenticate, async (req, res) => {
   const { src } = req.body;
   if (!src) return res.status(400).json({ error: "Missing src" });
 
@@ -149,7 +171,7 @@ app.post("/api/gallery", async (req, res) => {
   }
 });
 
-app.delete("/api/gallery/:id", async (req, res) => {
+app.delete("/api/gallery/:id", authenticate, async (req, res) => {
   try {
     await db.collection("gallery").doc(req.params.id).delete();
     res.json({ success: true });
