@@ -5,13 +5,17 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBqtP0z6qos7M55gPn_WqCjlgApHhSrC28",
-  authDomain: "djscovery-47610.firebaseapp.com",
-  projectId: "djscovery-47610",
-  storageBucket: "djscovery-47610.appspot.com",
-  messagingSenderId: "547949192479",
-  appId: "1:547949192479:web:4231be05c2cf2e548d7c2a",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+if (!firebaseConfig.apiKey) {
+  console.warn("Firebase config missing. Check environment variables.");
+}
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);

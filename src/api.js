@@ -14,6 +14,7 @@ import { withLoading } from "./loading";
 
 const useMock = import.meta.env.VITE_MOCK !== "false";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+let authToken = null;
 
 export const login = async (password) => {
   if (useMock) {
@@ -28,7 +29,9 @@ export const login = async (password) => {
       body: JSON.stringify({ password }),
     });
     if (!res.ok) throw new Error("Invalid password");
-    return res.json();
+    const data = await res.json();
+    authToken = data.token;
+    return data;
   });
 };
 
@@ -68,7 +71,10 @@ export const createEvent = async (data) => {
   return withLoading(async () => {
     const res = await fetch(`${API_BASE}/api/events`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      },
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Failed to create event");
@@ -81,7 +87,10 @@ export const updateEvent = async (id, data) => {
   return withLoading(async () => {
     const res = await fetch(`${API_BASE}/api/events/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      },
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Failed to update event");
@@ -94,6 +103,7 @@ export const deleteEvent = async (id) => {
   return withLoading(async () => {
     const res = await fetch(`${API_BASE}/api/events/${id}`, {
       method: "DELETE",
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
     });
     if (!res.ok) throw new Error("Failed to delete event");
     return res.json();
@@ -114,7 +124,10 @@ export const uploadGalleryImage = async (src) => {
   return withLoading(async () => {
     const res = await fetch(`${API_BASE}/api/gallery`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      },
       body: JSON.stringify({ src }),
     });
     if (!res.ok) throw new Error("Failed to save image");
@@ -127,6 +140,7 @@ export const deleteGalleryImage = async (id) => {
   return withLoading(async () => {
     const res = await fetch(`${API_BASE}/api/gallery/${id}`, {
       method: "DELETE",
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
     });
     if (!res.ok) throw new Error("Failed to delete image");
     return res.json();
