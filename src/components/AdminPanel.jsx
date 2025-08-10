@@ -223,21 +223,11 @@ const AdminPanel = () => {
         .addView(view)
         .setOAuthToken(token)
         .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
-        .setCallback(async (data) => {
+        .setCallback((data) => {
           if (data.action === window.google.picker.Action.PICKED) {
             const id = data.docs[0].id;
-            await withLoading(async () => {
-              const res = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              const blob = await res.blob();
-              const reader = new FileReader();
-              reader.onloadend = () => onImagePicked(reader.result);
-              reader.readAsDataURL(blob);
-            });
+            const link = `https://drive.google.com/uc?export=view&id=${id}`;
+            onImagePicked(link);
           }
         })
         .build();
@@ -251,15 +241,15 @@ const AdminPanel = () => {
 
   // 🔴 Per EVENTI
   const pickEventImageFromDrive = () => {
-    pickImageFromDrive((base64) => {
-      setFormData((f) => ({ ...f, image: base64 }));
+    pickImageFromDrive((link) => {
+      setFormData((f) => ({ ...f, image: link }));
     });
   };
 
   // 🔵 Per GALLERY
   const pickFromDrive = () => {
-    pickImageFromDrive((base64) => {
-      setGallerySrc(base64);
+    pickImageFromDrive((link) => {
+      setGallerySrc(link);
     });
   };
 

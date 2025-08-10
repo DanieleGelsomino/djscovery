@@ -13,14 +13,6 @@ import { useLanguage } from "./LanguageContext";
 import Spinner from "./Spinner";
 import { fetchGallery } from "../api";
 
-import img1 from "../assets/img/gallery-1.png";
-import img2 from "../assets/img/gallery-2.png";
-import img3 from "../assets/img/djscovery-logo.png";
-import img4 from "../assets/img/logo-principale.png";
-import img5 from "../assets/img/gallery-3.png";
-import img6 from "../assets/img/gallery-4.png";
-import img7 from "../assets/img/hero.png";
-import img8 from "../assets/img/logo-dj.png";
 
 const ImageModal = lazy(() => import("./ImageModal"));
 
@@ -64,35 +56,11 @@ const Item = styled(motion.div)`
   }
 `;
 
-const Overlay = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  font-size: 1.1rem;
-  font-weight: 600;
-  opacity: 0;
-`;
-
 const GalleryItem = React.memo(({ item, onClick }) => (
   <Item onClick={onClick}>
     <img src={item.src} alt={item.place} loading="lazy" decoding="async" />
   </Item>
 ));
-
-const baseImages = [
-  { src: img1, place: "Roma" },
-  { src: img2, place: "Milano" },
-  { src: img3, place: "Napoli" },
-  { src: img4, place: "Torino" },
-  { src: img5, place: "Bologna" },
-  { src: img6, place: "Firenze" },
-  { src: img7, place: "Bari" },
-  { src: img8, place: "Genova" },
-];
 
 const GallerySection = () => {
   const { t } = useLanguage();
@@ -102,10 +70,7 @@ const GallerySection = () => {
   const loaderRef = useRef();
 
   const images = useMemo(
-    () => [
-      ...galleryImages.map((g) => ({ src: g.src, place: "" })),
-      ...Array(10).fill(baseImages).flat(),
-    ],
+    () => galleryImages.map((g) => ({ src: g.src, place: "" })),
     [galleryImages]
   );
 
