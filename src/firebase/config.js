@@ -1,6 +1,6 @@
 // Firebase configuration and initialization
 // Replace the placeholders with your Firebase project credentials.
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -20,7 +20,7 @@ let auth;
 if (!firebaseConfig.apiKey) {
   console.warn("Firebase config missing. Check environment variables.");
 } else {
-  app = initializeApp(firebaseConfig);
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   db = getFirestore(app);
   auth = getAuth(app);
 }
