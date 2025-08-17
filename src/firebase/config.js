@@ -13,10 +13,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+let app;
+let db;
+let auth;
+
 if (!firebaseConfig.apiKey) {
   console.warn("Firebase config missing. Check environment variables.");
+} else {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
 }
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+export { app, db, auth };
