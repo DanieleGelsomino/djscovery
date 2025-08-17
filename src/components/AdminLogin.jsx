@@ -15,6 +15,7 @@ const AdminLogin = () => {
   const { t } = useLanguage();
 
   useEffect(() => {
+    if (!auth) return; // Firebase non configurato
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         localStorage.setItem('isAdmin', 'true');
@@ -27,6 +28,10 @@ const AdminLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!auth) {
+      setError('Configurazione Firebase mancante');
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem('isAdmin', 'true');
