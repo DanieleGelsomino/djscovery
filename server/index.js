@@ -1,8 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { getAuth } from "firebase-admin/auth";
 import { db } from "./firebase.js";
 
 const app = express();
@@ -11,29 +10,17 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // --- AUTH ---
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
   const token = authHeader.split(" ")[1];
   try {
-    jwt.verify(token, process.env.JWT_SECRET || "secret");
+    await getAuth().verifyIdToken(token);
     next();
   } catch {
     res.status(401).json({ error: "Unauthorized" });
   }
 };
-
-app.post("/api/login", async (req, res) => {
-  const { password } = req.body;
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  if (!password || !hash) return res.status(401).json({ error: "Unauthorized" });
-  const match = await bcrypt.compare(password, hash);
-  if (!match) return res.status(401).json({ error: "Unauthorized" });
-  const token = jwt.sign({ role: "admin" }, process.env.JWT_SECRET || "secret", {
-    expiresIn: "1h",
-  });
-  res.json({ token });
-});
 
 // --- EVENTI ---
 app.get("/api/events", async (_req, res) => {

@@ -6,6 +6,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import logo from '../assets/img/ADMIN.png';
 import heroImg from '../assets/img/hero.png';
 import { auth } from '../firebase/config';
+import { setAuthToken } from '../api';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -16,8 +17,10 @@ const AdminLogin = () => {
 
   useEffect(() => {
     if (!auth) return; // Firebase non configurato
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const token = await user.getIdToken();
+        setAuthToken(token);
         localStorage.setItem('isAdmin', 'true');
         navigate('/admin/panel');
       }
@@ -34,6 +37,8 @@ const AdminLogin = () => {
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      const token = await auth.currentUser.getIdToken();
+      setAuthToken(token);
       localStorage.setItem('isAdmin', 'true');
       navigate('/admin/panel');
     } catch (err) {

@@ -9,6 +9,7 @@ import {
   fetchGallery,
   uploadGalleryImage,
   deleteGalleryImage,
+  setAuthToken,
 } from "../api";
 import { withLoading } from "../loading";
 import {
@@ -355,6 +356,7 @@ const AdminPanel = () => {
     } catch (err) {
       console.error(err);
     }
+    setAuthToken(null);
     localStorage.removeItem("isAdmin");
     navigate("/admin");
   };
