@@ -41,10 +41,12 @@ Abilita **Email/Password** su Firebase Authentication e crea l'utente amministra
 Visita quindi `/admin` per accedere al pannello di amministrazione e gestire
 prenotazioni ed eventi. Per utilizzare la selezione di immagini da Google Drive
 configura inoltre `VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le
-credenziali del tuo progetto Google. Imposta `VITE_MOCK=false` nel file `.env`
-per abilitare le chiamate al backend. Se vuoi mostrare un collegamento diretto
-all'archivio immagini di Google Drive nella sezione Gallery dell'admin,
-imposta anche `VITE_GOOGLE_DRIVE_FOLDER` con l'URL della cartella.
+credenziali del tuo progetto Google. Imposta anche `VITE_GOOGLE_DRIVE_FOLDER_ID`
+con l'ID della cartella Drive che contiene le immagini da mostrare.
+Imposta `VITE_MOCK=false` nel file `.env` per abilitare le chiamate al backend.
+Se vuoi mostrare un collegamento diretto all'archivio immagini di Google Drive
+nella sezione Gallery dell'admin, imposta anche `VITE_GOOGLE_DRIVE_FOLDER` con
+l'URL della cartella.
 
 Se il server API è in esecuzione su un dominio o porta diversa è possibile
 specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
