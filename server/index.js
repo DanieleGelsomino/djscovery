@@ -1,11 +1,40 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { getAuth } from "firebase-admin/auth";
 import { db } from "./firebase.js";
 
 const app = express();
-app.use(cors());
+app.disable("x-powered-by");
+
+const allowedOrigins = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        !allowedOrigins ||
+        allowedOrigins.length === 0 ||
+        allowedOrigins.includes(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  })
+);
+app.use(helmet());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
