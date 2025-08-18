@@ -5,6 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { getAuth } from "firebase-admin/auth";
 import { db } from "./firebase.js";
+import fetch from "node-fetch";
 
 const app = express();
 app.disable("x-powered-by");
