@@ -56,7 +56,6 @@ import ConfirmDialog from "./ConfirmDialog";
 import { useToast } from "./ToastContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/config";
-import { uploadToCloudinary } from "../api/cloudinary";
 
 const drawerWidth = 240;
 const muiTheme = createTheme({
@@ -105,6 +104,7 @@ const AdminPanel = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
   const navigate = useNavigate();
+  const driveFolderLink = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER;
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -182,32 +182,6 @@ const AdminPanel = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const url = await uploadToCloudinary(file);
-      setFormData((f) => ({ ...f, image: url }));
-      showToast("Immagine caricata", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Errore nel caricamento immagine", "error");
-    }
-  };
-
-  const handleGalleryFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const url = await uploadToCloudinary(file);
-      setGallerySrc(url);
-      showToast("Immagine caricata", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Errore nel caricamento immagine", "error");
-    }
   };
 
   const pickImageFromDrive = async (onImagePicked) => {
@@ -713,31 +687,15 @@ const AdminPanel = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Button
-                    variant="outlined"
-                    component="label"
-                    sx={{
-                      color: "var(--yellow)",
-                      borderColor: "var(--yellow)",
-                    }}
-                  >
-                    Carica Immagine
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handleFile}
-                    />
-                  </Button>
-                  <Button
                     onClick={pickEventImageFromDrive}
                     variant="outlined"
+                    startIcon={<AddToDriveIcon />}
                     sx={{
-                      ml: 2,
                       color: "var(--yellow)",
                       borderColor: "var(--yellow)",
                     }}
                   >
-                    <AddToDriveIcon />
+                    Scegli da Drive
                   </Button>
                 </Grid>
                 <Grid item xs={12}>
@@ -816,35 +774,33 @@ const AdminPanel = () => {
                 <Grid item xs={12}>
                   <Button
                     variant="outlined"
-                    component="label"
-                    fullWidth
-                    sx={{
-                      color: "var(--yellow)",
-                      borderColor: "var(--yellow)",
-                    }}
-                  >
-                    Carica Immagine
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handleGalleryFile}
-                    />
-                  </Button>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="outlined"
                     onClick={pickFromDrive}
                     fullWidth
+                    startIcon={<AddToDriveIcon />}
                     sx={{
                       color: "var(--yellow)",
                       borderColor: "var(--yellow)",
                     }}
                   >
-                    <AddToDriveIcon />
+                    Scegli da Drive
                   </Button>
                 </Grid>
+                {driveFolderLink && (
+                  <Grid item xs={12}>
+                    <Button
+                      variant="text"
+                      component="a"
+                      href={driveFolderLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      startIcon={<AddToDriveIcon />}
+                      fullWidth
+                      sx={{ color: "var(--yellow)" }}
+                    >
+                      Apri archivio Drive
+                    </Button>
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <Button
                     type="submit"
