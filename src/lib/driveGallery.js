@@ -57,9 +57,14 @@ async function getAccessToken(prompt = "none") {
 /** Ritorna: [{id, name, src, createdTime}] dalla cartella */
 export async function listImagesInFolder(folderId, pageSize = 100) {
     await initDriveClient();
-
     // token silenzioso -> se fallisce chiedi consenso
-    try { await getAccessToken("none"); } catch { await getAccessToken("consent"); }
+    let token;
+    try {
+        token = await getAccessToken("none");
+    } catch {
+        token = await getAccessToken("consent");
+    }
+    gapi.client.setToken({ access_token: token });
 
     const res = await gapi.client.drive.files.list({
         q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
