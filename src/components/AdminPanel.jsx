@@ -20,6 +20,7 @@ import {
   Typography,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   TextField,
@@ -46,7 +47,8 @@ import {
 import heroImg from "../assets/img/hero.png";
 import { theme as appTheme } from "../styles/globalStyles";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import EventIcon from "@mui/icons-material/Event";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CalendarIcon from "@mui/icons-material/CalendarToday";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -105,6 +107,20 @@ const AdminPanel = () => {
   const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
   const navigate = useNavigate();
   const driveFolderLink = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER;
+
+  const sectionTitles = {
+    bookings: "Prenotazioni",
+    events: "Eventi",
+    create: "Crea Evento",
+    gallery: "Gallery",
+  };
+
+  const navItems = [
+    { key: "bookings", label: sectionTitles.bookings, icon: <ListAltIcon /> },
+    { key: "events", label: sectionTitles.events, icon: <CalendarIcon /> },
+    { key: "create", label: sectionTitles.create, icon: <AddCircleOutlineIcon /> },
+    { key: "gallery", label: sectionTitles.gallery, icon: <PhotoLibraryIcon /> },
+  ];
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -340,58 +356,29 @@ const AdminPanel = () => {
       <Toolbar />
       <Divider />
       <List>
-        <ListItem
-          button
-          onClick={() => {
-            setSection("bookings");
-            setMobileOpen(false);
-          }}
-          selected={section === "bookings"}
-        >
-          <ListItemIcon>
-            <ListAltIcon />
-          </ListItemIcon>
-          <ListItemText primary="Prenotazioni" />
-        </ListItem>
-        <ListItem
-          button
-          onClick={() => {
-            setSection("events");
-            setMobileOpen(false);
-          }}
-          selected={section === "events"}
-        >
-          <ListItemIcon>
-            <CalendarIcon />
-          </ListItemIcon>
-          <ListItemText primary="Eventi" />
-        </ListItem>
-        <ListItem
-          button
-          onClick={() => {
-            setSection("create");
-            setMobileOpen(false);
-          }}
-          selected={section === "create"}
-        >
-          <ListItemIcon>
-            <EventIcon />
-          </ListItemIcon>
-          <ListItemText primary="Crea Evento" />
-        </ListItem>
-        <ListItem
-          button
-          onClick={() => {
-            setSection("gallery");
-            setMobileOpen(false);
-          }}
-          selected={section === "gallery"}
-        >
-          <ListItemIcon>
-            <EventIcon />
-          </ListItemIcon>
-          <ListItemText primary="Gallery" />
-        </ListItem>
+        {navItems.map((item) => (
+          <ListItem disablePadding key={item.key}>
+            <ListItemButton
+              onClick={() => {
+                setSection(item.key);
+                setMobileOpen(false);
+              }}
+              selected={section === item.key}
+              sx={{
+                borderRadius: 1,
+                "&.Mui-selected": {
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                  },
+                },
+              }}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
       </List>
     </div>
   );
@@ -417,7 +404,7 @@ const AdminPanel = () => {
                 </IconButton>
               )}
               <Typography variant="h6" noWrap component="div">
-                Admin Panel
+                {`Admin Panel - ${sectionTitles[section]}`}
               </Typography>
             </Box>
             <IconButton color="inherit" onClick={handleLogout}>

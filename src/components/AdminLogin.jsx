@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Box, Button, Paper, TextField, Typography, InputAdornment, IconButton } from '@mui/material';
 import { useLanguage } from './LanguageContext';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import logo from '../assets/img/ADMIN.png';
 import heroImg from '../assets/img/hero.png';
 import { auth } from '../firebase/config';
 import { setAuthToken } from '../api';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
 
@@ -88,6 +91,7 @@ const AdminLogin = () => {
         <TextField
           label="Email"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           variant="outlined"
@@ -103,8 +107,9 @@ const AdminLogin = () => {
           InputProps={{ style: { color: '#fff' } }}
         />
         <TextField
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           label="Password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           variant="outlined"
@@ -117,7 +122,20 @@ const AdminLogin = () => {
             '& fieldset': { borderRadius: 0 },
           }}
           InputLabelProps={{ style: { color: '#fff' } }}
-          InputProps={{ style: { color: '#fff' } }}
+          InputProps={{
+            style: { color: '#fff' },
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  edge="end"
+                  sx={{ color: '#fff' }}
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
         <Button
           type="submit"
@@ -127,6 +145,7 @@ const AdminLogin = () => {
             '&:hover': { backgroundColor: '#c62828' },
             borderRadius: 0,
           }}
+          disabled={!email || !password}
         >
           Login
         </Button>
