@@ -59,6 +59,23 @@ import { useToast } from "./ToastContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/config";
 
+// --- Google loaders (metti in alto al file) ---
+const GAPI_SRC = "https://apis.google.com/js/api.js";          // gapi (client + picker)
+const GIS_SRC  = "https://accounts.google.com/gsi/client";      // Google Identity Services
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) return resolve();
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+    });
+}
+
+
 const drawerWidth = 240;
 const muiTheme = createTheme({
   palette: {
@@ -122,44 +139,40 @@ const AdminPanel = () => {
     { key: "gallery", label: sectionTitles.gallery, icon: <PhotoLibraryIcon /> },
   ];
 
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!apiKey || !clientId) return;
-    const onLoad = () => {
-      window.gapi.load("client:picker", async () => {
-        try {
-          await window.gapi.client.init({
-            apiKey,
-            discoveryDocs: [
-              "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
-            ],
-          });
-          await window.gapi.auth2.init({
-            client_id: clientId,
-            scope: "https://www.googleapis.com/auth/drive.readonly",
-          });
-          setPickerLoaded(true);
-        } catch (err) {
-          console.error(err);
+    useEffect(() => {
+        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        if (!apiKey || !clientId) return;
+
+        let mounted = true;
+
+        async function boot() {
+            try {
+                // 1) carico librerie
+                await loadScript(GAPI_SRC); // gapi (client + picker)
+                await loadScript(GIS_SRC);  // GIS (token OAuth)
+
+                // 2) inizializzo gapi client con Drive discovery (senza auth2!)
+                await new Promise((resolve) => {
+                    /* global gapi */
+                    gapi.load("client:picker", () => resolve());
+                });
+
+                await gapi.client.init({
+                    apiKey,
+                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+                });
+
+                if (mounted) setPickerLoaded(true);
+            } catch (err) {
+                console.error("Google init error:", err);
+            }
         }
-      });
-    };
-    if (window.gapi) {
-      onLoad();
-    } else {
-      const src = "https://apis.google.com/js/api.js";
-      let script = document.querySelector(`script[src="${src}"]`);
-      if (!script) {
-        script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        document.body.appendChild(script);
-      }
-      script.addEventListener("load", onLoad);
-      return () => script.removeEventListener("load", onLoad);
-    }
-  }, []);
+
+        boot();
+        return () => { mounted = false; };
+    }, []);
+
 
   useEffect(() => {
     if (formData.place.length < 3) {
@@ -200,37 +213,67 @@ const AdminPanel = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const pickImageFromDrive = async (onImagePicked) => {
-    if (!pickerLoaded) return;
-    try {
-      const auth = await window.gapi.auth2.getAuthInstance().signIn();
-      const token = auth.getAuthResponse().access_token;
+    const pickImageFromDrive = async (onImagePicked) => {
+        if (!pickerLoaded) return;
+        try {
+            const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+            const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+            const FOLDER_ID = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
 
-      const view = new window.google.picker.DocsView(
-        window.google.picker.ViewId.DOCS_IMAGES
-      ).setMimeTypes("image/png,image/jpeg,image/jpg");
+            // 1) Ottieni access token via Google Identity Services
+            const getToken = (prompt) =>
+                new Promise((resolve, reject) => {
+                    /* global google */
+                    const tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: clientId,
+                        scope: "https://www.googleapis.com/auth/drive.readonly",
+                        callback: (resp) => {
+                            if (resp && resp.access_token) resolve(resp.access_token);
+                            else reject(resp?.error || "No access token");
+                        },
+                    });
+                    tokenClient.requestAccessToken({ prompt });
+                });
 
-      const picker = new window.google.picker.PickerBuilder()
-        .addView(view)
-        .setOAuthToken(token)
-        .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
-        .setCallback((data) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const id = data.docs[0].id;
-            const link = `https://drive.google.com/uc?export=view&id=${id}`;
-            onImagePicked(link);
-          }
-        })
-        .build();
+            // Prova silenziosa, se fallisce chiedi consenso
+            let token;
+            try {
+                token = await getToken("none");
+            } catch {
+                token = await getToken("consent");
+            }
 
-      picker.setVisible(true);
-    } catch (err) {
-      console.error(err);
-      showToast("Errore Google Drive", "error");
-    }
-  };
+            // 2) Configura vista immagini; limita alla cartella (se fornita)
+            const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
+                .setMimeTypes("image/png,image/jpeg,image/jpg")
+                .setIncludeFolders(false);
 
-  // 🔴 Per EVENTI
+            if (FOLDER_ID) view.setParent(FOLDER_ID);
+
+            // 3) Costruisci Picker
+            const picker = new google.picker.PickerBuilder()
+                .addView(view)
+                .setOAuthToken(token)
+                .setDeveloperKey(apiKey)
+                .enableFeature(google.picker.Feature.SUPPORT_DRIVES) // ok anche su Il mio Drive
+                .setCallback((data) => {
+                    if (data.action === google.picker.Action.PICKED) {
+                        const id = data.docs[0].id;
+                        const link = `https://drive.google.com/uc?export=view&id=${id}`;
+                        onImagePicked(link);
+                    }
+                })
+                .build();
+
+            picker.setVisible(true);
+        } catch (err) {
+            console.error(err);
+            showToast("Errore Google Drive", "error");
+        }
+    };
+
+
+    // 🔴 Per EVENTI
   const pickEventImageFromDrive = () => {
     pickImageFromDrive((link) => {
       setFormData((f) => ({ ...f, image: link }));
