@@ -3,10 +3,13 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { readFileSync, existsSync } from 'fs';
 
 const serviceAccountPath =
-  process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  process.env.FIREBASE_SERVICE_ACCOUNT ||
+  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+  process.env.VITE_FIREBASE_SERVICE_ACCOUNT;
 
 let credential;
-let projectId = process.env.FIREBASE_PROJECT_ID;
+let projectId =
+  process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
 
 if (serviceAccountPath && existsSync(serviceAccountPath)) {
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
