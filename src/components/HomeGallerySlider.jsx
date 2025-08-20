@@ -1,92 +1,132 @@
-import React, { useEffect, useState, useMemo } from "react";
-import styled from "styled-components";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Autoplay } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
+// src/components/HomeGallerySlider.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import { listImagesInFolder } from "../lib/driveGallery";
 
-// fallback locali (se proprio serve)
-import img1 from "../assets/img/gallery-1.png";
-import img2 from "../assets/img/gallery-2.png";
-import img3 from "../assets/img/djscovery-logo.png";
-import img4 from "../assets/img/logo-principale.png";
-import img5 from "../assets/img/gallery-3.png";
-import img6 from "../assets/img/gallery-4.png";
-import img7 from "../assets/img/hero.png";
-import img8 from "../assets/img/logo-dj.png";
+// Swiper
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation, A11y } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
-const FALLBACK = [img1, img2, img3, img4, img5, img6, img7, img8];
-const FOLDER_ID = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
+const HomeGallerySlider = ({
+                               folderId,
+                               apiKey,
+                               includeSharedDrives = true,
+                               autoplayMs = 3500,
+                               loop = true,
+                               slidesPerView = 1,
+                               spaceBetween = 12,
+                               caption = false,
+                               className = "",
+                               // breakpoints responsive opzionali (esempio sotto)
+                               breakpoints = {
+                                   640: { slidesPerView: 1, spaceBetween: 12 },
+                                   768: { slidesPerView: 2, spaceBetween: 12 },
+                                   1024: { slidesPerView: 3, spaceBetween: 16 },
+                               },
+                           }) => {
+    // fallback su env Vite o window.APP_CONFIG
+    const FOLDER_ID = useMemo(
+        () =>
+            folderId ??
+            (import.meta?.env && import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID) ??
+            (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_DRIVE_FOLDER_ID),
+        [folderId]
+    );
+    const API_KEY = useMemo(
+        () =>
+            apiKey ??
+            (import.meta?.env && import.meta.env.VITE_GOOGLE_API_KEY) ??
+            (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_API_KEY),
+        [apiKey]
+    );
 
-const Section = styled.section`
-    background-color: #222;
-    padding: 2rem 0;
-    text-align: center;
-`;
-
-const SlideImage = styled.img`
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-
-  @media (min-width: 768px) { height: 220px; }
-  @media (min-width: 1024px) { height: 250px; }
-`;
-
-const HomeGallerySlider = () => {
-    const [remote, setRemote] = useState([]); // [{id,name,src}]
+    const [imgs, setImgs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [err, setErr] = useState("");
 
     useEffect(() => {
         let alive = true;
         (async () => {
             try {
-                const imgs = await listImagesInFolder(FOLDER_ID, 20);
-                if (!alive) return;
-                setRemote(imgs);
-            } catch {
-                if (!alive) return;
-                setRemote([]);
+                if (!FOLDER_ID || !API_KEY) {
+                    throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
+                }
+                const items = await listImagesInFolder(FOLDER_ID, {
+                    apiKey: API_KEY,
+                    includeSharedDrives,
+                    pageSize: 120,
+                });
+                if (alive) setImgs(items);
+            } catch (e) {
+                console.error(e);
+                if (alive) setErr("Impossibile caricare la gallery.");
             } finally {
                 if (alive) setLoading(false);
             }
         })();
-        return () => { alive = false; };
-    }, []);
+        return () => {
+            alive = false;
+        };
+    }, [FOLDER_ID, API_KEY, includeSharedDrives]);
 
-    const images = useMemo(() => {
-        const fromDrive = remote?.map(r => r.src).filter(Boolean) || [];
-        return fromDrive.length ? fromDrive : FALLBACK;
-    }, [remote]);
+    if (loading) return <div>Carico gallery…</div>;
+    if (err) return <div className="text-danger">{err}</div>;
+    if (!imgs.length) return <div>Nessuna immagine disponibile.</div>;
 
     return (
-        <Section>
-            <div className="container">
-                <Swiper
-                    modules={[Pagination, Autoplay]}
-                    pagination={{ clickable: true }}
-                    autoplay={{ delay: 3000, disableOnInteraction: false }}
-                    loop={images.length > 1}
-                    slidesPerView={1}
-                    spaceBetween={10}
-                    breakpoints={{ 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } }}
-                    style={{ borderRadius: "8px" }}
-                >
-                    {images.map((src, idx) => (
-                        <SwiperSlide key={idx}>
-                            <SlideImage
-                                src={src}
-                                alt={`gallery-${idx}`}
-                                loading={loading ? "eager" : "lazy"}
-                                decoding="async"
-                            />
-                        </SwiperSlide>
-                    ))}
-                </Swiper>
-            </div>
-        </Section>
+        <div className={className}>
+            <Swiper
+                modules={[Autoplay, Pagination, Navigation, A11y]}
+                slidesPerView={slidesPerView}
+                spaceBetween={spaceBetween}
+                breakpoints={breakpoints}
+                loop={loop}
+                autoplay={{ delay: autoplayMs, disableOnInteraction: false }}
+                pagination={{ clickable: true }}
+                navigation
+                style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
+            >
+                {imgs.map((img) => (
+                    <SwiperSlide key={img.id}>
+                        <figure style={{ margin: 0 }}>
+                            {/* contenitore 16:9 per evitare layout shift */}
+                            <div
+                                style={{
+                                    position: "relative",
+                                    width: "100%",
+                                    paddingTop: "56.25%",
+                                    background: "#f5f6f7",
+                                }}
+                            >
+                                <img
+                                    src={img.src}
+                                    alt={img.name || "gallery"}
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        // se il file non è davvero pubblico, nascondo lo slide
+                                        e.currentTarget.closest(".swiper-slide").style.display = "none";
+                                    }}
+                                    style={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                    }}
+                                />
+                            </div>
+                            {caption && (
+                                <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
+                                    {img.name}
+                                </figcaption>
+                            )}
+                        </figure>
+                    </SwiperSlide>
+                ))}
+            </Swiper>
+        </div>
     );
 };
 
