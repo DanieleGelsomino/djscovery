@@ -1,8 +1,14 @@
 // src/lib/driveGallery.ts
 const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
 
-// URL immagine diretto (niente OAuth) per file PUBBLICI
-export function driveImageSrc(fileId: string, apiKey: string) {
+// CDN pubblico (no key)
+export function driveCdnSrc(fileId: string, w = 1600) {
+    // Esempi: =w320, =w640, =w1280; puoi usare anche -rw ecc.
+    return `https://lh3.googleusercontent.com/d/${fileId}=w${w}`;
+}
+
+// Fallback API (richiede key, più “solido” ma meno cache/CDN)
+export function driveApiSrc(fileId: string, apiKey: string) {
     return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${encodeURIComponent(apiKey)}`;
 }
 
@@ -10,7 +16,10 @@ export type DriveImage = {
     id: string;
     name: string;
     mimeType: string;
+    // sorgente principale: CDN
     src: string;
+    // fallback alternativo: API
+    fallbackSrc: string;
     modifiedTime?: string;
     thumbnail?: string | null;
 };
@@ -18,12 +27,7 @@ export type DriveImage = {
 type ListOpts = {
     apiKey: string;
     pageSize?: number;
-    includeSharedDrives?: boolean; // true se la cartella è in uno Shared Drive
-};
-
-type DriveShortcutDetails = {
-    targetId?: string;
-    targetMimeType?: string;
+    includeSharedDrives?: boolean;
 };
 
 type DriveFile = {
@@ -32,34 +36,22 @@ type DriveFile = {
     mimeType: string;
     modifiedTime?: string;
     thumbnailLink?: string;
-    shortcutDetails?: DriveShortcutDetails;
-};
-
-type DriveListResponse = {
-    nextPageToken?: string;
-    files?: DriveFile[];
+    shortcutDetails?: { targetId?: string; targetMimeType?: string };
 };
 
 export async function listImagesInFolder(
     folderId: string,
-    opts: ListOpts
+    { apiKey, pageSize = 100, includeSharedDrives = true }: ListOpts
 ): Promise<DriveImage[]> {
-    const { apiKey, pageSize = 100, includeSharedDrives = true } = opts;
     if (!apiKey) throw new Error("Google API key mancante");
 
-    // Helper per paginare con campi minimali (evita 500)
     const fetchAll = async (q: string): Promise<DriveFile[]> => {
         const acc: DriveFile[] = [];
         let pageToken: string | undefined;
-
         do {
             const url = new URL(DRIVE_API);
             url.searchParams.set("q", q);
-            // campi minimi; niente nested complessi nel filtro
-            url.searchParams.set(
-                "fields",
-                "nextPageToken,files(id,name,mimeType,modifiedTime,thumbnailLink,shortcutDetails)"
-            );
+            url.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,modifiedTime,thumbnailLink,shortcutDetails)");
             url.searchParams.set("pageSize", String(pageSize));
             url.searchParams.set("key", apiKey);
             if (pageToken) url.searchParams.set("pageToken", pageToken);
@@ -67,60 +59,41 @@ export async function listImagesInFolder(
                 url.searchParams.set("supportsAllDrives", "true");
                 url.searchParams.set("includeItemsFromAllDrives", "true");
             }
-
             const res = await fetch(url.toString());
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Drive list error ${res.status}: ${text}`);
-            }
-            const json = (await res.json()) as DriveListResponse;
-            (json.files ?? []).forEach((f) => acc.push(f));
+            if (!res.ok) throw new Error(`Drive list error ${res.status}: ${await res.text()}`);
+            const json = await res.json();
+            (json.files ?? []).forEach((f: DriveFile) => acc.push(f));
             pageToken = json.nextPageToken;
         } while (pageToken);
-
         return acc;
     };
 
-    // 1) Immagini reali
-    const Q_IMAGES = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
-    const filesImages = await fetchAll(Q_IMAGES);
+    // Split in due query per evitare 500
+    const qImages = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
+    const qShort  = `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.shortcut'`;
 
-    // 2) Shortcut (filtrate lato client, niente targetMimeType nella query)
-    const Q_SHORTCUTS = `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.shortcut'`;
-    const filesShortcuts = await fetchAll(Q_SHORTCUTS);
-
-    // Normalizza: tieni solo immagini (vere o target di shortcut)
+    const [filesImages, filesShortcuts] = await Promise.all([fetchAll(qImages), fetchAll(qShort)]);
     const all = [...filesImages, ...filesShortcuts];
 
-    const items: DriveImage[] = all
+    const items = all
         .map((f) => {
             const isShortcut = f.mimeType === "application/vnd.google-apps.shortcut";
-            const effectiveId = isShortcut ? f.shortcutDetails?.targetId : f.id;
-            const effectiveMime = isShortcut
-                ? f.shortcutDetails?.targetMimeType
-                : f.mimeType;
-
-            if (!effectiveId || !(effectiveMime ?? "").startsWith("image/")) return null;
-
+            const id = isShortcut ? f.shortcutDetails?.targetId : f.id;
+            const mt = isShortcut ? f.shortcutDetails?.targetMimeType : f.mimeType;
+            if (!id || !(mt ?? "").startsWith("image/")) return null;
             return {
-                id: effectiveId,
+                id,
                 name: f.name,
-                mimeType: effectiveMime!,
+                mimeType: mt!,
                 modifiedTime: f.modifiedTime,
                 thumbnail: f.thumbnailLink ?? null,
-                src: driveImageSrc(effectiveId, apiKey),
+                src: driveCdnSrc(id, 1280),          // 👈 default 1280px lato CDN
+                fallbackSrc: driveApiSrc(id, apiKey) // 👈 fallback API
             } as DriveImage;
         })
-        .filter((x): x is DriveImage => Boolean(x));
+        .filter(Boolean) as DriveImage[];
 
-    // De-duplica per id (caso: immagine presente e anche shortcut verso la stessa)
+    // de-duplica per id
     const seen = new Set<string>();
-    const dedup: DriveImage[] = [];
-    for (const it of items) {
-        if (seen.has(it.id)) continue;
-        seen.add(it.id);
-        dedup.push(it);
-    }
-
-    return dedup;
+    return items.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
 }

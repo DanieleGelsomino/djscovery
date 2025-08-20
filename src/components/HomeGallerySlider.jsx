@@ -1,13 +1,13 @@
 // src/components/HomeGallerySlider.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { listImagesInFolder } from "../lib/driveGallery";
-
-// Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation, A11y } from "swiper/modules";
+import { Autoplay, Pagination } from "swiper/modules"; // ⬅️ niente Navigation
+
 import "swiper/css";
-import "swiper/css/pagination";
-import "swiper/css/navigation";
+import "swiper/css/pagination"; // ⬅️ niente navigation css
+
+const widths = [480, 768, 1024, 1600];
 
 const HomeGallerySlider = ({
                                folderId,
@@ -19,14 +19,12 @@ const HomeGallerySlider = ({
                                spaceBetween = 12,
                                caption = false,
                                className = "",
-                               // breakpoints responsive opzionali (esempio sotto)
                                breakpoints = {
                                    640: { slidesPerView: 1, spaceBetween: 12 },
                                    768: { slidesPerView: 2, spaceBetween: 12 },
                                    1024: { slidesPerView: 3, spaceBetween: 16 },
                                },
                            }) => {
-    // fallback su env Vite o window.APP_CONFIG
     const FOLDER_ID = useMemo(
         () =>
             folderId ??
@@ -50,9 +48,7 @@ const HomeGallerySlider = ({
         let alive = true;
         (async () => {
             try {
-                if (!FOLDER_ID || !API_KEY) {
-                    throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
-                }
+                if (!FOLDER_ID || !API_KEY) throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
                 const items = await listImagesInFolder(FOLDER_ID, {
                     apiKey: API_KEY,
                     includeSharedDrives,
@@ -66,9 +62,7 @@ const HomeGallerySlider = ({
                 if (alive) setLoading(false);
             }
         })();
-        return () => {
-            alive = false;
-        };
+        return () => { alive = false; };
     }, [FOLDER_ID, API_KEY, includeSharedDrives]);
 
     if (loading) return <div>Carico gallery…</div>;
@@ -78,53 +72,62 @@ const HomeGallerySlider = ({
     return (
         <div className={className}>
             <Swiper
-                modules={[Autoplay, Pagination, Navigation, A11y]}
+                modules={[Autoplay, Pagination]}
                 slidesPerView={slidesPerView}
                 spaceBetween={spaceBetween}
                 breakpoints={breakpoints}
                 loop={loop}
                 autoplay={{ delay: autoplayMs, disableOnInteraction: false }}
                 pagination={{ clickable: true }}
-                navigation
-                style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
+                // ⬇️ niente borderRadius e niente navigation
+                style={{ width: "100%", overflow: "hidden" }}
             >
-                {imgs.map((img) => (
-                    <SwiperSlide key={img.id}>
-                        <figure style={{ margin: 0 }}>
-                            {/* contenitore 16:9 per evitare layout shift */}
-                            <div
-                                style={{
-                                    position: "relative",
-                                    width: "100%",
-                                    paddingTop: "56.25%",
-                                    background: "#f5f6f7",
-                                }}
-                            >
-                                <img
-                                    src={img.src}
-                                    alt={img.name || "gallery"}
-                                    loading="lazy"
-                                    onError={(e) => {
-                                        // se il file non è davvero pubblico, nascondo lo slide
-                                        e.currentTarget.closest(".swiper-slide").style.display = "none";
-                                    }}
+                {imgs.map((img) => {
+                    const cdnSet = widths.map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`).join(", ");
+                    const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
+
+                    return (
+                        <SwiperSlide key={img.id}>
+                            <figure style={{ margin: 0 }}>
+                                <div
                                     style={{
-                                        position: "absolute",
-                                        inset: 0,
+                                        position: "relative",
                                         width: "100%",
-                                        height: "100%",
-                                        objectFit: "cover",
+                                        paddingTop: "56.25%", // 16:9
+                                        background: "#111",
                                     }}
-                                />
-                            </div>
-                            {caption && (
-                                <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
-                                    {img.name}
-                                </figcaption>
-                            )}
-                        </figure>
-                    </SwiperSlide>
-                ))}
+                                >
+                                    <img
+                                        src={cdnDefault}
+                                        srcSet={cdnSet}
+                                        sizes="(max-width:768px) 100vw, 50vw"
+                                        alt={img.name || "gallery"}
+                                        loading="lazy"
+                                        decoding="async"
+                                        fetchpriority="low"
+                                        onError={(e) => {
+                                            e.currentTarget.removeAttribute("srcset");
+                                            e.currentTarget.removeAttribute("sizes");
+                                            e.currentTarget.src = img.fallbackSrc;
+                                        }}
+                                        style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                        }}
+                                    />
+                                </div>
+                                {caption && (
+                                    <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
+                                        {img.name}
+                                    </figcaption>
+                                )}
+                            </figure>
+                        </SwiperSlide>
+                    );
+                })}
             </Swiper>
         </div>
     );

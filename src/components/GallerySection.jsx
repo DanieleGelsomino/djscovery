@@ -1,4 +1,3 @@
-// src/components/GallerySection.jsx  (o HomeGallery/GallerySection, come nel tuo path)
 import React, {
     useState, useMemo, lazy, Suspense, useEffect, useRef, useCallback,
 } from "react";
@@ -36,23 +35,64 @@ const Item = styled(motion.div)`
 `;
 const Empty = styled.div` opacity: .8; font-size: .95rem; padding: 2rem .5rem; `;
 
-const GalleryItem = React.memo(({ item, onClick }) => (
-    <Item onClick={onClick}>
-        <img
-            src={item.src}
-            alt={item.alt || "gallery"}
-            loading="lazy"
-            decoding="async"
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-        />
-    </Item>
-));
+// Lazy image con IO + fallback e onClick propagato
+const LazyImg = React.memo(function LazyImg({ id, name, fallbackSrc, onClick }) {
+    const ref = useRef(null);
+    const [errored, setErrored] = useState(false);
+
+    const cdnDefault = `https://lh3.googleusercontent.com/d/${id}=w640`;
+    const cdnSet = [320, 480, 768, 1024, 1600]
+        .map((w) => `https://lh3.googleusercontent.com/d/${id}=w${w} ${w}w`)
+        .join(", ");
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    const img = el.querySelector("img");
+                    if (img && !img.getAttribute("src")) {
+                        img.setAttribute("src", cdnDefault);
+                        img.setAttribute("srcset", cdnSet);
+                        img.setAttribute("sizes", "(max-width:768px) 33vw, 20vw");
+                    }
+                    obs.disconnect();
+                }
+            },
+            { root: null, rootMargin: "200px", threshold: 0.01 }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [cdnDefault, cdnSet]);
+
+    return (
+        <Item ref={ref} onClick={onClick}>
+            <img
+                alt={name || "gallery"}
+                decoding="async"
+                loading="lazy"
+                style={{ width: "100%", height: "100%", objectFit: "cover", background: "#111" }}
+                onError={(e) => {
+                    if (!errored) {
+                        setErrored(true);
+                        e.currentTarget.removeAttribute("srcset");
+                        e.currentTarget.removeAttribute("sizes");
+                        e.currentTarget.src = fallbackSrc;
+                    } else {
+                        (e.currentTarget.parentElement).style.display = "none";
+                    }
+                }}
+            />
+        </Item>
+    );
+});
 
 const GallerySection = () => {
     const { t } = useLanguage();
     const [selectedIndex, setSelectedIndex] = useState(null);
     const [visibleImages, setVisibleImages] = useState(15);
-    const [driveImages, setDriveImages] = useState([]); // [{id,name,src}]
+    const [driveImages, setDriveImages] = useState([]); // [{id,name,src,fallbackSrc}]
     const [loading, setLoading] = useState(true);
     const loaderRef = useRef();
 
@@ -61,7 +101,6 @@ const GallerySection = () => {
         (async () => {
             try {
                 if (!FOLDER_ID || !API_KEY) throw new Error("Manca FOLDER_ID o API_KEY");
-                // ✅ nuova firma: passa apiKey e (se serve) includeSharedDrives/pageSize
                 const list = await listImagesInFolder(FOLDER_ID, {
                     apiKey: API_KEY,
                     includeSharedDrives: true,
@@ -82,10 +121,11 @@ const GallerySection = () => {
 
     const images = useMemo(
         () =>
-            driveImages.map((g, i) => ({
-                id: g.id ?? String(i),
+            driveImages.map((g) => ({
+                id: g.id,
+                name: g.name,
                 src: g.src,
-                alt: g.name || `gallery-${i}`,
+                fallbackSrc: g.fallbackSrc,
             })),
         [driveImages]
     );
@@ -132,8 +172,14 @@ const GallerySection = () => {
                 {!loading && images.length > 0 && (
                     <>
                         <GalleryGrid>
-                            {paginatedImages.map((item, idx) => (
-                                <GalleryItem key={item.id || idx} item={item} onClick={() => setSelectedIndex(idx)} />
+                            {paginatedImages.map((g, idx) => (
+                                <LazyImg
+                                    key={g.id || idx}
+                                    id={g.id}
+                                    name={g.name}
+                                    fallbackSrc={g.fallbackSrc}
+                                    onClick={() => setSelectedIndex(idx)}   // 👈 ora apre il modal
+                                />
                             ))}
                         </GalleryGrid>
                         <div ref={loaderRef} style={{ height: "50px", marginTop: "2rem" }} />
