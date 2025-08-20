@@ -1,906 +1,1059 @@
-import React, { useEffect, useState } from "react";
+// src/components/AdminPanel.jsx
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  fetchBookings,
-  createEvent,
-  fetchEvents,
-  updateEvent,
-  deleteEvent,
-  fetchGallery,
-  uploadGalleryImage,
-  deleteGalleryImage,
-  setAuthToken,
+    fetchBookings,
+    createEvent,
+    fetchEvents,
+    updateEvent,
+    deleteEvent,
+    setAuthToken,
 } from "../api";
-import { withLoading } from "../loading";
+
 import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  TextField,
-  Autocomplete,
-  Button,
-  CssBaseline,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Switch,
-  Divider,
-  IconButton,
-  Grid,
-  Paper,
-  useMediaQuery,
-  useTheme,
+    Box, Drawer, AppBar, Toolbar, Typography, List, ListItem, ListItemButton,
+    ListItemIcon, ListItemText, TextField, Button, CssBaseline, Table, TableHead,
+    TableRow, TableCell, TableBody, Switch, Divider, IconButton, Grid, Paper,
+    useMediaQuery, useTheme, Tooltip, Stack, InputAdornment, TableContainer,
+    MenuItem, Select, FormControl, Chip, Dialog, DialogTitle, DialogContent,
+    Skeleton, Alert, Autocomplete,
 } from "@mui/material";
-import {
-  ThemeProvider as MuiThemeProvider,
-  createTheme,
-} from "@mui/material/styles";
-import heroImg from "../assets/img/hero.png";
-import { theme as appTheme } from "../styles/globalStyles";
-import ListAltIcon from "@mui/icons-material/ListAlt";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
-import DeleteIcon from "@mui/icons-material/Delete";
-import CalendarIcon from "@mui/icons-material/CalendarToday";
-import MenuIcon from "@mui/icons-material/Menu";
-import LogoutIcon from "@mui/icons-material/Logout";
-import AddToDriveIcon from "@mui/icons-material/AddToDrive";
+import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/styles";
+
 import ConfirmDialog from "./ConfirmDialog";
 import { useToast } from "./ToastContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/config";
 
-// --- Google loaders (metti in alto al file) ---
-const GAPI_SRC = "https://apis.google.com/js/api.js";          // gapi (client + picker)
-const GIS_SRC  = "https://accounts.google.com/gsi/client";      // Google Identity Services
+import { listImagesInFolder, driveCdnSrc, driveApiSrc } from "../lib/driveGallery";
 
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) return resolve();
-        const s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error(`Failed to load ${src}`));
-        document.head.appendChild(s);
-    });
-}
+// icons
+import CalendarIcon from "@mui/icons-material/CalendarToday";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
+import MenuIcon from "@mui/icons-material/Menu";
+import LogoutIcon from "@mui/icons-material/Logout";
+import AddToDriveIcon from "@mui/icons-material/AddToDrive";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import ClearIcon from "@mui/icons-material/Clear";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import SearchIcon from "@mui/icons-material/Search";
+import SortIcon from "@mui/icons-material/Sort";
+import CelebrationIcon from "@mui/icons-material/Celebration";
+import MusicNoteIcon from "@mui/icons-material/MusicNote";
+import EuroIcon from "@mui/icons-material/Euro";
+import GroupIcon from "@mui/icons-material/Group";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PlaceIcon from "@mui/icons-material/Place";
+import ImageIcon from "@mui/icons-material/Image";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
+// assets
+import heroImg from "../assets/img/hero.png";
 
+/* ───────────────── THEME ──────────────── */
 const drawerWidth = 240;
-const muiTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: appTheme.colors.yellow },
-    secondary: { main: appTheme.colors.red },
-    background: {
-      default: appTheme.colors.black,
-      paper: appTheme.colors.gray,
+const appTheme = createTheme({
+    palette: {
+        mode: "dark",
+        primary: { main: "#FFD54F" },
+        secondary: { main: "#E53935" },
+        background: { default: "#0b0b0d", paper: "#141418" },
     },
-  },
-  shape: { borderRadius: 12 },
+    shape: { borderRadius: 12 },
+    typography: { button: { textTransform: "none", fontWeight: 600 } },
+    components: {
+        MuiTableCell: { styleOverrides: { head: { fontWeight: 700, background: "#1b1b22" } } },
+        MuiPaper: { styleOverrides: { root: { backdropFilter: "blur(6px)" } } },
+    },
 });
-
 const glass = {
-  backgroundColor: "rgba(34, 34, 34, 0.85)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(20,20,24,0.82)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
 };
 
-const AdminPanel = () => {
-  const [bookings, setBookings] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [gallery, setGallery] = useState([]);
-  const [gallerySrc, setGallerySrc] = useState("");
-  const [pickerLoaded, setPickerLoaded] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    dj: "",
-    date: "",
-    place: "",
-    time: "",
-    price: "",
-    capacity: "",
-    image: "",
-    description: "",
-    soldOut: false,
-  });
-  const [editingId, setEditingId] = useState(null);
-  const { showToast } = useToast();
-  const [placeOptions, setPlaceOptions] = useState([]);
-  const [section, setSection] = useState("bookings");
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
-  const navigate = useNavigate();
-  const driveFolderLink = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER;
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const eventDateTime = (ev) => new Date(`${ev?.date}T${ev?.time || "00:00"}:00`);
+const isPast = (ev) => !ev?.date ? false : eventDateTime(ev).getTime() < Date.now();
 
-  const sectionTitles = {
-    bookings: "Prenotazioni",
-    events: "Eventi",
-    create: "Crea Evento",
-    gallery: "Gallery",
-  };
+/* ───────────── Google Places loader con fallback OSM ───────────── */
+const loadGooglePlaces = (() => {
+    let promise;
+    return () => {
+        if (promise) return promise;
+        const key = import.meta.env.VITE_GOOGLE_API_KEY || window.APP_CONFIG?.GOOGLE_API_KEY;
+        if (!key) return Promise.reject(new Error("Manca VITE_GOOGLE_API_KEY"));
+        promise = new Promise((resolve, reject) => {
+            if (window.google?.maps?.places) return resolve(window.google.maps);
+            const s = document.createElement("script");
+            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
+            s.async = true;
+            s.onerror = () => reject(new Error("Errore caricamento Google Maps"));
+            s.onload = () => {
+                if (window.google?.maps?.places) resolve(window.google.maps);
+                else reject(new Error("Places non disponibile (API non abilitate?)"));
+            };
+            document.head.appendChild(s);
+        });
+        return promise;
+    };
+})();
 
-  const navItems = [
-    { key: "bookings", label: sectionTitles.bookings, icon: <ListAltIcon /> },
-    { key: "events", label: sectionTitles.events, icon: <CalendarIcon /> },
-    { key: "create", label: sectionTitles.create, icon: <AddCircleOutlineIcon /> },
-    { key: "gallery", label: sectionTitles.gallery, icon: <PhotoLibraryIcon /> },
-  ];
+/* ───────────── Autocomplete luogo (Google → OSM fallback) ───────────── */
+function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, helperText }) {
+    const [options, setOptions] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const serviceRef = useRef(null);
+    const detailsRef = useRef(null);
+    const debounceRef = useRef();
 
     useEffect(() => {
-        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        if (!apiKey || !clientId) return;
-
-        let mounted = true;
-
-        async function boot() {
-            try {
-                // 1) carico librerie
-                await loadScript(GAPI_SRC); // gapi (client + picker)
-                await loadScript(GIS_SRC);  // GIS (token OAuth)
-
-                // 2) inizializzo gapi client con Drive discovery (senza auth2!)
-                await new Promise((resolve) => {
-                    /* global gapi */
-                    gapi.load("client:picker", () => resolve());
-                });
-
-                await gapi.client.init({
-                    apiKey,
-                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-                });
-
-                if (mounted) setPickerLoaded(true);
-            } catch (err) {
-                console.error("Google init error:", err);
-            }
-        }
-
-        boot();
-        return () => { mounted = false; };
+        let alive = true;
+        loadGooglePlaces()
+            .then((maps) => {
+                if (!alive) return;
+                serviceRef.current = new maps.places.AutocompleteService();
+                detailsRef.current = new maps.places.PlacesService(document.createElement("div"));
+            })
+            .catch(() => {});
+        return () => (alive = false);
     }, []);
 
+    const queryOSM = async (q) => {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}`
+        );
+        const data = await res.json();
+        return data.map((d) => ({ label: d.display_name, lat: +d.lat, lon: +d.lon }));
+    };
 
-  useEffect(() => {
-    if (formData.place.length < 3) {
-      setPlaceOptions([]);
-      return;
-    }
-    const controller = new AbortController();
-    withLoading(async () => {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
-          formData.place
-        )}`,
-        { signal: controller.signal }
-      );
-      const data = await res.json();
-      setPlaceOptions(data.map((d) => d.display_name));
-    }).catch(() => {});
-    return () => controller.abort();
-  }, [formData.place]);
-
-  useEffect(() => {
-    if (localStorage.getItem("isAdmin") !== "true") {
-      navigate("/admin");
-      return;
-    }
-    fetchBookings()
-      .then(setBookings)
-      .catch(() => {});
-    fetchEvents()
-      .then(setEvents)
-      .catch(() => {});
-    fetchGallery()
-      .then(setGallery)
-      .catch(() => {});
-  }, [navigate]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-    const pickImageFromDrive = async (onImagePicked) => {
-        if (!pickerLoaded) return;
-        try {
-            const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-            const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-            const FOLDER_ID = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
-
-            // 1) Ottieni access token via Google Identity Services
-            const getToken = (prompt) =>
-                new Promise((resolve, reject) => {
-                    /* global google */
-                    const tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: clientId,
-                        scope: "https://www.googleapis.com/auth/drive.readonly",
-                        callback: (resp) => {
-                            if (resp && resp.access_token) resolve(resp.access_token);
-                            else reject(resp?.error || "No access token");
-                        },
-                    });
-                    tokenClient.requestAccessToken({ prompt });
-                });
-
-            // Prova silenziosa, se fallisce chiedi consenso
-            let token;
+    useEffect(() => {
+        const q = (inputValue || "").trim();
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (q.length < 3) {
+            setOptions([]);
+            return;
+        }
+        debounceRef.current = setTimeout(async () => {
+            setLoading(true);
             try {
-                token = await getToken("none");
+                if (serviceRef.current) {
+                    serviceRef.current.getPlacePredictions({ input: q }, async (preds, status) => {
+                        if (status === "OK" && preds?.length) {
+                            setOptions(preds.map((p) => ({ label: p.description, place_id: p.place_id })));
+                            setLoading(false);
+                        } else {
+                            const osm = await queryOSM(q);
+                            setOptions(osm);
+                            setLoading(false);
+                        }
+                    });
+                } else {
+                    const osm = await queryOSM(q);
+                    setOptions(osm);
+                    setLoading(false);
+                }
             } catch {
-                token = await getToken("consent");
+                const osm = await queryOSM(q);
+                setOptions(osm);
+                setLoading(false);
             }
+        }, 250);
+        return () => clearTimeout(debounceRef.current);
+    }, [inputValue]);
 
-            // 2) Configura vista immagini; limita alla cartella (se fornita)
-            const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
-                .setMimeTypes("image/png,image/jpeg,image/jpg")
-                .setIncludeFolders(false);
-
-            if (FOLDER_ID) view.setParent(FOLDER_ID);
-
-            // 3) Costruisci Picker
-            const picker = new google.picker.PickerBuilder()
-                .addView(view)
-                .setOAuthToken(token)
-                .setDeveloperKey(apiKey)
-                .enableFeature(google.picker.Feature.SUPPORT_DRIVES) // ok anche su Il mio Drive
-                .setCallback((data) => {
-                    if (data.action === google.picker.Action.PICKED) {
-                        const id = data.docs[0].id;
-                        const link = `https://drive.google.com/uc?export=view&id=${id}`;
-                        onImagePicked(link);
-                    }
-                })
-                .build();
-
-            picker.setVisible(true);
-        } catch (err) {
-            console.error(err);
-            showToast("Errore Google Drive", "error");
+    const handleSelect = (e, opt) => {
+        if (!opt) return onChange(null);
+        if (opt.place_id && detailsRef.current) {
+            detailsRef.current.getDetails({ placeId: opt.place_id }, (place, status) => {
+                if (status !== "OK" || !place) return onChange({ label: opt.label });
+                const loc = place.geometry?.location;
+                onChange({
+                    label: place.formatted_address || opt.label,
+                    lat: loc?.lat?.() ?? null,
+                    lon: loc?.lng?.() ?? null,
+                });
+            });
+        } else {
+            onChange(opt);
         }
     };
 
+    return (
+        <Autocomplete
+            options={options}
+            value={value}
+            onChange={handleSelect}
+            inputValue={inputValue}
+            onInputChange={(e, v) => onInputChange(v)}
+            getOptionLabel={(o) => o?.label || ""}
+            loading={loading}
+            noOptionsText="Nessun risultato"
+            clearOnBlur={false}
+            renderInput={(params) => (
+                <TextField
+                    {...params}
+                    label="Luogo (cerca e seleziona)"
+                    required
+                    error={!!error}
+                    helperText={helperText}
+                    InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                            <>
+                                <InputAdornment position="start">
+                                    <PlaceIcon fontSize="small" />
+                                </InputAdornment>
+                                {params.InputProps.startAdornment}
+                            </>
+                        ),
+                    }}
+                />
+            )}
+        />
+    );
+}
 
-    // 🔴 Per EVENTI
-  const pickEventImageFromDrive = () => {
-    pickImageFromDrive((link) => {
-      setFormData((f) => ({ ...f, image: link }));
-    });
-  };
+/* ───────────── Dialog: immagini da Drive (anteprime) ───────────── */
+function DriveImagePickerDialog({ open, onClose, onPick }) {
+    const apiKey =
+        import.meta.env.VITE_GOOGLE_API_KEY || window.APP_CONFIG?.GOOGLE_API_KEY;
+    const folderId =
+        import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID || window.APP_CONFIG?.GOOGLE_DRIVE_FOLDER_ID;
 
-  // 🔵 Per GALLERY
-  const pickFromDrive = () => {
-    pickImageFromDrive((link) => {
-      setGallerySrc(link);
-    });
-  };
+    const driveFolderLink =
+        (import.meta.env.VITE_GOOGLE_DRIVE_FOLDER && import.meta.env.VITE_GOOGLE_DRIVE_FOLDER.startsWith("http"))
+            ? import.meta.env.VITE_GOOGLE_DRIVE_FOLDER
+            : folderId
+                ? `https://drive.google.com/drive/folders/${folderId}`
+                : "";
 
-  const handleGallerySubmit = async (e) => {
-    e.preventDefault();
-    if (!gallerySrc) return;
-    try {
-      await uploadGalleryImage(gallerySrc);
-      fetchGallery()
-        .then(setGallery)
-        .catch(() => {});
-      setGallerySrc("");
-      showToast("Immagine caricata", "success");
-    } catch (err) {
-      showToast("Errore", "error");
-    }
-  };
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [filter, setFilter] = useState("");
+    const [error, setError] = useState("");
 
-  const handleDeleteImage = async (id) => {
-    try {
-      await deleteGalleryImage(id);
-      setGallery(gallery.filter((g) => g.id !== id));
-      showToast("Immagine eliminata", "success");
-    } catch (err) {
-      showToast("Errore", "error");
-    }
-  };
+    const load = useCallback(async () => {
+        setError("");
+        if (!apiKey || !folderId) {
+            setError("Configurazione mancante: API key o Folder ID non trovati.");
+            setItems([]);
+            return;
+        }
+        setLoading(true);
+        try {
+            const list = await listImagesInFolder(folderId, {
+                apiKey,
+                includeSharedDrives: true,
+                pageSize: 200,
+            });
+            setItems(Array.isArray(list) ? list : []);
+        } catch (e) {
+            console.error("[Drive Picker] fetch error:", e);
+            setError("Impossibile caricare le immagini da Drive.");
+            setItems([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [apiKey, folderId]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = { ...formData, image: formData.image || heroImg };
-      if (editingId) {
-        await updateEvent(editingId, data);
-        showToast("Evento aggiornato", "success");
-      } else {
-        await createEvent(data);
-        showToast("Evento creato", "success");
-      }
-      fetchEvents()
-        .then(setEvents)
-        .catch(() => {});
-      setFormData({
-        name: "",
-        dj: "",
-        date: "",
-        place: "",
-        time: "",
-        price: "",
-        capacity: "",
-        image: "",
-        description: "",
-        soldOut: false,
-      });
-      setEditingId(null);
-    } catch (err) {
-      showToast("Errore", "error");
-    }
-  };
+    useEffect(() => {
+        if (open) load();
+    }, [open, load]);
 
-  const handleDelete = async (id) => {
-    try {
-      await deleteEvent(id);
-      setEvents(events.filter((ev) => ev.id !== id));
-      showToast("Evento eliminato", "success");
-    } catch (err) {
-      showToast("Errore", "error");
-    }
-  };
+    const filtered = useMemo(() => {
+        const t = filter.trim().toLowerCase();
+        return t ? items.filter((i) => (i.name || "").toLowerCase().includes(t)) : items;
+    }, [filter, items]);
 
-  const handleEdit = (ev) => {
-    setFormData({
-      name: ev.name,
-      dj: ev.dj,
-      date: ev.date,
-      place: ev.place,
-      time: ev.time,
-      price: ev.price,
-      capacity: ev.capacity || "",
-      image: ev.image,
-      description: ev.description,
-      soldOut: !!ev.soldOut,
-    });
-    setEditingId(ev.id);
-    setSection("create");
-  };
+    return (
+        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+            <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <ImageIcon /> Seleziona copertina da Drive
+            </DialogTitle>
 
-  const handleToggleSoldOut = async (id, value) => {
-    try {
-      await updateEvent(id, { soldOut: value });
-      setEvents(
-        events.map((e) => (e.id === id ? { ...e, soldOut: value } : e))
-      );
-      showToast("Aggiornato", "success");
-    } catch (err) {
-      showToast("Errore", "error");
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error(err);
-    }
-    setAuthToken(null);
-    localStorage.removeItem("isAdmin");
-    navigate("/admin");
-  };
-
-  const drawer = (
-    <div>
-      <Toolbar />
-      <Divider />
-      <List>
-        {navItems.map((item) => (
-          <ListItem disablePadding key={item.key}>
-            <ListItemButton
-              onClick={() => {
-                setSection(item.key);
-                setMobileOpen(false);
-              }}
-              selected={section === item.key}
-              sx={{
-                borderRadius: 1,
-                "&.Mui-selected": {
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.15)",
-                  },
-                },
-              }}
+            <DialogContent
+                dividers
+                sx={{
+                    background: "#101014",
+                    minHeight: 260,
+                    maxHeight: 560,
+                    overflowY: "auto",
+                }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
-  return (
-    <MuiThemeProvider theme={muiTheme}>
-      <Box sx={{ display: "flex" }}>
-        <CssBaseline />
-        <AppBar
-          position="fixed"
-          sx={{
-            ...glass,
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            color: "var(--yellow)",
-            backgroundImage: "linear-gradient(90deg, #141414, #333)",
-          }}
-        >
-          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {isMobile && (
-                <IconButton color="inherit" onClick={() => setMobileOpen(true)}>
-                  <MenuIcon />
-                </IconButton>
-              )}
-              <Typography variant="h6" noWrap component="div">
-                {`Admin Panel - ${sectionTitles[section]}`}
-              </Typography>
-            </Box>
-            <IconButton color="inherit" onClick={handleLogout}>
-              <LogoutIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-        <Drawer
-          variant={isMobile ? "temporary" : "permanent"}
-          open={isMobile ? mobileOpen : true}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            [`& .MuiDrawer-paper`]: {
-              ...glass,
-              width: drawerWidth,
-              boxSizing: "border-box",
-              color: "var(--white)",
-              borderRadius: "0 12px 12px 0",
-              backgroundImage: "linear-gradient(180deg, #1c1c1c, #2a2a2a)",
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }} className="container">
-          <Toolbar />
-          {section === "bookings" && (
-            <Paper
-              sx={{
-                ...glass,
-                p: 3,
-                mb: 4,
-                boxShadow: 4,
-                borderRadius: 2,
-                overflowX: "auto",
-              }}
-            >
-              <Typography variant="h5" gutterBottom>
-                Prenotazioni
-              </Typography>
-              <Box sx={{ overflowX: "auto" }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nome</TableCell>
-                      <TableCell>Cognome</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Telefono</TableCell>
-                      <TableCell>Biglietti</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {bookings.map((b) => (
-                      <TableRow key={b.id}>
-                        <TableCell>{b.nome}</TableCell>
-                        <TableCell>{b.cognome}</TableCell>
-                        <TableCell>{b.email}</TableCell>
-                        <TableCell>{b.telefono}</TableCell>
-                        <TableCell>{b.quantity || 1}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Paper>
-          )}
-          {section === "events" && (
-            <Paper
-              sx={{
-                ...glass,
-                p: 3,
-                mb: 4,
-                boxShadow: 4,
-                borderRadius: 2,
-                overflowX: "auto",
-              }}
-            >
-              <Typography variant="h5" gutterBottom>
-                Eventi
-              </Typography>
-              <Box sx={{ overflowX: "auto" }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nome</TableCell>
-                      <TableCell>DJ</TableCell>
-                      <TableCell>Luogo</TableCell>
-                      <TableCell>Data</TableCell>
-                      <TableCell>Orario</TableCell>
-                      <TableCell>Capienza</TableCell>
-                      <TableCell>Sold Out</TableCell>
-                      <TableCell>Azioni</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {events.map((ev) => (
-                      <TableRow key={ev.id}>
-                        <TableCell>{ev.name}</TableCell>
-                        <TableCell>{ev.dj}</TableCell>
-                        <TableCell>{ev.place}</TableCell>
-                        <TableCell>{ev.date}</TableCell>
-                        <TableCell>{ev.time}</TableCell>
-                        <TableCell>{ev.capacity || "-"}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={!!ev.soldOut}
-                            onChange={(e) =>
-                              handleToggleSoldOut(ev.id, e.target.checked)
-                            }
-                            color="warning"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="small"
-                            onClick={() => handleEdit(ev)}
-                            sx={{ mr: 1 }}
-                            color="primary"
-                          >
-                            Modifica
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setConfirm({
-                                open: true,
-                                id: ev.id,
-                                type: "event",
-                              })
-                            }
-                          >
-                            <DeleteIcon />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Paper>
-          )}
-          {section === "create" && (
-            <Paper
-              sx={{
-                ...glass,
-                p: 3,
-                mb: 4,
-                boxShadow: 4,
-                borderRadius: 2,
-                maxWidth: 600,
-                mx: "auto",
-              }}
-            >
-              <Grid
-                container
-                direction="column"
-                component="form"
-                onSubmit={handleSubmit}
-                spacing={2}
-              >
-                <Grid item xs={12}>
-                  <Typography variant="h5" gutterBottom>
-                    {editingId ? "Modifica Evento" : "Crea Evento"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="name"
-                    label="Nome Evento"
-                    variant="outlined"
-                    value={formData.name}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="dj"
-                    label="DJ"
-                    variant="outlined"
-                    value={formData.dj}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    type="date"
-                    name="date"
-                    label="Data"
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    value={formData.date}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Autocomplete
-                    freeSolo
-                    options={placeOptions}
-                    inputValue={formData.place}
-                    onInputChange={(e, value) =>
-                      setFormData({ ...formData, place: value })
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Luogo"
-                        variant="outlined"
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }}>
+                    <TextField
+                        size="small"
                         fullWidth
-                      />
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    type="time"
-                    name="time"
-                    label="Orario"
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    value={formData.time}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="price"
-                    label="Prezzo"
-                    variant="outlined"
-                    value={formData.price}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="capacity"
-                    label="Capienza"
-                    variant="outlined"
-                    value={formData.capacity}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography
-                    component="div"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    Sold Out
-                    <Switch
-                      checked={formData.soldOut}
-                      onChange={(e) =>
-                        setFormData({ ...formData, soldOut: e.target.checked })
-                      }
-                      color="warning"
-                      sx={{ ml: 1 }}
+                        placeholder="Filtra per nome…"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
                     />
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    onClick={pickEventImageFromDrive}
-                    variant="outlined"
-                    startIcon={<AddToDriveIcon />}
-                    sx={{
-                      color: "var(--yellow)",
-                      borderColor: "var(--yellow)",
-                    }}
-                  >
-                    Scegli da Drive
-                  </Button>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="description"
-                    label="Descrizione"
-                    variant="outlined"
-                    value={formData.description}
-                    onChange={handleChange}
-                    fullWidth
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth={isMobile}
-                    sx={{
-                      backgroundColor: "var(--red)",
-                      "&:hover": { backgroundColor: "#c62828" },
-                    }}
-                  >
-                    {editingId ? "Salva" : "Crea"}
-                  </Button>
-                  {editingId && (
                     <Button
-                      onClick={() => {
-                        setEditingId(null);
-                        setFormData({
-                          name: "",
-                          dj: "",
-                          date: "",
-                          place: "",
-                          time: "",
-                          price: "",
-                          capacity: "",
-                          image: "",
-                          description: "",
-                          soldOut: false,
-                        });
-                      }}
-                      variant="text"
-                      sx={{ ml: 2, color: "var(--yellow)" }}
+                        onClick={load}
+                        variant="outlined"
+                        sx={{ color: "#FFD54F", borderColor: "#FFD54F" }}
                     >
-                      Annulla
+                        Ricarica
                     </Button>
-                  )}
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
-          {section === "gallery" && (
-            <Paper
-              sx={{
-                ...glass,
-                p: 3,
-                mb: 4,
-                boxShadow: 4,
-                borderRadius: 2,
-                maxWidth: isMobile ? "100%" : 400,
-                mx: "auto",
-              }}
-            >
-              <Grid
-                container
-                direction="column"
-                component="form"
-                onSubmit={handleGallerySubmit}
-                spacing={2}
-              >
-                <Grid item xs={12}>
-                  <Typography variant="h5" gutterBottom>
-                    Gallery
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="outlined"
-                    onClick={pickFromDrive}
-                    fullWidth
-                    startIcon={<AddToDriveIcon />}
-                    sx={{
-                      color: "var(--yellow)",
-                      borderColor: "var(--yellow)",
-                    }}
-                  >
-                    Scegli da Drive
-                  </Button>
-                </Grid>
-                {driveFolderLink && (
-                  <Grid item xs={12}>
-                    <Button
-                      variant="text"
-                      component="a"
-                      href={driveFolderLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      startIcon={<AddToDriveIcon />}
-                      fullWidth
-                      sx={{ color: "var(--yellow)" }}
-                    >
-                      Apri archivio Drive
-                    </Button>
-                  </Grid>
-                )}
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    sx={{
-                      backgroundColor: "var(--red)",
-                      "&:hover": { backgroundColor: "#c62828" },
-                    }}
-                  >
-                    Aggiungi
-                  </Button>
-                </Grid>
-                <Grid item xs={12}>
-                  <Grid container spacing={1}>
-                    {gallery.map((img) => (
-                      <Grid
-                        item
-                        key={img.id}
-                        xs={4}
-                        sm={3}
-                        md={2}
-                        sx={{ position: "relative" }}
-                      >
-                        <img
-                          src={img.src}
-                          alt="gallery"
-                          style={{
-                            width: "100%",
-                            height: 100,
-                            objectFit: "cover",
-                          }}
-                        />
-                        <IconButton
-                          size="small"
-                          color="error"
-                          sx={{ position: "absolute", top: 0, right: 0 }}
-                          onClick={() =>
-                            setConfirm({
-                              open: true,
-                              id: img.id,
-                              type: "image",
-                            })
-                          }
+                    {driveFolderLink && (
+                        <Button
+                            variant="text"
+                            endIcon={<OpenInNewIcon />}
+                            onClick={() =>
+                                window.open(driveFolderLink, "_blank", "noopener,noreferrer")
+                            }
+                            sx={{ color: "#FFD54F" }}
                         >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
-        </Box>
-      </Box>
-      <ConfirmDialog
-        open={confirm.open}
-        title="Conferma"
-        message="Eliminare definitivamente?"
-        onConfirm={() => {
-          const id = confirm.id;
-          setConfirm({ open: false, id: null, type: "" });
-          if (confirm.type === "event") handleDelete(id);
-          if (confirm.type === "image") handleDeleteImage(id);
-        }}
-        onClose={() => setConfirm({ open: false, id: null, type: "" })}
-      />
-    </MuiThemeProvider>
-  );
+                            Apri cartella
+                        </Button>
+                    )}
+                </Stack>
+
+                {!!error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
+                {loading && (
+                    <Grid container spacing={1}>
+                        {Array.from({ length: 12 }).map((_, i) => (
+                            <Grid item xs={6} sm={4} md={3} key={i}>
+                                <Skeleton variant="rectangular" height={120} />
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
+
+                {!loading && !error && (
+                    <Grid container spacing={1}>
+                        {filtered.map((img) => {
+                            const cdnThumb = `https://lh3.googleusercontent.com/d/${img.id}=w320`;
+                            const fallback = `https://www.googleapis.com/drive/v3/files/${img.id}?alt=media&key=${encodeURIComponent(apiKey)}`;
+                            return (
+                                <Grid item xs={6} sm={4} md={3} key={img.id}>
+                                    <Box
+                                        role="button"
+                                        onClick={() => {
+                                            onPick(`https://lh3.googleusercontent.com/d/${img.id}=w1600`);
+                                            onClose();
+                                        }}
+                                        sx={{
+                                            position: "relative",
+                                            width: "100%",
+                                            pt: "70%",
+                                            overflow: "hidden",
+                                            borderRadius: 1,
+                                            border: "1px solid rgba(255,255,255,0.08)",
+                                            cursor: "pointer",
+                                            "&:hover": { outline: "2px solid #FFD54F" },
+                                        }}
+                                    >
+                                        <img
+                                            src={cdnThumb}
+                                            alt={img.name}
+                                            loading="lazy"
+                                            decoding="async"
+                                            onError={(e) => (e.currentTarget.src = fallback)}
+                                            style={{
+                                                position: "absolute",
+                                                inset: 0,
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "cover",
+                                                background: "#111",
+                                            }}
+                                        />
+                                    </Box>
+                                </Grid>
+                            );
+                        })}
+                        {!filtered.length && (
+                            <Grid item xs={12}>
+                                <Box sx={{ p: 3, textAlign: "center", opacity: 0.7 }}>
+                                    Nessuna immagine trovata.
+                                </Box>
+                            </Grid>
+                        )}
+                    </Grid>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/* ───────────────────────────── ADMIN PANEL ───────────────────────────── */
+const AdminPanel = () => {
+    const navigate = useNavigate();
+    const { showToast } = useToast();
+    const mui = useTheme();
+    const isMobile = useMediaQuery(mui.breakpoints.down("md"));
+
+    const [section, setSection] = useState("create");
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
+
+    const [bookings, setBookings] = useState([]);
+    const [events, setEvents] = useState([]);
+
+    // form
+    const [formData, setFormData] = useState({
+        name: "", dj: "", date: "", time: "", price: "", capacity: "",
+        description: "", soldOut: false, image: "", place: "", placeCoords: null,
+    });
+    const [errors, setErrors] = useState({});
+    const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const fileInputRef = useRef(null);
+    const [driveDialogOpen, setDriveDialogOpen] = useState(false);
+
+    // place autocomplete
+    const [placeSelected, setPlaceSelected] = useState(null);
+    const [placeInput, setPlaceInput] = useState("");
+
+    // drive link in header
+    const driveFolderId = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
+    const driveFolderLinkEnv = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER;
+    const driveFolderLink = driveFolderLinkEnv?.startsWith("http")
+        ? driveFolderLinkEnv
+        : driveFolderId
+            ? `https://drive.google.com/drive/folders/${driveFolderId}`
+            : "";
+
+    /* bootstrap */
+    useEffect(() => {
+        const t = localStorage.getItem("adminToken");
+        if (t) setAuthToken(t);
+        if (localStorage.getItem("isAdmin") !== "true") {
+            navigate("/admin");
+            return;
+        }
+        (async () => {
+            try {
+                const [b, e] = await Promise.all([fetchBookings(), fetchEvents()]);
+                setBookings(b || []);
+                setEvents(e || []);
+            } catch (err) {
+                if (err?.response?.status === 401) {
+                    setAuthToken(null);
+                    localStorage.removeItem("isAdmin");
+                    navigate("/admin");
+                }
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [navigate]);
+
+    /* header actions */
+    const handleLogout = async () => {
+        try { await signOut(auth); } catch {}
+        setAuthToken(null);
+        localStorage.removeItem("isAdmin");
+        localStorage.removeItem("adminToken");
+        navigate("/admin");
+    };
+
+    /* form helpers */
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const onPickFromDevice = () => fileInputRef.current?.click();
+    const onDeviceFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => setFormData((f) => ({ ...f, image: reader.result || "" }));
+        reader.readAsDataURL(file);
+    };
+    const validate = () => {
+        const e = {};
+        if (!formData.name?.trim()) e.name = "Inserisci un nome";
+        if (!formData.date || formData.date < todayISO()) e.date = "Scegli una data futura";
+        if (!formData.time) e.time = "Inserisci un orario";
+        if (!placeSelected) e.place = "Seleziona un luogo dall'elenco";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+    const resetForm = () => {
+        setFormData({
+            name: "", dj: "", date: "", time: "", price: "", capacity: "",
+            description: "", soldOut: false, image: "", place: "", placeCoords: null,
+        });
+        setErrors({});
+        setEditingId(null);
+        setPlaceSelected(null);
+        setPlaceInput("");
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+        setSaving(true);
+        try {
+            const payload = {
+                ...formData,
+                image: formData.image || heroImg,
+                place: placeSelected?.label || "",
+                placeCoords: placeSelected?.lat ? { lat: placeSelected.lat, lon: placeSelected.lon } : null,
+            };
+            if (editingId) {
+                await updateEvent(editingId, payload);
+                showToast("Evento aggiornato", "success");
+            } else {
+                await createEvent(payload);
+                showToast("Evento creato", "success");
+            }
+            const list = await fetchEvents();
+            setEvents(list || []);
+            setSection("events");
+            resetForm();
+        } catch (err) {
+            if (err?.response?.status === 401) {
+                setAuthToken(null);
+                localStorage.removeItem("isAdmin");
+                navigate("/admin");
+            } else {
+                showToast("Errore nel salvataggio", "error");
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleEdit = (ev) => {
+        setFormData({
+            name: ev.name || "", dj: ev.dj || "", date: ev.date || "", time: ev.time || "",
+            price: ev.price || "", capacity: ev.capacity || "", description: ev.description || "",
+            soldOut: !!ev.soldOut, image: ev.image || "", place: ev.place || "", placeCoords: ev.placeCoords || null,
+        });
+        if (ev.place) {
+            setPlaceSelected({ label: ev.place, ...(ev.placeCoords || {}) });
+            setPlaceInput(ev.place);
+        } else { setPlaceSelected(null); setPlaceInput(""); }
+        setEditingId(ev.id);
+        setSection("create");
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await deleteEvent(id);
+            setEvents((prev) => prev.filter((ev) => ev.id !== id));
+            showToast("Evento eliminato", "success");
+        } catch { showToast("Errore", "error"); }
+    };
+
+    /* eventi: filtro+ordine */
+    const [evQuery, setEvQuery] = useState("");
+    const [evSort, setEvSort] = useState("date-desc");
+    const eventsView = useMemo(() => {
+        const q = evQuery.trim().toLowerCase();
+        let list = [...events];
+        if (q) {
+            list = list.filter((ev) =>
+                [ev.name, ev.dj, ev.place].filter(Boolean).some((s) => s.toLowerCase().includes(q))
+            );
+        }
+        const [key, dir] = evSort.split("-");
+        list.sort((a, b) => {
+            let va, vb;
+            if (key === "date") {
+                va = eventDateTime(a)?.getTime() || 0;
+                vb = eventDateTime(b)?.getTime() || 0;
+            } else {
+                va = (a[key] || "").toString().toLowerCase();
+                vb = (b[key] || "").toString().toLowerCase();
+            }
+            return dir === "asc" ? va - vb : vb - va;
+        });
+        return list;
+    }, [events, evQuery, evSort]);
+
+    /* drawer */
+    const nav = [
+        { key: "create", label: "Crea/Modifica", icon: <AddCircleOutlineIcon /> },
+        { key: "events", label: "Eventi", icon: <CalendarIcon /> },
+        { key: "bookings", label: "Prenotazioni", icon: <ListAltIcon /> },
+        { key: "gallery", label: "Gallery", icon: <PhotoLibraryIcon /> },
+    ];
+
+    const drawer = (
+        <div>
+            <Toolbar />
+            <Divider />
+            <List>
+                {nav.map((item) => (
+                    <ListItem disablePadding key={item.key}>
+                        <ListItemButton
+                            onClick={() => { setSection(item.key); setMobileOpen(false); }}
+                            selected={section === item.key}
+                            sx={{
+                                borderRadius: 1,
+                                "&.Mui-selected": {
+                                    backgroundColor: "rgba(255,255,255,0.08)",
+                                    "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" },
+                                },
+                            }}
+                        >
+                            <ListItemIcon>{item.icon}</ListItemIcon>
+                            <ListItemText primary={item.label} />
+                        </ListItemButton>
+                    </ListItem>
+                ))}
+            </List>
+        </div>
+    );
+
+    return (
+        <MuiThemeProvider theme={appTheme}>
+            <Box sx={{ display: "flex" }}>
+                <CssBaseline />
+
+                {/* HEADER */}
+                <AppBar
+                    position="fixed"
+                    sx={{
+                        ...glass,
+                        zIndex: (t) => t.zIndex.drawer + 1,
+                        color: "#FFD54F",
+                        background: "linear-gradient(90deg, #0b0b0d 0%, #171722 100%)",
+                        borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                >
+                    <Toolbar sx={{ gap: 1, justifyContent: "space-between" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {isMobile && (
+                                <IconButton color="inherit" onClick={() => setMobileOpen(true)} aria-label="Apri menu">
+                                    <MenuIcon />
+                                </IconButton>
+                            )}
+                            <Typography variant="h6" noWrap>Admin</Typography>
+                        </Box>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Tooltip title="Apri cartella Drive">
+                <span>
+                  <IconButton
+                      color="inherit"
+                      onClick={() => driveFolderLink && window.open(driveFolderLink, "_blank", "noopener,noreferrer")}
+                      disabled={!driveFolderLink}
+                      aria-label="Drive"
+                  >
+                    <AddToDriveIcon />
+                  </IconButton>
+                </span>
+                            </Tooltip>
+                            <Divider orientation="vertical" flexItem sx={{ mx: 1, opacity: 0.2 }} />
+                            <Tooltip title="Logout">
+                                <IconButton color="inherit" onClick={handleLogout} aria-label="Logout">
+                                    <LogoutIcon />
+                                </IconButton>
+                            </Tooltip>
+                        </Stack>
+                    </Toolbar>
+                </AppBar>
+
+                {/* DRAWER */}
+                <Drawer
+                    variant={isMobile ? "temporary" : "permanent"}
+                    open={isMobile ? mobileOpen : true}
+                    onClose={() => setMobileOpen(false)}
+                    ModalProps={{ keepMounted: true }}
+                    sx={{
+                        width: drawerWidth,
+                        flexShrink: 0,
+                        [`& .MuiDrawer-paper`]: {
+                            ...glass,
+                            width: drawerWidth,
+                            boxSizing: "border-box",
+                            borderRadius: "0 12px 12px 0",
+                            backgroundImage: "linear-gradient(180deg, #121218, #171722)",
+                        },
+                    }}
+                >
+                    {drawer}
+                </Drawer>
+
+                {/* MAIN */}
+                <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+                    <Toolbar />
+
+                    {/* FORM EVENTO */}
+                    {section === "create" && (
+                        <Paper sx={{ ...glass, p: { xs: 2, sm: 3 }, mb: 4, borderRadius: 3, maxWidth: 1100, mx: "auto" }}>
+                            {/* titolo centrato */}
+                            <Typography variant="h5" sx={{ textAlign: "center", mb: 2 }}>
+                                {editingId ? "Modifica evento" : "Crea nuovo evento"}
+                            </Typography>
+
+                            {/* Cover */}
+                            <Paper
+                                variant="outlined"
+                                sx={{
+                                    p: 2, mb: 3, borderRadius: 2,
+                                    borderColor: "rgba(255,255,255,0.1)",
+                                    display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap",
+                                    justifyContent: { xs: "center", md: "flex-start" },
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        width: { xs: "100%", sm: 320 }, height: { xs: 180, sm: 160 },
+                                        borderRadius: 2, overflow: "hidden", bgcolor: "#0f0f12",
+                                        border: "1px solid rgba(255,255,255,0.08)",
+                                    }}
+                                >
+                                    <img
+                                        src={formData.image || heroImg}
+                                        alt="Anteprima evento"
+                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    />
+                                </Box>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Tooltip title="Scegli da Drive">
+                                        <IconButton
+                                            onClick={() => setDriveDialogOpen(true)}
+                                            aria-label="Scegli da Drive"
+                                            sx={{ color: "#FFD54F", border: "1px solid rgba(255,255,255,0.14)" }}
+                                        >
+                                            <AddToDriveIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Carica da dispositivo">
+                                        <IconButton
+                                            onClick={onPickFromDevice}
+                                            aria-label="Carica da dispositivo"
+                                            sx={{ color: "#FFD54F", border: "1px solid rgba(255,255,255,0.14)" }}
+                                        >
+                                            <CloudUploadIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: "none" }}
+                                        onChange={onDeviceFileChange}
+                                    />
+                                    {formData.image && (
+                                        <Tooltip title="Rimuovi immagine">
+                                            <IconButton
+                                                onClick={() => setFormData((f) => ({ ...f, image: "" }))}
+                                                aria-label="Rimuovi immagine"
+                                                sx={{ color: "#FFD54F", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
+                                                <ClearIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Stack>
+                            </Paper>
+
+                            {/* Grid: 1 col mobile / 2 col desktop */}
+                            <Grid container spacing={2} component="form" onSubmit={handleSubmit}>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        name="name" label="Nome evento" value={formData.name} onChange={handleChange}
+                                        fullWidth required error={!!errors.name} helperText={errors.name} sx={{ mb: 2 }}
+                                        InputProps={{ startAdornment: <InputAdornment position="start"><CelebrationIcon fontSize="small" /></InputAdornment> }}
+                                    />
+                                    <TextField
+                                        name="dj" label="DJ" value={formData.dj} onChange={handleChange} fullWidth sx={{ mb: 2 }}
+                                        InputProps={{ startAdornment: <InputAdornment position="start"><MusicNoteIcon fontSize="small" /></InputAdornment> }}
+                                    />
+                                    <TextField
+                                        name="price" label="Prezzo" value={formData.price} onChange={handleChange} fullWidth sx={{ mb: 2 }}
+                                        InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
+                                    />
+                                    <TextField
+                                        name="capacity" label="Capienza" value={formData.capacity} onChange={handleChange} fullWidth
+                                        InputProps={{ startAdornment: <InputAdornment position="start"><GroupIcon fontSize="small" /></InputAdornment> }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} md={6}>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                type="date" name="date" label="Data" InputLabelProps={{ shrink: true }} inputProps={{ min: todayISO() }}
+                                                value={formData.date} onChange={handleChange} required fullWidth
+                                                error={!!errors.date} helperText={errors.date}
+                                                InputProps={{ startAdornment: <InputAdornment position="start"><CalendarIcon fontSize="small" /></InputAdornment> }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                type="time" name="time" label="Orario" InputLabelProps={{ shrink: true }}
+                                                value={formData.time} onChange={handleChange} required fullWidth
+                                                error={!!errors.time} helperText={errors.time}
+                                                InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" /></InputAdornment> }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <PlaceAutocomplete
+                                                value={placeSelected}
+                                                onChange={(val) => {
+                                                    setPlaceSelected(val);
+                                                    setFormData((f) => ({
+                                                        ...f,
+                                                        place: val?.label || "",
+                                                        placeCoords: val ? { lat: val.lat ?? null, lon: val.lon ?? null } : null,
+                                                    }));
+                                                }}
+                                                inputValue={placeInput}
+                                                onInputChange={(v) => setPlaceInput(v)}
+                                                error={!!errors.place}
+                                                helperText={errors.place}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+
+                                {/* Descrizione: sezione dedicata full width */}
+                                <Grid item xs={12}>
+                                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: "rgba(255,255,255,0.1)" }}>
+                                        <TextField
+                                            name="description" label="Descrizione" value={formData.description} onChange={handleChange}
+                                            fullWidth multiline minRows={6}
+                                        />
+                                    </Paper>
+                                </Grid>
+
+                                {/* Sold out + azioni */}
+                                <Grid item xs={12} md={6}>
+                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ height: "100%" }}>
+                                        <Typography variant="body2">Sold Out</Typography>
+                                        <Switch
+                                            checked={formData.soldOut}
+                                            onChange={(e) => setFormData((f) => ({ ...f, soldOut: e.target.checked }))}
+                                            color="warning"
+                                        />
+                                    </Stack>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent={{ md: "flex-end" }}>
+                                        <Button
+                                            type="submit" variant="contained" color="primary"
+                                            fullWidth={isMobile} sx={{ py: 1.2 }} disabled={saving}
+                                        >
+                                            {saving ? "Salvo..." : editingId ? "Salva modifiche" : "Crea evento"}
+                                        </Button>
+                                        <Button variant="text" fullWidth={isMobile} onClick={resetForm} sx={{ color: "#FFD54F", py: 1.2 }}>
+                                            Annulla
+                                        </Button>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    )}
+
+                    {/* EVENTI */}
+                    {section === "events" && (
+                        <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 3 }}>
+                            <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                spacing={1.5}
+                                alignItems={{ xs: "stretch", md: "center" }}
+                                justifyContent="space-between"
+                                sx={{ mb: 2 }}
+                            >
+                                <TextField
+                                    size="small"
+                                    placeholder="Cerca nome / DJ / luogo"
+                                    value={evQuery}
+                                    onChange={(e) => setEvQuery(e.target.value)}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    fullWidth={isMobile}
+                                    sx={{ minWidth: 260 }}
+                                />
+                                <FormControl size="small">
+                                    <Select
+                                        value={evSort}
+                                        onChange={(e) => setEvSort(e.target.value)}
+                                        startAdornment={
+                                            <InputAdornment position="start">
+                                                <SortIcon fontSize="small" />
+                                            </InputAdornment>
+                                        }
+                                    >
+                                        <MenuItem value="date-desc">Data ↓</MenuItem>
+                                        <MenuItem value="date-asc">Data ↑</MenuItem>
+                                        <MenuItem value="name-asc">Nome A→Z</MenuItem>
+                                        <MenuItem value="name-desc">Nome Z→A</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <Chip size="small" label={`Totale: ${eventsView.length}`} />
+                            </Stack>
+
+                            <TableContainer>
+                                <Table size="small" stickyHeader>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Nome</TableCell>
+                                            <TableCell>DJ</TableCell>
+                                            <TableCell>Luogo</TableCell>
+                                            <TableCell>Data</TableCell>
+                                            <TableCell>Ora</TableCell>
+                                            <TableCell>Capienza</TableCell>
+                                            <TableCell>Sold Out</TableCell>
+                                            <TableCell align="right">Azioni</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {eventsView.map((ev) => {
+                                            const past = isPast(ev);
+                                            return (
+                                                <TableRow key={ev.id} hover sx={past ? { opacity: 0.55 } : {}}>
+                                                    <TableCell>{ev.name}</TableCell>
+                                                    <TableCell>{ev.dj || "—"}</TableCell>
+                                                    <TableCell>{ev.place || "—"}</TableCell>
+                                                    <TableCell>{ev.date}</TableCell>
+                                                    <TableCell>{ev.time}</TableCell>
+                                                    <TableCell>{ev.capacity || "-"}</TableCell>
+                                                    <TableCell>
+                                                        <Switch
+                                                            checked={!!ev.soldOut}
+                                                            onChange={(e) => !past && updateEvent(ev.id, { soldOut: e.target.checked }).then(() => {
+                                                                setEvents((prev) =>
+                                                                    prev.map((x) => (x.id === ev.id ? { ...x, soldOut: e.target.checked } : x))
+                                                                );
+                                                            })}
+                                                            color="warning"
+                                                            disabled={past}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                              <span>
+                                <Button
+                                    size="small"
+                                    startIcon={<EditIcon />}
+                                    onClick={() => handleEdit(ev)}
+                                    disabled={past}
+                                >
+                                  Modifica
+                                </Button>
+                              </span>
+                                                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => setConfirm({ open: true, id: ev.id, type: "event" })}
+                                    disabled={past}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                                                        </Stack>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                        {!eventsView.length && (
+                                            <TableRow>
+                                                <TableCell colSpan={8} align="center" sx={{ py: 4, opacity: 0.7 }}>
+                                                    Nessun evento.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Paper>
+                    )}
+
+                    {/* PRENOTAZIONI */}
+                    {section === "bookings" && (
+                        <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 3 }}>
+                            <TableContainer sx={{ maxHeight: 520 }}>
+                                <Table size="small" stickyHeader>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Nome</TableCell>
+                                            <TableCell>Cognome</TableCell>
+                                            <TableCell>Email</TableCell>
+                                            <TableCell>Telefono</TableCell>
+                                            <TableCell>Biglietti</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {bookings.map((b) => (
+                                            <TableRow key={b.id} hover>
+                                                <TableCell>{b.nome}</TableCell>
+                                                <TableCell>{b.cognome}</TableCell>
+                                                <TableCell>{b.email}</TableCell>
+                                                <TableCell>{b.telefono}</TableCell>
+                                                <TableCell>{b.quantity || 1}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {!bookings.length && (
+                                            <TableRow>
+                                                <TableCell colSpan={5} align="center" sx={{ py: 4, opacity: 0.7 }}>
+                                                    Nessuna prenotazione.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Paper>
+                    )}
+
+                    {/* GALLERY (link a Drive) */}
+                    {section === "gallery" && (
+                        <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 3, maxWidth: 520, mx: "auto", textAlign: "center" }}>
+                            <Typography variant="h5" gutterBottom>Gallery</Typography>
+                            <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
+                                Le immagini della Home sono lette dalla cartella Drive pubblica.
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                startIcon={<AddToDriveIcon />}
+                                onClick={() => driveFolderLink && window.open(driveFolderLink, "_blank", "noopener,noreferrer")}
+                                sx={{ color: "#FFD54F", borderColor: "#FFD54F" }}
+                                disabled={!driveFolderLink}
+                            >
+                                Apri cartella Drive
+                            </Button>
+                        </Paper>
+                    )}
+                </Box>
+            </Box>
+
+            {/* Conferma eliminazione */}
+            <ConfirmDialog
+                open={confirm.open}
+                title="Conferma"
+                message="Eliminare definitivamente?"
+                onConfirm={() => {
+                    const id = confirm.id;
+                    setConfirm({ open: false, id: null, type: "" });
+                    if (confirm.type === "event") handleDelete(id);
+                }}
+                onClose={() => setConfirm({ open: false, id: null, type: "" })}
+            />
+
+            {/* Dialog Drive */}
+            <DriveImagePickerDialog
+                open={driveDialogOpen}
+                onClose={() => setDriveDialogOpen(false)}
+                onPick={(src) => setFormData((f) => ({ ...f, image: src }))}
+            />
+        </MuiThemeProvider>
+    );
 };
 
 export default AdminPanel;

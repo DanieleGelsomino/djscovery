@@ -2,10 +2,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { listImagesInFolder } from "../lib/driveGallery";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules"; // ⬅️ niente Navigation
+import { Autoplay } from "swiper/modules";
 
 import "swiper/css";
-import "swiper/css/pagination"; // ⬅️ niente navigation css
 
 const widths = [480, 768, 1024, 1600];
 
@@ -48,7 +47,8 @@ const HomeGallerySlider = ({
         let alive = true;
         (async () => {
             try {
-                if (!FOLDER_ID || !API_KEY) throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
+                if (!FOLDER_ID || !API_KEY)
+                    throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
                 const items = await listImagesInFolder(FOLDER_ID, {
                     apiKey: API_KEY,
                     includeSharedDrives,
@@ -62,7 +62,9 @@ const HomeGallerySlider = ({
                 if (alive) setLoading(false);
             }
         })();
-        return () => { alive = false; };
+        return () => {
+            alive = false;
+        };
     }, [FOLDER_ID, API_KEY, includeSharedDrives]);
 
     if (loading) return <div>Carico gallery…</div>;
@@ -72,18 +74,18 @@ const HomeGallerySlider = ({
     return (
         <div className={className}>
             <Swiper
-                modules={[Autoplay, Pagination]}
+                modules={[Autoplay]}
                 slidesPerView={slidesPerView}
                 spaceBetween={spaceBetween}
                 breakpoints={breakpoints}
                 loop={loop}
                 autoplay={{ delay: autoplayMs, disableOnInteraction: false }}
-                pagination={{ clickable: true }}
-                // ⬇️ niente borderRadius e niente navigation
                 style={{ width: "100%", overflow: "hidden" }}
             >
                 {imgs.map((img) => {
-                    const cdnSet = widths.map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`).join(", ");
+                    const cdnSet = widths
+                        .map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`)
+                        .join(", ");
                     const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
 
                     return (
@@ -93,7 +95,7 @@ const HomeGallerySlider = ({
                                     style={{
                                         position: "relative",
                                         width: "100%",
-                                        paddingTop: "56.25%", // 16:9
+                                        paddingTop: "56.25%",
                                         background: "#111",
                                     }}
                                 >
