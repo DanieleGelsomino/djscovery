@@ -21,9 +21,10 @@ function loadScript(src) {
 }
 
 export async function initDriveClient() {
-    if (!API_KEY || !CLIENT_ID) throw new Error("Missing Google env vars");
+    if (!API_KEY) throw new Error("Missing Google API key");
     await loadScript(GAPI_SRC);
-    await loadScript(GIS_SRC);
+    // load GIS only if we'll need OAuth later
+    if (CLIENT_ID) await loadScript(GIS_SRC);
 
     if (!gapiLoaded) {
         await new Promise((res) => {
@@ -41,6 +42,8 @@ export async function initDriveClient() {
 }
 
 async function getAccessToken(prompt = "none") {
+    if (!CLIENT_ID) throw new Error("Missing Google client ID");
+    await loadScript(GIS_SRC);
     return new Promise((resolve, reject) => {
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
@@ -57,23 +60,33 @@ async function getAccessToken(prompt = "none") {
 /** Ritorna: [{id, name, src, createdTime}] dalla cartella */
 export async function listImagesInFolder(folderId, pageSize = 100) {
     await initDriveClient();
-    // token silenzioso -> se fallisce chiedi consenso
-    let token;
-    try {
-        token = await getAccessToken("none");
-    } catch {
-        token = await getAccessToken("consent");
-    }
-    gapi.client.setToken({ access_token: token });
 
-    const res = await gapi.client.drive.files.list({
+    const params = {
         q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
         orderBy: "createdTime desc",
         pageSize,
         fields: "files(id,name,createdTime)",
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
-    });
+    };
+
+    let res;
+    try {
+        res = await gapi.client.drive.files.list(params);
+    } catch (err) {
+        // If the folder is not publicly accessible try OAuth token
+        if (CLIENT_ID) {
+            try {
+                const token = await getAccessToken("none").catch(() => getAccessToken("consent"));
+                gapi.client.setToken({ access_token: token });
+                res = await gapi.client.drive.files.list(params);
+            } catch {
+                return [];
+            }
+        } else {
+            return [];
+        }
+    }
 
     const files = res?.result?.files || [];
     return files.map((f) => ({
