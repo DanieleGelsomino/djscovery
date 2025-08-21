@@ -52,6 +52,7 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
+    FormHelperText,
 } from "@mui/material";
 import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/styles";
 
@@ -145,9 +146,7 @@ const loadGooglePlaces = (() => {
         p = new Promise((resolve, reject) => {
             if (window.google?.maps?.places) return resolve(window.google.maps);
             const s = document.createElement("script");
-            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-                key
-            )}&libraries=places`;
+            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
             s.async = true;
             s.onerror = () => reject(new Error("Impossibile caricare Google Maps JS"));
             s.onload = () => resolve(window.google.maps);
@@ -165,14 +164,12 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
     const detailsRef = useRef(null);
     const abortRef = useRef(null);
 
-    // init services (try Google → fallback OSM)
     useEffect(() => {
         let alive = true;
         (async () => {
             try {
                 const maps = await loadGooglePlaces();
                 if (!alive) return;
-                // alcune configurazioni lanciano errori runtime se l'API non è abilitata
                 try {
                     serviceRef.current = new maps.places.AutocompleteService();
                     detailsRef.current = new maps.places.PlacesService(document.createElement("div"));
@@ -190,7 +187,6 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
         };
     }, []);
 
-    // predictions (google OR osm)
     useEffect(() => {
         const q = (inputValue || "").trim();
         if (!q) {
@@ -259,7 +255,6 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
                 onCoords?.(coords);
             });
         } else {
-            // OSM
             onChange(opt);
             onCoords?.(opt.lat && opt.lon ? { lat: opt.lat, lon: opt.lon } : null);
         }
@@ -770,6 +765,9 @@ const AdminPanel = () => {
         navigate("/admin");
     };
 
+    /* ---------- isValid per azioni sticky ---------- */
+    const isValid = useMemo(() => Boolean(formData.name && formData.date && formData.time), [formData]);
+
     return (
         <MuiThemeProvider theme={muiTheme}>
             <Box sx={{ display: "flex" }}>
@@ -1016,183 +1014,273 @@ const AdminPanel = () => {
                     {/* CREA / MODIFICA EVENTO */}
                     {section === "create" && (
                         <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 1200, mx: "auto" }}>
-                            <Typography variant="h5" sx={{ textAlign: { xs: "center", md: "left" }, mb: 2 }}>
+                            <Typography
+                                variant="h5"
+                                sx={{ textAlign: { xs: "center", md: "left" }, mb: 2, letterSpacing: 0.3 }}
+                            >
                                 {editingId ? "Modifica evento" : "Crea nuovo evento"}
                             </Typography>
 
-                            {/* Copertina */}
+                            {/* Copertina con overlay bottoni */}
                             <Paper
                                 variant="outlined"
                                 sx={{
-                                    p: 2, mb: 3, borderRadius: 2, borderColor: "rgba(255,255,255,0.1)",
-                                    display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap",
+                                    p: 2,
+                                    mb: 3,
+                                    borderRadius: 2,
+                                    borderColor: "rgba(255,255,255,0.1)",
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", sm: "auto 1fr" },
+                                    alignItems: "center",
+                                    gap: 2,
                                 }}
                             >
                                 <Box
                                     sx={{
-                                        width: { xs: "100%", sm: 280 }, height: { xs: 160, sm: 150 },
-                                        borderRadius: 2, overflow: "hidden", bgcolor: "#0f0f12",
-                                        border: "1px solid rgba(255,255,255,0.08)", flex: "0 0 auto",
+                                        width: { xs: "100%", sm: 320 },
+                                        height: { xs: 180, sm: 180 },
+                                        borderRadius: 2,
+                                        overflow: "hidden",
+                                        bgcolor: "#0f0f12",
+                                        border: "1px solid rgba(255,255,255,0.08)",
+                                        position: "relative",
                                     }}
                                 >
                                     <img
                                         src={formData.image || heroImg}
                                         alt="Anteprima evento"
-                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                                     />
-                                </Box>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Tooltip title="Scegli da Drive">
-                                        <IconButton
-                                            onClick={() => setDriveDialogOpen(true)}
-                                            aria-label="Scegli da Drive"
-                                            sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
-                                        >
-                                            <AddToDriveIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Carica da dispositivo">
-                                        <IconButton
-                                            onClick={onPickFromDevice}
-                                            aria-label="Carica da dispositivo"
-                                            sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
-                                        >
-                                            <CloudUploadIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onDeviceFileChange} />
-                                    {formData.image && (
-                                        <Tooltip title="Rimuovi immagine">
+                                    <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{
+                                            position: "absolute",
+                                            right: 8,
+                                            bottom: 8,
+                                            bgcolor: "rgba(0,0,0,0.45)",
+                                            p: 0.5,
+                                            borderRadius: 2,
+                                            backdropFilter: "blur(6px)",
+                                        }}
+                                    >
+                                        <Tooltip title="Scegli da Drive">
                                             <IconButton
-                                                onClick={() => setFormData((f) => ({ ...f, image: "" }))}
-                                                aria-label="Rimuovi immagine"
+                                                onClick={() => setDriveDialogOpen(true)}
+                                                aria-label="Scegli da Drive"
+                                                size="small"
                                                 sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
                                             >
-                                                <ClearIcon />
+                                                <AddToDriveIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                    )}
-                                </Stack>
+
+                                        <Tooltip title="Carica da dispositivo">
+                                            <IconButton
+                                                onClick={onPickFromDevice}
+                                                aria-label="Carica da dispositivo"
+                                                size="small"
+                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
+                                                <CloudUploadIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {formData.image && (
+                                            <Tooltip title="Rimuovi immagine">
+                                                <IconButton
+                                                    onClick={() => setFormData((f) => ({ ...f, image: "" }))}
+                                                    aria-label="Rimuovi immagine"
+                                                    size="small"
+                                                    sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                                >
+                                                    <ClearIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
+                                    </Stack>
+                                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onDeviceFileChange} />
+                                </Box>
+
+                                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                    Carica una copertina 16:9. Formati consigliati: JPG/WEBP, &lt; 1MB.
+                                </Typography>
                             </Paper>
 
                             {/* FORM GRID — Desktop 8/4, Mobile 1 colonna */}
-                            <Box component="form" onSubmit={handleSubmit}>
+                            <Box component="form" onSubmit={handleSubmit} noValidate>
                                 <Grid container spacing={2}>
-                                    {/* SINISTRA: Dettagli (md=8) */}
+                                    {/* SINISTRA (Dettagli + Descrizione & Stato) */}
                                     <Grid item xs={12} md={8}>
-                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                        {/* Dettagli */}
+                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
                                             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                 Dettagli
                                             </Typography>
-                                            <Stack spacing={1.5}>
-                                                <TextField
-                                                    name="name"
-                                                    label="Nome evento"
-                                                    value={formData.name}
-                                                    onChange={handleChange}
-                                                    fullWidth
-                                                    required
-                                                    error={!!errors.name}
-                                                    helperText={errors.name}
-                                                    InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
-                                                />
-                                                <TextField
-                                                    name="dj"
-                                                    label="DJ"
-                                                    value={formData.dj}
-                                                    onChange={handleChange}
-                                                    fullWidth
-                                                />
-                                                <Grid container spacing={1.5}>
-                                                    <Grid item xs={12} sm={6}>
-                                                        <TextField
-                                                            name="price"
-                                                            label="Prezzo"
-                                                            value={formData.price}
-                                                            onChange={handleChange}
-                                                            fullWidth
-                                                            InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
-                                                        />
-                                                    </Grid>
-                                                    <Grid item xs={12} sm={6}>
-                                                        <TextField
-                                                            name="capacity"
-                                                            label="Capienza"
-                                                            value={formData.capacity}
-                                                            onChange={handleChange}
-                                                            fullWidth
-                                                        />
-                                                    </Grid>
+
+                                            <Grid container spacing={1.5}>
+                                                <Grid item xs={12}>
+                                                    <TextField
+                                                        name="name"
+                                                        label="Nome evento"
+                                                        value={formData.name}
+                                                        onChange={handleChange}
+                                                        fullWidth
+                                                        required
+                                                        error={!!errors.name}
+                                                        helperText={errors.name}
+                                                        InputProps={{
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <ImageIcon fontSize="small" />
+                                                                </InputAdornment>
+                                                            ),
+                                                        }}
+                                                    />
                                                 </Grid>
-                                            </Stack>
+
+                                                <Grid item xs={12} md={6}>
+                                                    <TextField
+                                                        name="dj"
+                                                        label="DJ"
+                                                        value={formData.dj}
+                                                        onChange={handleChange}
+                                                        fullWidth
+                                                        InputProps={{
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    {/* musica */}
+                                                                    <ImageIcon fontSize="small" />
+                                                                </InputAdornment>
+                                                            ),
+                                                        }}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                    <TextField
+                                                        name="price"
+                                                        label="Prezzo"
+                                                        value={formData.soldOut ? "" : formData.price}
+                                                        onChange={handleChange}
+                                                        fullWidth
+                                                        disabled={formData.soldOut}
+                                                        inputMode="decimal"
+                                                        InputProps={{
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <EuroIcon fontSize="small" />
+                                                                </InputAdornment>
+                                                            ),
+                                                        }}
+                                                        helperText={formData.soldOut ? "Non richiesto se sold out" : ""}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                    <TextField
+                                                        name="capacity"
+                                                        label="Capienza"
+                                                        value={formData.capacity}
+                                                        onChange={handleChange}
+                                                        fullWidth
+                                                        inputMode="numeric"
+                                                    />
+                                                </Grid>
+                                            </Grid>
                                         </Paper>
 
-                                        {/* Descrizione FULL WIDTH grande */}
-                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2 }}>
-                                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
-                                                Descrizione
-                                            </Typography>
-                                            <TextField
-                                                name="description"
-                                                value={formData.description}
-                                                onChange={handleChange}
-                                                fullWidth
-                                                multiline
-                                                minRows={isMobile ? 10 : 12}
-                                                placeholder="Dettagli, note, info utili…"
-                                                helperText={`${formData.description?.length || 0} caratteri`}
-                                            />
+                                        {/* Descrizione & Stato */}
+                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                            <Grid container spacing={2} alignItems="flex-start">
+                                                <Grid item xs={12} md={8}>
+                                                    <TextField
+                                                        name="description"
+                                                        label="Descrizione"
+                                                        value={formData.description}
+                                                        onChange={handleChange}
+                                                        fullWidth
+                                                        multiline
+                                                        minRows={6}
+                                                        placeholder="Line-up, dress code, guestlist…"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} md={4}>
+                                                    <Stack spacing={1.5} sx={{ pt: { md: 0.5 } }}>
+                                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                                            <Typography variant="body2">Sold out</Typography>
+                                                            <Switch
+                                                                checked={formData.soldOut}
+                                                                onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))}
+                                                                color="warning"
+                                                            />
+                                                        </Stack>
+                                                        <FormHelperText>Se attivo, il campo prezzo viene disabilitato.</FormHelperText>
+                                                    </Stack>
+                                                </Grid>
+                                            </Grid>
                                         </Paper>
                                     </Grid>
 
-                                    {/* DESTRA: Programmazione + Luogo (md=4) */}
+                                    {/* DESTRA (Programmazione + Luogo) */}
                                     <Grid item xs={12} md={4}>
-                                        <Stack spacing={2}>
+                                        <Stack spacing={2} sx={{ position: { md: "sticky" }, top: { md: 16 } }}>
+                                            {/* Programmazione */}
                                             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Programmazione
                                                 </Typography>
-                                                <Stack spacing={1.5}>
-                                                    <TextField
-                                                        type="date"
-                                                        name="date"
-                                                        label="Data"
-                                                        InputLabelProps={{ shrink: true }}
-                                                        inputProps={{ min: todayISO() }}
-                                                        value={formData.date}
-                                                        onChange={handleChange}
-                                                        required
-                                                        error={!!errors.date}
-                                                        helperText={errors.date}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment> }}
-                                                    />
-                                                    <TextField
-                                                        type="time"
-                                                        name="time"
-                                                        label="Orario"
-                                                        InputLabelProps={{ shrink: true }}
-                                                        value={formData.time}
-                                                        onChange={handleChange}
-                                                        required
-                                                        error={!!errors.time}
-                                                        helperText={errors.time}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" /></InputAdornment> }}
-                                                    />
-                                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                                        <Typography variant="body2">Sold Out</Typography>
-                                                        <Switch
-                                                            checked={formData.soldOut}
-                                                            onChange={(e) => setFormData((f) => ({ ...f, soldOut: e.target.checked }))}
-                                                            color="warning"
+                                                <Grid container spacing={1.5}>
+                                                    <Grid item xs={12} sm={6} md={12}>
+                                                        <TextField
+                                                            type="date"
+                                                            name="date"
+                                                            label="Data"
+                                                            InputLabelProps={{ shrink: true }}
+                                                            inputProps={{ min: todayISO() }}
+                                                            value={formData.date}
+                                                            onChange={handleChange}
+                                                            required
+                                                            error={!!errors.date}
+                                                            helperText={errors.date}
+                                                            fullWidth
+                                                            InputProps={{
+                                                                startAdornment: (
+                                                                    <InputAdornment position="start">
+                                                                        <CalendarTodayIcon fontSize="small" />
+                                                                    </InputAdornment>
+                                                                ),
+                                                            }}
                                                         />
-                                                    </Stack>
-                                                </Stack>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={6} md={12}>
+                                                        <TextField
+                                                            type="time"
+                                                            name="time"
+                                                            label="Orario"
+                                                            InputLabelProps={{ shrink: true }}
+                                                            value={formData.time}
+                                                            onChange={handleChange}
+                                                            required
+                                                            error={!!errors.time}
+                                                            helperText={errors.time}
+                                                            fullWidth
+                                                            InputProps={{
+                                                                startAdornment: (
+                                                                    <InputAdornment position="start">
+                                                                        <AccessTimeIcon fontSize="small" />
+                                                                    </InputAdornment>
+                                                                ),
+                                                            }}
+                                                        />
+                                                    </Grid>
+                                                </Grid>
                                             </Paper>
 
+                                            {/* Luogo */}
                                             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Luogo
                                                 </Typography>
+
                                                 <PlaceAutocomplete
                                                     value={placeSelected}
                                                     onChange={(val) => {
@@ -1206,11 +1294,18 @@ const AdminPanel = () => {
                                                     helperText={errors.place}
                                                 />
 
-                                                {/* Mini mappa OSM solo se ho coordinate (no chiave necessaria) */}
                                                 {placeCoords && (
-                                                    <Box sx={{ mt: 1.5, borderRadius: 1, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-                                                        <Box sx={{ display: "flex", alignItems: "center", gap: .5, p: .5, opacity: .8 }}>
-                                                            <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione</Typography>
+                                                    <Box
+                                                        sx={{
+                                                            mt: 1.5,
+                                                            borderRadius: 1,
+                                                            overflow: "hidden",
+                                                            border: "1px solid rgba(255,255,255,0.08)",
+                                                        }}
+                                                    >
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, opacity: 0.8 }}>
+                                                            <MapIcon fontSize="small" />{" "}
+                                                            <Typography variant="caption">Anteprima posizione</Typography>
                                                         </Box>
                                                         <img
                                                             src={`https://staticmap.openstreetmap.de/staticmap.php?center=${placeCoords.lat},${placeCoords.lon}&zoom=14&size=600x240&markers=${placeCoords.lat},${placeCoords.lon},lightred1`}
@@ -1223,18 +1318,42 @@ const AdminPanel = () => {
                                                 )}
                                             </Paper>
 
-                                            {/* Azioni */}
-                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                                                <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 1.2 }}>
+                                            {/* Azioni desktop */}
+                                            <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" } }}>
+                                                <Button variant="contained" type="submit" disabled={!isValid}>
                                                     {editingId ? "Salva modifiche" : "Crea evento"}
                                                 </Button>
-                                                <Button variant="text" fullWidth onClick={() => { resetForm(); setSection("events"); }} sx={{ py: 1.2, color: "primary.main" }}>
+                                                <Button variant="text" onClick={() => { resetForm(); setSection("events"); }}>
                                                     Annulla
                                                 </Button>
                                             </Stack>
                                         </Stack>
                                     </Grid>
                                 </Grid>
+
+                                {/* Action bar mobile sticky */}
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        position: "sticky",
+                                        bottom: 0,
+                                        mt: 2,
+                                        p: 1.5,
+                                        borderRadius: 2,
+                                        display: { xs: "flex", md: "none" },
+                                        gap: 1,
+                                        backdropFilter: "blur(8px)",
+                                        bgcolor: "rgba(20,20,22,0.7)",
+                                        border: "1px solid rgba(255,255,255,0.08)",
+                                    }}
+                                >
+                                    <Button fullWidth variant="contained" type="submit" disabled={!isValid}>
+                                        {editingId ? "Salva" : "Crea evento"}
+                                    </Button>
+                                    <Button fullWidth variant="text" onClick={() => { resetForm(); setSection("events"); }}>
+                                        Annulla
+                                    </Button>
+                                </Paper>
                             </Box>
                         </Paper>
                     )}
@@ -1364,7 +1483,7 @@ const AdminPanel = () => {
                 onClose={() => setConfirm({ open: false, id: null, type: "" })}
             />
 
-            {/* Dialog Drive (grid anteprime a tema) */}
+            {/* Dialog Drive */}
             <DriveImagePickerDialog
                 open={driveDialogOpen}
                 onClose={() => setDriveDialogOpen(false)}
