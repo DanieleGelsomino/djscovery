@@ -163,7 +163,6 @@ async function auditEventChange(eventId, user, action, before, after) {
 /* ----------------- EVENTI ----------------- */
 
 // GET /api/events?status=published|draft|archived
-// GET /api/events?status=published|draft|archived
 app.get("/api/events", async (req, res) => {
     const { status } = req.query;
     try {

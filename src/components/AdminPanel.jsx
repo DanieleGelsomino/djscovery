@@ -157,31 +157,7 @@ const isPast = (ev) => {
     return dt ? dt.getTime() < Date.now() : false;
 };
 
-/* =========================================
-   GOOGLE PLACES (richiesto) — nessun fallback
-   ========================================= */
-const loadGooglePlaces = (() => {
-    let p;
-    return () => {
-        if (p) return p;
-        const key =
-            (import.meta?.env && import.meta.env.VITE_GOOGLE_API_KEY) ||
-            (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_API_KEY);
-        if (!key) return Promise.reject(new Error("VITE_GOOGLE_API_KEY mancante"));
-        p = new Promise((resolve, reject) => {
-            if (window.google?.maps?.places) return resolve(window.google.maps);
-            const s = document.createElement("script");
-            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-                key
-            )}&libraries=places&language=it&region=IT`;
-            s.async = true;
-            s.onerror = () => reject(new Error("Impossibile caricare Google Maps JS"));
-            s.onload = () => resolve(window.google.maps);
-            document.head.appendChild(s);
-        });
-        return p;
-    };
-})();
+// ======= GEOAPIFY Autocomplete (OSM) =======
 
 function PlaceAutocomplete({
                                value,
@@ -195,99 +171,82 @@ function PlaceAutocomplete({
     const [preds, setPreds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [initError, setInitError] = useState("");
-
-    const serviceRef = useRef(null);
-    const detailsRef = useRef(null);
-    const sessionRef = useRef(null);
+    const abortRef = useRef(null);
     const debounceRef = useRef(null);
 
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const maps = await loadGooglePlaces();
-                if (!alive) return;
-                serviceRef.current = new maps.places.AutocompleteService();
-                detailsRef.current = new maps.places.PlacesService(document.createElement("div"));
-                sessionRef.current = new maps.places.AutocompleteSessionToken();
-            } catch (e) {
-                setInitError(e?.message || "Errore inizializzazione Google Places");
-            }
-        })();
-        return () => {
-            alive = false;
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-        };
-    }, []);
+    const apiKey =
+        (import.meta?.env && import.meta.env.VITE_GEOAPIFY_KEY) ||
+        (window.APP_CONFIG && window.APP_CONFIG.GEOAPIFY_KEY);
 
-    // Predizioni con debounce
+    useEffect(() => {
+        if (!apiKey) setInitError("Geoapify API key mancante");
+    }, [apiKey]);
+
     useEffect(() => {
         const q = (inputValue || "").trim();
-        if (!serviceRef.current) return;
+        if (!apiKey) return;
         if (!q) {
             setPreds([]);
             return;
         }
         setLoading(true);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-            serviceRef.current.getPlacePredictions(
-                {
-                    input: q,
-                    sessionToken: sessionRef.current,
-                },
-                (res, status) => {
-                    setLoading(false);
-                    if (!res || status !== "OK") {
-                        setPreds([]);
-                        return;
-                    }
-                    setPreds(
-                        res.map((p) => ({
-                            label: p.description,
-                            place_id: p.place_id,
-                            main_text: p.structured_formatting?.main_text,
-                            secondary_text: p.structured_formatting?.secondary_text,
-                        }))
-                    );
-                }
-            );
-        }, 220);
-    }, [inputValue]);
+        debounceRef.current = setTimeout(async () => {
+            try {
+                if (abortRef.current) abortRef.current.abort();
+                abortRef.current = new AbortController();
 
-    const selectOption = (evt, opt) => {
+                const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+                url.searchParams.set("text", q);
+                url.searchParams.set("limit", "7");
+                url.searchParams.set("lang", "it");
+                // opzionale: restrizione paese → Italia
+                // url.searchParams.set("filter", "countrycode:it");
+                url.searchParams.set("apiKey", apiKey);
+
+                const r = await fetch(url.toString(), { signal: abortRef.current.signal });
+                const data = await r.json();
+                const rows = (data?.features || []).map((f) => {
+                    const p = f.properties || {};
+                    return {
+                        label: p.formatted || p.address_line1 || p.name || "",
+                        place_id: p.place_id || p.datasource?.raw?.osm_id || p.osm_id || p.datasource?.feature_id || Math.random().toString(36).slice(2),
+                        main_text: p.address_line1 || p.name || p.street || "",
+                        secondary_text: p.address_line2 || [p.postcode, p.city, p.country].filter(Boolean).join(" "),
+                        lat: p.lat,
+                        lon: p.lon,
+                    };
+                });
+                setPreds(rows);
+            } catch (e) {
+                if (e?.name !== "AbortError") {
+                    setPreds([]);
+                }
+            } finally {
+                setLoading(false);
+            }
+        }, 220);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (abortRef.current) abortRef.current.abort();
+        };
+    }, [inputValue, apiKey]);
+
+    const selectOption = (_evt, opt) => {
         if (!opt) {
             onChange(null);
             onCoords?.(null);
             return;
         }
-        if (!detailsRef.current || !opt.place_id) {
-            onChange({ label: opt.label });
-            onCoords?.(null);
-            return;
-        }
-        detailsRef.current.getDetails(
-            { placeId: opt.place_id, fields: ["formatted_address", "geometry"] },
-            (place, status) => {
-                if (!place || status !== "OK") {
-                    onChange({ label: opt.label, place_id: opt.place_id });
-                    onCoords?.(null);
-                    return;
-                }
-                const loc = place.geometry?.location;
-                const coords = loc ? { lat: loc.lat?.(), lon: loc.lng?.() } : null;
-                onChange({
-                    label: place.formatted_address || opt.label,
-                    place_id: opt.place_id,
-                    verified: true,
-                    ...coords,
-                });
-                onCoords?.(coords);
-                try {
-                    sessionRef.current = new window.google.maps.places.AutocompleteSessionToken();
-                } catch {}
-            }
-        );
+        onChange({
+            label: opt.label,
+            place_id: opt.place_id,
+            verified: true,
+            lat: opt.lat,
+            lon: opt.lon,
+        });
+        if (opt.lat && opt.lon) onCoords?.({ lat: opt.lat, lon: opt.lon });
     };
 
     return (
@@ -298,7 +257,7 @@ function PlaceAutocomplete({
             inputValue={inputValue}
             onInputChange={(e, v) => onInputChange(v)}
             getOptionLabel={(o) => o?.label || ""}
-            noOptionsText={initError ? "Google Places non configurato" : "Nessun risultato"}
+            noOptionsText={initError ? "Geoapify non configurato" : "Nessun risultato"}
             loading={loading}
             clearOnBlur={false}
             blurOnSelect
@@ -325,7 +284,7 @@ function PlaceAutocomplete({
                         label="Cerca e seleziona un luogo"
                         required
                         error={!!error || !!initError}
-                        helperText={initError || helperText || "Suggerimenti da Google"}
+                        helperText={initError || helperText || "Suggerimenti da OSM/Geoapify"}
                         InputProps={{
                             ...InputProps,
                             startAdornment: (
@@ -347,6 +306,7 @@ function PlaceAutocomplete({
         />
     );
 }
+
 
 /* =========================================
    Dialog selezione copertina da Drive — griglia responsive
@@ -645,13 +605,7 @@ const AdminPanel = () => {
     // scorciatoie
     useEffect(() => {
         const onKey = (e) => {
-            if (e.key === "N" || e.key === "n") {
-                if (canEditEvent(role)) {
-                    e.preventDefault();
-                    resetForm();
-                    setSection("create");
-                }
-            }
+
             if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
                 e.preventDefault();
                 if (section === "events") evSearchRef.current?.focus();
@@ -1615,19 +1569,28 @@ const AdminPanel = () => {
                                                     {placeCoords && (
                                                         <Box sx={{ mt: 1.5, borderRadius: 1, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
                                                             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, opacity: 0.8 }}>
-                                                                <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione (Google)</Typography>
+                                                                <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione (OpenStreetMap)</Typography>
                                                             </Box>
                                                             <Box sx={{ position: "relative", pt: "56.25%" }}>
-                                                                <iframe
-                                                                    title="map-preview"
-                                                                    src={`https://www.google.com/maps?q=${placeCoords.lat},${placeCoords.lon}&z=15&output=embed`}
-                                                                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-                                                                    loading="lazy"
-                                                                    referrerPolicy="no-referrer-when-downgrade"
-                                                                />
+                                                                {(() => {
+                                                                    const lat = placeCoords.lat, lon = placeCoords.lon;
+                                                                    const delta = 0.01; // zoom livello ~15
+                                                                    const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+                                                                    const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+                                                                    return (
+                                                                        <iframe
+                                                                            title="map-preview"
+                                                                            src={src}
+                                                                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+                                                                            loading="lazy"
+                                                                            referrerPolicy="no-referrer-when-downgrade"
+                                                                        />
+                                                                    );
+                                                                })()}
                                                             </Box>
                                                         </Box>
                                                     )}
+
                                                 </Paper>
                                             </Grid>
 
