@@ -84,6 +84,7 @@ import PlaceIcon from "@mui/icons-material/Place";
 import EuroIcon from "@mui/icons-material/Euro";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MapIcon from "@mui/icons-material/Map";
+import CloseIcon from "@mui/icons-material/Close";
 
 import ConfirmDialog from "./ConfirmDialog";
 import { useToast } from "./ToastContext";
@@ -304,7 +305,7 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
 }
 
 /* =========================================
-   Dialog selezione copertina da Drive (grid)
+   Dialog selezione copertina da Drive — griglia responsive
    ========================================= */
 function DriveImagePickerDialog({ open, onClose, onPick }) {
     const apiKey =
@@ -345,10 +346,20 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
     }, [filter, items]);
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="lg"
+            PaperProps={{ sx: { borderRadius: 2 } }}
+        >
             <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <ImageIcon color="primary" /> Seleziona copertina da Drive
+                <IconButton onClick={onClose} sx={{ ml: "auto" }}>
+                    <CloseIcon />
+                </IconButton>
             </DialogTitle>
+
             <DialogContent dividers sx={{ background: "#101014" }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }}>
                     <TextField
@@ -392,44 +403,54 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                 )}
 
                 {!loading && !error && (
-                    <Grid container spacing={1}>
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                                xs: "repeat(2, 1fr)",
+                                sm: "repeat(3, 1fr)",
+                                md: "repeat(4, 1fr)",
+                                lg: "repeat(6, 1fr)",
+                            },
+                            gap: 1,
+                        }}
+                    >
                         {filtered.map((img) => {
                             const thumb = driveCdnSrc(img.id, 640);
                             const fallback = driveApiSrc(img.id, apiKey);
                             return (
-                                <Grid item xs={6} sm={4} md={3} key={img.id}>
-                                    <Box
-                                        role="button"
-                                        onClick={() => { onPick(driveCdnSrc(img.id, 1600)); onClose(); }}
-                                        sx={{
-                                            position: "relative",
-                                            width: "100%",
-                                            pt: "70%",
-                                            overflow: "hidden",
-                                            borderRadius: 1,
-                                            border: "1px solid rgba(255,255,255,0.08)",
-                                            cursor: "pointer",
-                                            "&:hover": { outline: "2px solid", outlineColor: "primary.main" },
-                                        }}
-                                    >
-                                        <img
-                                            src={thumb}
-                                            alt={img.name}
-                                            onError={(e) => (e.currentTarget.src = fallback)}
-                                            loading="lazy"
-                                            decoding="async"
-                                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#111" }}
-                                        />
-                                    </Box>
-                                </Grid>
+                                <Box
+                                    key={img.id}
+                                    role="button"
+                                    onClick={() => { onPick(driveCdnSrc(img.id, 1600)); onClose(); }}
+                                    sx={{
+                                        position: "relative",
+                                        width: "100%",
+                                        pt: "66.666%",
+                                        overflow: "hidden",
+                                        borderRadius: 1,
+                                        border: "1px solid rgba(255,255,255,0.08)",
+                                        cursor: "pointer",
+                                        "&:hover": { outline: "2px solid", outlineColor: "primary.main" },
+                                    }}
+                                >
+                                    <img
+                                        src={thumb}
+                                        alt={img.name}
+                                        onError={(e) => (e.currentTarget.src = fallback)}
+                                        loading="lazy"
+                                        decoding="async"
+                                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#111" }}
+                                    />
+                                </Box>
                             );
                         })}
                         {!filtered.length && (
-                            <Grid item xs={12}>
-                                <Box sx={{ p: 3, textAlign: "center", opacity: 0.7 }}>Nessuna immagine trovata.</Box>
-                            </Grid>
+                            <Box sx={{ gridColumn: "1/-1", p: 3, textAlign: "center", opacity: 0.7 }}>
+                                Nessuna immagine trovata.
+                            </Box>
                         )}
-                    </Grid>
+                    </Box>
                 )}
             </DialogContent>
         </Dialog>
