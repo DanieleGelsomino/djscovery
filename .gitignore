@@ -1,8 +1,20 @@
+# Node
 node_modules/
 server/node_modules/
-package-lock.json
-.DS_Store
-
-# env
-.env
 dist/
+*.log
+
+# Env files
+.env
+server/.env
+
+# Firebase Admin keys
+key.json
+*.key.json
+
+# Firebase local
+.firebase/
+
+# OS files
+.DS_Store
+Thumbs.db

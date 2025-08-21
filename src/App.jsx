@@ -12,36 +12,54 @@ import Footer from './components/Footer';
 import TicketBookingForm from './components/TicketBookingForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
+import AdminRoute from './components/AdminRoute'; // 👈 aggiunta
 
 const Main = styled.main`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 `;
 
 const App = () => {
-  const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
-  return (
-    <>
-      {!isAdminRoute && <Navbar />}
-      <Main>
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/eventi" element={<EventiSection />} />
-            <Route path="/gallery" element={<GallerySection />} />
-            <Route path="/chi-siamo" element={<ChiSiamoSection />} />
-            <Route path="/contatti" element={<ContattiSection />} />
-            <Route path="/prenota" element={<TicketBookingForm />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/panel" element={<AdminPanel />} />
-          </Routes>
-        </AnimatePresence>
-      </Main>
-      {!isAdminRoute && <Footer />}
-    </>
-  );
+    const location = useLocation();
+    const isAdminRoute = location.pathname.startsWith('/admin');
+
+    return (
+        <>
+            {!isAdminRoute && <Navbar />}
+            <Main>
+                <AnimatePresence mode="wait">
+                    <Routes location={location} key={location.pathname}>
+                        {/* Pubbliche */}
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/eventi" element={<EventiSection />} />
+                        <Route path="/gallery" element={<GallerySection />} />
+                        <Route path="/chi-siamo" element={<ChiSiamoSection />} />
+                        <Route path="/contatti" element={<ContattiSection />} />
+                        <Route path="/prenota" element={<TicketBookingForm />} />
+
+                        {/* Admin: login (puoi lasciare /admin oppure usare /admin/login) */}
+                        <Route path="/admin" element={<AdminLogin />} />
+                        {/* <Route path="/admin/login" element={<AdminLogin />} /> */}
+
+                        {/* Admin: protetta da claim admin */}
+                        <Route
+                            path="/admin/panel"
+                            element={
+                                <AdminRoute>
+                                    <AdminPanel />
+                                </AdminRoute>
+                            }
+                        />
+
+                        {/* opzionale: 404 */}
+                        {/* <Route path="*" element={<NotFound />} /> */}
+                    </Routes>
+                </AnimatePresence>
+            </Main>
+            {!isAdminRoute && <Footer />}
+        </>
+    );
 };
 
 export default App;

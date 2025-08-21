@@ -95,52 +95,22 @@ export const deleteEvent = async (id) => {
   });
 };
 
-export const fetchGallery = async () => {
-  if (useMock) return mockFetchGallery();
-  return withLoading(async () => {
-    const res = await fetch(`${API_BASE}/api/gallery`);
-    if (!res.ok) throw new Error("Failed to load gallery");
-    return res.json();
-  });
-};
 
-export const uploadGalleryImage = async (src) => {
-  if (useMock) return mockUploadGalleryImage(src);
-  return withLoading(async () => {
-    const res = await fetch(`${API_BASE}/api/gallery`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken && { Authorization: `Bearer ${authToken}` }),
-      },
-      body: JSON.stringify({ src }),
+export async function subscribeNewsletter(email, {
+    attributes = {},
+    consent = true,
+    recaptchaToken = null,
+    website = ""  // honeypot (lasciare vuoto)
+} = {}) {
+    const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, attributes, consent, recaptchaToken, website }),
     });
-    if (!res.ok) throw new Error("Failed to save image");
-    return res.json();
-  });
-};
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Subscription failed");
+    }
+    return data;
+}
 
-export const deleteGalleryImage = async (id) => {
-  if (useMock) return mockDeleteGalleryImage(id);
-  return withLoading(async () => {
-    const res = await fetch(`${API_BASE}/api/gallery/${id}`, {
-      method: "DELETE",
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-    });
-    if (!res.ok) throw new Error("Failed to delete image");
-    return res.json();
-  });
-};
-
-export const subscribeNewsletter = async (email) => {
-  if (useMock) return mockSubscribeNewsletter(email);
-  return withLoading(async () => {
-    const res = await fetch(`${API_BASE}/api/newsletter`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) throw new Error("Failed to subscribe");
-    return res.json();
-  });
-};

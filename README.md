@@ -1,17 +1,100 @@
 # Djscovery
 
-A simple React application built with Vite. To start the development server run:
+Applicazione **React + Vite** con backend Node (API) e integrazioni Firebase (Auth + Firestore), Google Drive Picker, YouTube e newsletter Brevo.
+
+---
+
+## Requisiti
+
+- Node 18+
+- Firebase project (Firestore + Authentication abilitati)
+- (Opzionale) Account Brevo (ex Sendinblue) per newsletter
+- (Opzionale) Google Cloud Project per Drive Picker & YouTube Data API
+
+---
+
+## Quick Start
 
 ```bash
+# Installa dipendenze
 npm install
+
+# Avvia frontend (Vite)
 npm run dev
+# App su http://localhost:5173
+
+# Avvia backend API (in altra shell)
+npm run server
+# API su http://localhost:3000
 ```
 
-The server binds to `0.0.0.0` on port `5173` (or the next available port) so it can be accessed from outside the container using `localhost`.
+---
+
+## Struttura progetto
+
+```
+project-root/
+├─ src/                      # frontend React (Vite)
+├─ server/                   # backend API Node
+├─ tools/                    # script per claims admin
+│  ├─ set-admin-claim.js
+│  └─ unset-admin-claim.js
+├─ .env                      # variabili frontend + tools (NON committare)
+├─ server/.env               # variabili backend (NON committare)
+└─ README.md
+```
+
+---
+
+## Variabili d’ambiente
+
+### Frontend (`.env` in root)
+
+```env
+VITE_API_BASE_URL=http://localhost:3000
+
+# Firebase Web SDK
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+
+# Google Drive
+VITE_GOOGLE_CLIENT_ID=...
+VITE_GOOGLE_API_KEY=...
+VITE_GOOGLE_DRIVE_FOLDER_ID=...   # ID cartella immagini
+VITE_GOOGLE_DRIVE_FOLDER=...      # (opzionale) URL cartella per link diretto
+
+# YouTube
+VITE_YOUTUBE_API_KEY=...
+VITE_YOUTUBE_CHANNEL_ID=...
+
+# Feature flags
+VITE_MOCK=false
+```
+
+### Backend (`server/.env`)
+
+```env
+PORT=3000
+
+# Firebase Admin (Service Account)
+FIREBASE_SERVICE_ACCOUNT=/ABSOLUTE/PATH/TO/key.json
+FIREBASE_PROJECT_ID=...
+
+# Newsletter (Brevo)
+BREVO_API_KEY=...
+BREVO_LIST_ID=...
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:5173
+```
+
+---
 
 ## Backend server
-
-Install the dependencies of the API server and then start it:
 
 ```bash
 cd server
@@ -20,78 +103,150 @@ cd ..
 npm run server
 ```
 
-Create a `.env` file inside the `server` directory by copying `.env.example` and
-set your backend configuration values (e.g. `PORT`, `FIREBASE_SERVICE_ACCOUNT` or
-`GOOGLE_APPLICATION_CREDENTIALS`, and `FIREBASE_PROJECT_ID`). The server also
-accepts `VITE_FIREBASE_SERVICE_ACCOUNT` and `VITE_FIREBASE_PROJECT_ID` for
-compatibility with the frontend `.env` variables. Configure these before starting
-the API server. To enable newsletter subscriptions via Brevo, configure also
-`BREVO_API_KEY` and `BREVO_LIST_ID` with your account details.
-
-After configuring Firebase credentials you can create the required Firestore collections with:
+Setup Firestore (creazione collezioni base):
 
 ```bash
 cd server
 npm run setup
 ```
 
-Visita `/prenota` per il form di prenotazione dei biglietti collegato a Firebase.
+Endpoint principali:
+- `POST /api/bookings` — crea prenotazione (Firestore `bookings`)
+- `GET  /api/events`   — lista eventi
+- `GET  /api/gallery`  — lista immagini
 
-## Area admin
+---
 
-Abilita **Email/Password** su Firebase Authentication e crea l'utente amministratore.
-Visita quindi `/admin` per accedere al pannello di amministrazione e gestire
-prenotazioni ed eventi. Per utilizzare la selezione di immagini da Google Drive
-configura inoltre `VITE_GOOGLE_CLIENT_ID` e `VITE_GOOGLE_API_KEY` con le
-credenziali del tuo progetto Google. Imposta anche `VITE_GOOGLE_DRIVE_FOLDER_ID`
-con l'ID della cartella Drive che contiene le immagini da mostrare.
-Imposta `VITE_MOCK=false` nel file `.env` per abilitare le chiamate al backend.
-Se vuoi mostrare un collegamento diretto all'archivio immagini di Google Drive
-nella sezione Gallery dell'admin, imposta anche `VITE_GOOGLE_DRIVE_FOLDER` con
-l'URL della cartella.
+## Area Admin
 
-Se il server API è in esecuzione su un dominio o porta diversa è possibile
-specificarlo impostando la variabile `VITE_API_BASE_URL` nel file `.env`.
-In questo modo tutte le richieste verranno indirizzate correttamente al backend.
+1. Abilita **Email/Password** in Firebase Authentication.  
+2. Crea l’utente admin (es. `djscovery.channel@gmail.com`) in Firebase Console.  
+3. Assegna la claim `admin` con gli script (vedi sotto).  
+4. Login su `/admin` → pannello su `/admin/panel` (protetto).
 
-Per mostrare i video più recenti del canale YouTube nella home page è
-necessario impostare anche `VITE_YOUTUBE_API_KEY` e
-`VITE_YOUTUBE_CHANNEL_ID` nel file `.env` con i valori del proprio progetto
-Google.
+---
 
-Le immagini caricate nella sezione Gallery del pannello verranno mostrate
-nella pagina pubblica "/gallery" insieme a quelle predefinite.
+## Gestione Admin Claims
 
-## Configurazione Firebase
+Gli script sono in `tools/`:
 
-1. Crea un progetto su [Firebase Console](https://console.firebase.google.com/) e abilita **Firestore**.
-2. Nella sezione "Project settings" genera le credenziali Web e copia i valori (apiKey, authDomain, ecc.).
-3. Inserisci tali valori nel file `src/firebase/config.js` al posto dei placeholder.
-4. Installa le dipendenze:
+- `set-admin-claim.js` → assegna admin  
+- `unset-admin-claim.js` → rimuove admin  
+
+### Comandi npm
 
 ```bash
-npm install firebase
+# assegna admin
+npm run grant:admin -- djscovery.channel@gmail.com
+
+# rimuove admin
+npm run revoke:admin -- djscovery.channel@gmail.com
 ```
 
-Il file `server/index.js` espone l'endpoint `POST /api/bookings` che salva i dati nella collezione `bookings` di Firestore tramite Firebase Admin. Per autenticare il server imposta la variabile d'ambiente `FIREBASE_SERVICE_ACCOUNT` (o `GOOGLE_APPLICATION_CREDENTIALS`) con il percorso del tuo file JSON di servizio.
-Sono inoltre disponibili gli endpoint `GET /api/events` e `GET /api/gallery` per recuperare gli eventi e le immagini. L'accesso all'area admin avviene ora tramite Firebase Authentication.
+⚠️ Dopo grant/revoke: fai **logout/login** oppure usa `getIdToken(true)` per aggiornare il token.
 
-## Deploy dell'applicazione
+### Verifica claim (da browser)
 
-Puoi pubblicare il sito sia tramite **Firebase Hosting** che con servizi come **Vercel** o **Netlify**.
+```js
+import { getAuth } from "firebase/auth";
+const auth = getAuth();
+const res = await auth.currentUser.getIdTokenResult(true);
+console.log(res.claims.admin); // true se admin
+```
+
+---
+
+## Integrazioni
+
+### Newsletter (Brevo)
+
+1. Crea una lista su Brevo e ottieni `BREVO_LIST_ID`.  
+2. Genera `BREVO_API_KEY`.  
+3. Imposta entrambi in `server/.env`.  
+4. Il frontend userà `subscribeNewsletter` → l’API salverà l’iscrizione.
+
+### Google Drive (picker in admin)
+
+- Abilita **Google Drive API** su Google Cloud.  
+- Crea **OAuth Client ID** (Web) → `VITE_GOOGLE_CLIENT_ID`.  
+- Crea **API Key** → `VITE_GOOGLE_API_KEY`.  
+- Imposta `VITE_GOOGLE_DRIVE_FOLDER_ID` = ID cartella con le immagini.  
+- (Opzionale) `VITE_GOOGLE_DRIVE_FOLDER` = URL cartella per link diretto.
+
+### YouTube feed
+
+- Abilita **YouTube Data API v3**.  
+- Imposta `VITE_YOUTUBE_API_KEY` e `VITE_YOUTUBE_CHANNEL_ID` nel `.env`.  
+- La home mostrerà i video recenti.
+
+---
+
+## Sicurezza
+
+- Verifica la claim `admin` **anche sul backend**.  
+- Non committare `key.json` e `.env`.  
+- Aggiungi in `.gitignore`:
+  ```
+  .env
+  server/.env
+  key.json
+  ```
+
+Esempio middleware Express:
+
+```js
+import admin from 'firebase-admin';
+
+export async function requireAdmin(req, res, next) {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Missing token' });
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    if (!decoded.admin) return res.status(403).json({ error: 'Forbidden' });
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+```
+
+---
+
+## Deploy
 
 ### Firebase Hosting
 
 ```bash
-npm run build              # genera la versione statica
+npm run build              # genera dist/
 npm install -g firebase-tools
 firebase login
-firebase init hosting      # scegli "dist" come cartella di deploy
+firebase init hosting      # seleziona progetto, cartella "dist"
 firebase deploy
 ```
 
 ### Vercel / Netlify
 
-1. Esegui `npm run build` per produrre la cartella `dist`.
-2. Carica la cartella `dist` su Vercel o Netlify seguendo le indicazioni del provider.
-3. Imposta come comando di build `npm run build` e come cartella di output `dist`.
+1. `npm run build` → produce `dist/`  
+2. Configura:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+3. Imposta le variabili ambiente `VITE_*` sul provider.  
+4. Deploya il backend (server Node) separatamente (Cloud Run / Render / Railway) e punta `VITE_API_BASE_URL` al nuovo host.
+
+---
+
+## Rotte principali
+
+- Pubbliche:  
+  - `/` (Home)  
+  - `/eventi`  
+  - `/gallery`  
+  - `/chi-siamo`  
+  - `/contatti`  
+  - `/prenota`  
+
+- Admin:  
+  - `/admin` (Login con recupero password)  
+  - `/admin/panel` (Protetta — claim `admin` richiesta)  

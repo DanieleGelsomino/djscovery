@@ -199,43 +199,118 @@ app.delete("/api/gallery/:id", authenticate, async (req, res) => {
 });
 
 // --- NEWSLETTER ---
-app.post("/api/newsletter", async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "Missing email" });
+// Handler condiviso
+async function brevoSubscribeHandler(req, res) {
+    const {
+        BREVO_API_KEY,
+        BREVO_LIST_ID,
+        BREVO_USE_DOI = "true",
+        BREVO_DOI_TEMPLATE_ID,
+        BREVO_REDIRECT_URL,
+        RECAPTCHA_SECRET_KEY,
+        RECAPTCHA_MIN_SCORE = "0.5",
+    } = process.env;
 
-  const apiKey = process.env.BREVO_API_KEY;
-  const listId = process.env.BREVO_LIST_ID;
-
-  if (!apiKey || !listId) {
-    return res.status(500).json({ error: "Brevo not configured" });
-  }
-
-  try {
-    const response = await fetch("https://api.brevo.com/v3/contacts", {
-      method: "POST",
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        listIds: [Number(listId)],
-        updateEnabled: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Brevo API error:", errorText);
-      return res.status(500).json({ error: "Failed to subscribe" });
+    if (!BREVO_API_KEY || !BREVO_LIST_ID) {
+        return res.status(500).json({ ok: false, error: "Brevo not configured" });
     }
 
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Brevo exception:", err.message);
-    res.status(500).json({ error: "Failed to subscribe" });
-  }
-});
+    const { email, attributes = {}, website, consent = true, recaptchaToken } = req.body || {};
+
+    // Honeypot: se valorizzato, usciamo silenziosamente con OK.
+    if (website) return res.json({ ok: true, skipped: "honeypot" });
+
+    // Validazione email semplice (puoi sostituire con zod se preferisci)
+    const isEmail =
+        typeof email === "string" &&
+        /\S+@\S+\.\S+/.test(email.trim());
+    if (!isEmail) return res.status(400).json({ ok: false, error: "Invalid email" });
+
+    // (Opzionale) reCAPTCHA v3
+    if (RECAPTCHA_SECRET_KEY && recaptchaToken) {
+        try {
+            const params = new URLSearchParams();
+            params.append("secret", RECAPTCHA_SECRET_KEY);
+            params.append("response", recaptchaToken);
+            const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+                method: "POST",
+                body: params,
+            });
+            const verifyData = await verifyRes.json().catch(() => ({}));
+            const score = Number(verifyData.score ?? 0);
+            if (!verifyData.success || score < Number(RECAPTCHA_MIN_SCORE)) {
+                return res.status(400).json({ ok: false, error: "recaptcha_failed", details: verifyData });
+            }
+        } catch (e) {
+            // Se reCAPTCHA fallisce tecnicamente, non blocchiamo l’iscrizione
+            console.warn("reCAPTCHA error:", e?.message);
+        }
+    }
+
+    const headers = {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+    };
+
+    const nowIso = new Date().toISOString();
+    const extendedAttributes = {
+        CONSENT: !!consent,
+        CONSENT_TS: nowIso,
+        SOURCE: "website",
+        LOCALE: req.headers["accept-language"]?.toString().split(",")[0] || "it",
+        UA: req.headers["user-agent"] || "",
+        ...attributes, // es. { FIRSTNAME: "Daniele" }
+    };
+
+    const isDOI = String(BREVO_USE_DOI).toLowerCase() === "true";
+
+    let url;
+    let payload;
+
+    if (isDOI) {
+        if (!BREVO_DOI_TEMPLATE_ID || !BREVO_REDIRECT_URL) {
+            return res.status(500).json({ ok: false, error: "DOI not configured" });
+        }
+        url = "https://api.brevo.com/v3/contacts/doubleOptinConfirmation";
+        payload = {
+            email,
+            templateId: Number(BREVO_DOI_TEMPLATE_ID),
+            includeListIds: [Number(BREVO_LIST_ID)],
+            redirectionUrl: BREVO_REDIRECT_URL,
+            attributes: extendedAttributes,
+        };
+    } else {
+        url = "https://api.brevo.com/v3/contacts";
+        payload = {
+            email,
+            updateEnabled: true,
+            listIds: [Number(BREVO_LIST_ID)],
+            attributes: extendedAttributes,
+        };
+    }
+
+    try {
+        const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+            console.error("❌ Brevo error:", r.status, data);
+            return res.status(r.status).json({
+                ok: false,
+                error: data?.message || "brevo_error",
+                details: data,
+            });
+        }
+        return res.json({ ok: true, mode: isDOI ? "double_opt_in" : "single_opt_in" });
+    } catch (err) {
+        console.error("❌ Brevo exception:", err?.message);
+        return res.status(500).json({ ok: false, error: "Failed to subscribe" });
+    }
+}
+
+// Nuove rotte (compatibili)
+app.post("/api/newsletter", brevoSubscribeHandler);              // legacy path (il tuo)
+app.post("/api/newsletter/subscribe", brevoSubscribeHandler);    // alternativo
+
 
 // --- AVVIO SERVER ---
 const PORT = process.env.PORT || 3000;

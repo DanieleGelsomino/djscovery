@@ -112,6 +112,9 @@ const muiTheme = createTheme({
         MuiTableCell: { styleOverrides: { head: { fontWeight: 700, background: "#1b1b22" } } },
         MuiButton: { defaultProps: { disableElevation: true } },
         MuiPaper: { styleOverrides: { root: { backdropFilter: "blur(6px)" } } },
+        MuiTextField: {
+            defaultProps: { size: "medium", fullWidth: true },
+        },
     },
 });
 const glass = {
@@ -134,7 +137,7 @@ const isPast = (ev) => {
 };
 
 /* =========================================
-   GOOGLE PLACES (lazy) con fallback OSM
+   GOOGLE PLACES (richiesto) — nessun fallback
    ========================================= */
 const loadGooglePlaces = (() => {
     let p;
@@ -147,7 +150,10 @@ const loadGooglePlaces = (() => {
         p = new Promise((resolve, reject) => {
             if (window.google?.maps?.places) return resolve(window.google.maps);
             const s = document.createElement("script");
-            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
+            // lingua e regione per risultati più pertinenti
+            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
+                key
+            )}&libraries=places&language=it&region=IT`;
             s.async = true;
             s.onerror = () => reject(new Error("Impossibile caricare Google Maps JS"));
             s.onload = () => resolve(window.google.maps);
@@ -160,10 +166,12 @@ const loadGooglePlaces = (() => {
 function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, helperText, onCoords }) {
     const [preds, setPreds] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [mode, setMode] = useState("google"); // "google" | "osm"
+    const [initError, setInitError] = useState("");
+
     const serviceRef = useRef(null);
     const detailsRef = useRef(null);
-    const abortRef = useRef(null);
+    const sessionRef = useRef(null);
+    const debounceRef = useRef(null);
 
     useEffect(() => {
         let alive = true;
@@ -171,71 +179,54 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
             try {
                 const maps = await loadGooglePlaces();
                 if (!alive) return;
-                try {
-                    serviceRef.current = new maps.places.AutocompleteService();
-                    detailsRef.current = new maps.places.PlacesService(document.createElement("div"));
-                    setMode("google");
-                } catch {
-                    setMode("osm");
-                }
-            } catch {
-                setMode("osm");
+                serviceRef.current = new maps.places.AutocompleteService();
+                detailsRef.current = new maps.places.PlacesService(document.createElement("div"));
+                sessionRef.current = new maps.places.AutocompleteSessionToken();
+            } catch (e) {
+                setInitError(e?.message || "Errore inizializzazione Google Places");
             }
         })();
         return () => {
             alive = false;
-            if (abortRef.current) abortRef.current.abort();
+            if (debounceRef.current) clearTimeout(debounceRef.current);
         };
     }, []);
 
+    // Predizioni con debounce
     useEffect(() => {
         const q = (inputValue || "").trim();
+        if (!serviceRef.current) return;
         if (!q) {
             setPreds([]);
             return;
         }
         setLoading(true);
-
-        if (mode === "google" && serviceRef.current) {
-            let cancel = false;
-            serviceRef.current.getPlacePredictions({ input: q }, (res, status) => {
-                if (cancel) return;
-                setLoading(false);
-                if (!res || status !== "OK") {
-                    setPreds([]);
-                    return;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            serviceRef.current.getPlacePredictions(
+                {
+                    input: q,
+                    sessionToken: sessionRef.current,
+                    // componentRestrictions: { country: ["it"] }, // sblocca se vuoi restringere
+                },
+                (res, status) => {
+                    setLoading(false);
+                    if (!res || status !== "OK") {
+                        setPreds([]);
+                        return;
+                    }
+                    setPreds(
+                        res.map((p) => ({
+                            label: p.description,
+                            place_id: p.place_id,
+                            main_text: p.structured_formatting?.main_text,
+                            secondary_text: p.structured_formatting?.secondary_text,
+                        }))
+                    );
                 }
-                setPreds(res.map((p) => ({ label: p.description, place_id: p.place_id })));
-            });
-            return () => { cancel = true; };
-        }
-
-        // OSM fallback
-        if (abortRef.current) abortRef.current.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-        (async () => {
-            try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&q=${encodeURIComponent(q)}`;
-                const r = await fetch(url, { signal: controller.signal, headers: { "Accept-Language": "it" } });
-                const data = await r.json();
-                setPreds(
-                    (data || []).map((d) => ({
-                        label: d.display_name,
-                        lat: parseFloat(d.lat),
-                        lon: parseFloat(d.lon),
-                        place_id: d.place_id,
-                    }))
-                );
-            } catch {
-                /* ignore */
-            } finally {
-                setLoading(false);
-            }
-        })();
-
-        return () => controller.abort();
-    }, [inputValue, mode]);
+            );
+        }, 220);
+    }, [inputValue]);
 
     const selectOption = (evt, opt) => {
         if (!opt) {
@@ -243,22 +234,27 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
             onCoords?.(null);
             return;
         }
-        if (mode === "google" && detailsRef.current && opt.place_id) {
-            detailsRef.current.getDetails({ placeId: opt.place_id }, (place, status) => {
+        if (!detailsRef.current || !opt.place_id) {
+            onChange({ label: opt.label });
+            onCoords?.(null);
+            return;
+        }
+        detailsRef.current.getDetails(
+            { placeId: opt.place_id, fields: ["formatted_address", "geometry"] },
+            (place, status) => {
                 if (!place || status !== "OK") {
-                    onChange({ label: opt.label });
+                    onChange({ label: opt.label, place_id: opt.place_id });
                     onCoords?.(null);
                     return;
                 }
                 const loc = place.geometry?.location;
                 const coords = loc ? { lat: loc.lat?.(), lon: loc.lng?.() } : null;
-                onChange({ label: place.formatted_address || opt.label, ...coords });
+                onChange({ label: place.formatted_address || opt.label, place_id: opt.place_id, verified: true, ...coords });
                 onCoords?.(coords);
-            });
-        } else {
-            onChange(opt);
-            onCoords?.(opt.lat && opt.lon ? { lat: opt.lat, lon: opt.lon } : null);
-        }
+                // nuova sessione per ricerche successive
+                try { sessionRef.current = new window.google.maps.places.AutocompleteSessionToken(); } catch {}
+            }
+        );
     };
 
     return (
@@ -269,10 +265,21 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
             inputValue={inputValue}
             onInputChange={(e, v) => onInputChange(v)}
             getOptionLabel={(o) => o?.label || ""}
-            noOptionsText="Nessun risultato"
+            noOptionsText={initError ? "Google Places non configurato" : "Nessun risultato"}
             loading={loading}
             clearOnBlur={false}
             blurOnSelect
+            isOptionEqualToValue={(o, v) => o.place_id === v.place_id}
+            renderOption={(props, option) => (
+                <li {...props} key={option.place_id}>
+                    <Stack>
+                        <Typography variant="body2" fontWeight={600}>{option.main_text || option.label}</Typography>
+                        {option.secondary_text && (
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{option.secondary_text}</Typography>
+                        )}
+                    </Stack>
+                </li>
+            )}
             renderInput={(params) => {
                 const { InputProps, ...rest } = params;
                 return (
@@ -280,8 +287,8 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
                         {...rest}
                         label="Cerca e seleziona un luogo"
                         required
-                        error={!!error}
-                        helperText={helperText || (mode === "osm" ? "Ricerca tramite OpenStreetMap" : "")}
+                        error={!!error || !!initError}
+                        helperText={initError || helperText || "Suggerimenti da Google"}
                         InputProps={{
                             ...InputProps,
                             startAdornment: (
@@ -346,13 +353,7 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
     }, [filter, items]);
 
     return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="lg"
-            PaperProps={{ sx: { borderRadius: 2 } }}
-        >
+        <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 2 } }}>
             <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <ImageIcon color="primary" /> Seleziona copertina da Drive
                 <IconButton onClick={onClose} sx={{ ml: "auto" }}>
@@ -364,24 +365,10 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }}>
                     <TextField
                         size="small"
-                        fullWidth
                         placeholder="Filtra per nome…"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon fontSize="small" />
-                                </InputAdornment>
-                            ),
-                        }}
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                "& fieldset": { borderColor: "rgba(255,255,255,0.18)" },
-                                "&:hover fieldset": { borderColor: "primary.main" },
-                                "&.Mui-focused fieldset": { borderColor: "primary.main" },
-                            },
-                        }}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
                     />
                     <Button onClick={load} variant="outlined" sx={{ color: "primary.main", borderColor: "primary.main" }}>
                         Ricarica
@@ -520,7 +507,7 @@ const AdminPanel = () => {
     // form
     const [formData, setFormData] = useState({
         name: "", dj: "", date: "", time: "", price: "", capacity: "",
-        description: "", soldOut: false, image: "", place: "", placeCoords: null,
+        description: "", soldOut: false, image: "", place: "", placeCoords: null, placeId: null,
     });
     const [errors, setErrors] = useState({});
     const [editingId, setEditingId] = useState(null);
@@ -573,13 +560,13 @@ const AdminPanel = () => {
         reader.readAsDataURL(file);
     };
 
-    // validazione
+    // validazione (UX: messaggi chiari, vincoli reali)
     const validate = () => {
         const e = {};
         if (!formData.name?.trim()) e.name = "Inserisci un nome";
         if (!formData.date || formData.date < todayISO()) e.date = "Scegli una data futura";
         if (!formData.time) e.time = "Inserisci un orario";
-        if (!placeSelected) e.place = "Seleziona un luogo dall'elenco";
+        if (!placeSelected?.place_id || !placeCoords) e.place = "Seleziona un luogo dai suggerimenti";
         setErrors(e);
         return Object.keys(e).length === 0;
     };
@@ -592,7 +579,7 @@ const AdminPanel = () => {
         setPlaceCoords(null);
         setFormData({
             name: "", dj: "", date: "", time: "", price: "", capacity: "",
-            description: "", soldOut: false, image: "", place: "", placeCoords: null,
+            description: "", soldOut: false, image: "", place: "", placeCoords: null, placeId: null,
         });
     };
 
@@ -607,6 +594,7 @@ const AdminPanel = () => {
                 image: formData.image || heroImg,
                 place: placeSelected?.label || formData.place,
                 placeCoords: placeCoords || formData.placeCoords || null,
+                placeId: placeSelected?.place_id || formData.placeId || null,
             };
             if (editingId) {
                 await updateEvent(editingId, payload);
@@ -647,7 +635,7 @@ const AdminPanel = () => {
             soldOut: !!ev.soldOut, image: ev.image || "", place: ev.place || "", placeCoords: ev.placeCoords || null,
         });
         if (ev.place) {
-            setPlaceSelected({ label: ev.place, ...(ev.placeCoords || {}) });
+            setPlaceSelected({ label: ev.place, place_id: ev.placeId || "", ...(ev.placeCoords || {}), verified: true });
             setPlaceInput(ev.place);
             setPlaceCoords(ev.placeCoords || null);
         } else {
@@ -825,14 +813,7 @@ const AdminPanel = () => {
                         <Stack direction="row" spacing={1} alignItems="center">
                             {driveFolderLink && (
                                 <Tooltip title="Apri cartella Drive">
-                                    <IconButton
-                                        component="a"
-                                        href={driveFolderLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        color="inherit"
-                                        aria-label="Drive"
-                                    >
+                                    <IconButton component="a" href={driveFolderLink} target="_blank" rel="noopener noreferrer" color="inherit" aria-label="Drive">
                                         <AddToDriveIcon />
                                     </IconButton>
                                 </Tooltip>
@@ -889,13 +870,7 @@ const AdminPanel = () => {
                                     placeholder="Cerca per nome / DJ / luogo"
                                     value={evQuery}
                                     onChange={(e) => setEvQuery(e.target.value)}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon fontSize="small" />
-                                            </InputAdornment>
-                                        ),
-                                    }}
+                                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
                                     fullWidth={isMobile}
                                     sx={{ minWidth: 260 }}
                                 />
@@ -925,12 +900,7 @@ const AdminPanel = () => {
                                             </Select>
                                         </FormControl>
                                     </Stack>
-                                    <Button
-                                        startIcon={<AddCircleOutlineIcon />}
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => { resetForm(); setSection("create"); }}
-                                    >
+                                    <Button startIcon={<AddCircleOutlineIcon />} variant="contained" color="primary" onClick={() => { resetForm(); setSection("create"); }}>
                                         Nuovo evento
                                     </Button>
                                 </Stack>
@@ -992,12 +962,7 @@ const AdminPanel = () => {
                                                         <TableCell>{ev.time}</TableCell>
                                                         <TableCell>{ev.capacity || "-"}</TableCell>
                                                         <TableCell>
-                                                            <Switch
-                                                                checked={!!ev.soldOut}
-                                                                onChange={(e) => handleToggleSoldOut(ev.id, e.target.checked)}
-                                                                color="warning"
-                                                                disabled={past}
-                                                            />
+                                                            <Switch checked={!!ev.soldOut} onChange={(e) => handleToggleSoldOut(ev.id, e.target.checked)} color="warning" disabled={past} />
                                                         </TableCell>
                                                         <TableCell align="right">
                                                             <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -1010,12 +975,7 @@ const AdminPanel = () => {
                                                                 </Tooltip>
                                                                 <Tooltip title={past ? "Evento passato" : "Elimina"}>
                                   <span>
-                                    <IconButton
-                                        size="small"
-                                        color="error"
-                                        onClick={() => setConfirm({ open: true, id: ev.id, type: "event" })}
-                                        disabled={past}
-                                    >
+                                    <IconButton size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: "event" })} disabled={past}>
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   </span>
@@ -1035,10 +995,7 @@ const AdminPanel = () => {
                     {/* CREA / MODIFICA EVENTO */}
                     {section === "create" && (
                         <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 1200, mx: "auto" }}>
-                            <Typography
-                                variant="h5"
-                                sx={{ textAlign: { xs: "center", md: "left" }, mb: 2, letterSpacing: 0.3 }}
-                            >
+                            <Typography variant="h5" sx={{ textAlign: { xs: "center", md: "left" }, mb: 2, letterSpacing: 0.3 }}>
                                 {editingId ? "Modifica evento" : "Crea nuovo evento"}
                             </Typography>
 
@@ -1067,54 +1024,23 @@ const AdminPanel = () => {
                                         position: "relative",
                                     }}
                                 >
-                                    <img
-                                        src={formData.image || heroImg}
-                                        alt="Anteprima evento"
-                                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                                    />
-                                    <Stack
-                                        direction="row"
-                                        spacing={1}
-                                        sx={{
-                                            position: "absolute",
-                                            right: 8,
-                                            bottom: 8,
-                                            bgcolor: "rgba(0,0,0,0.45)",
-                                            p: 0.5,
-                                            borderRadius: 2,
-                                            backdropFilter: "blur(6px)",
-                                        }}
-                                    >
+                                    <img src={formData.image || heroImg} alt="Anteprima evento" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                    <Stack direction="row" spacing={1} sx={{ position: "absolute", right: 8, bottom: 8, bgcolor: "rgba(0,0,0,0.45)", p: 0.5, borderRadius: 2, backdropFilter: "blur(6px)" }}>
                                         <Tooltip title="Scegli da Drive">
-                                            <IconButton
-                                                onClick={() => setDriveDialogOpen(true)}
-                                                aria-label="Scegli da Drive"
-                                                size="small"
-                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
-                                            >
+                                            <IconButton onClick={() => setDriveDialogOpen(true)} aria-label="Scegli da Drive" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
                                                 <AddToDriveIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         <Tooltip title="Carica da dispositivo">
-                                            <IconButton
-                                                onClick={onPickFromDevice}
-                                                aria-label="Carica da dispositivo"
-                                                size="small"
-                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
-                                            >
+                                            <IconButton onClick={onPickFromDevice} aria-label="Carica da dispositivo" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
                                                 <CloudUploadIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         {formData.image && (
                                             <Tooltip title="Rimuovi immagine">
-                                                <IconButton
-                                                    onClick={() => setFormData((f) => ({ ...f, image: "" }))}
-                                                    aria-label="Rimuovi immagine"
-                                                    size="small"
-                                                    sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
-                                                >
+                                                <IconButton onClick={() => setFormData((f) => ({ ...f, image: "" }))} aria-label="Rimuovi immagine" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
                                                     <ClearIcon fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
@@ -1128,11 +1054,11 @@ const AdminPanel = () => {
                                 </Typography>
                             </Paper>
 
-                            {/* FORM GRID — Desktop 8/4, Mobile 1 colonna */}
+                            {/* FORM GRID — Desktop 7/5, Mobile 1 colonna */}
                             <Box component="form" onSubmit={handleSubmit} noValidate>
                                 <Grid container spacing={2}>
-                                    {/* SINISTRA (Dettagli + Descrizione & Stato) */}
-                                    <Grid item xs={12} md={8}>
+                                    {/* SINISTRA (Dettagli + Descrizione) */}
+                                    <Grid item xs={12} md={7}>
                                         {/* Dettagli */}
                                         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
                                             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
@@ -1143,56 +1069,36 @@ const AdminPanel = () => {
                                                 <Grid item xs={12}>
                                                     <TextField
                                                         name="name"
-                                                        label="Nome evento"
+                                                        label="Nome evento *"
                                                         value={formData.name}
                                                         onChange={handleChange}
-                                                        fullWidth
                                                         required
                                                         error={!!errors.name}
-                                                        helperText={errors.name}
-                                                        InputProps={{
-                                                            startAdornment: (
-                                                                <InputAdornment position="start">
-                                                                    <ImageIcon fontSize="small" />
-                                                                </InputAdornment>
-                                                            ),
-                                                        }}
+                                                        helperText={errors.name || "Esempio: Friday Groove @ Rooftop"}
+                                                        InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
                                                     />
                                                 </Grid>
 
                                                 <Grid item xs={12} md={6}>
                                                     <TextField
                                                         name="dj"
-                                                        label="DJ"
+                                                        label="DJ / Line-up"
                                                         value={formData.dj}
                                                         onChange={handleChange}
-                                                        fullWidth
-                                                        InputProps={{
-                                                            startAdornment: (
-                                                                <InputAdornment position="start">
-                                                                    {/* musica */}
-                                                                    <ImageIcon fontSize="small" />
-                                                                </InputAdornment>
-                                                            ),
-                                                        }}
+                                                        placeholder="DJ Name, Guest, Resident…"
+                                                        InputProps={{ startAdornment: <InputAdornment position="start">🎧</InputAdornment> }}
                                                     />
                                                 </Grid>
                                                 <Grid item xs={12} md={3}>
                                                     <TextField
                                                         name="price"
-                                                        label="Prezzo"
+                                                        label="Prezzo (€)"
+                                                        type="number"
                                                         value={formData.soldOut ? "" : formData.price}
                                                         onChange={handleChange}
-                                                        fullWidth
                                                         disabled={formData.soldOut}
-                                                        inputMode="decimal"
-                                                        InputProps={{
-                                                            startAdornment: (
-                                                                <InputAdornment position="start">
-                                                                    <EuroIcon fontSize="small" />
-                                                                </InputAdornment>
-                                                            ),
-                                                        }}
+                                                        inputProps={{ step: "0.5", min: "0" }}
+                                                        InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
                                                         helperText={formData.soldOut ? "Non richiesto se sold out" : ""}
                                                     />
                                                 </Grid>
@@ -1200,49 +1106,34 @@ const AdminPanel = () => {
                                                     <TextField
                                                         name="capacity"
                                                         label="Capienza"
+                                                        type="number"
                                                         value={formData.capacity}
                                                         onChange={handleChange}
-                                                        fullWidth
-                                                        inputMode="numeric"
+                                                        inputProps={{ min: "0", step: "1" }}
                                                     />
                                                 </Grid>
                                             </Grid>
                                         </Paper>
 
-                                        {/* Descrizione & Stato */}
+                                        {/* Descrizione (a tutta larghezza per desktop) */}
                                         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                                            <Grid container spacing={2} alignItems="flex-start">
-                                                <Grid item xs={12} md={8}>
-                                                    <TextField
-                                                        name="description"
-                                                        label="Descrizione"
-                                                        value={formData.description}
-                                                        onChange={handleChange}
-                                                        fullWidth
-                                                        multiline
-                                                        minRows={6}
-                                                        placeholder="Line-up, dress code, guestlist…"
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} md={4}>
-                                                    <Stack spacing={1.5} sx={{ pt: { md: 0.5 } }}>
-                                                        <Stack direction="row" alignItems="center" spacing={1}>
-                                                            <Typography variant="body2">Sold out</Typography>
-                                                            <Switch
-                                                                checked={formData.soldOut}
-                                                                onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))}
-                                                                color="warning"
-                                                            />
-                                                        </Stack>
-                                                        <FormHelperText>Se attivo, il campo prezzo viene disabilitato.</FormHelperText>
-                                                    </Stack>
-                                                </Grid>
-                                            </Grid>
+                                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+                                                Descrizione
+                                            </Typography>
+                                            <TextField
+                                                name="description"
+                                                label="Dettagli, line-up, note"
+                                                value={formData.description}
+                                                onChange={handleChange}
+                                                multiline
+                                                minRows={7}
+                                                placeholder="Line-up, dress code, guestlist, promozioni…"
+                                            />
                                         </Paper>
                                     </Grid>
 
-                                    {/* DESTRA (Programmazione + Luogo) */}
-                                    <Grid item xs={12} md={4}>
+                                    {/* DESTRA (Programmazione + Luogo + Stato) */}
+                                    <Grid item xs={12} md={5}>
                                         <Stack spacing={2} sx={{ position: { md: "sticky" }, top: { md: 16 } }}>
                                             {/* Programmazione */}
                                             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -1254,7 +1145,7 @@ const AdminPanel = () => {
                                                         <TextField
                                                             type="date"
                                                             name="date"
-                                                            label="Data"
+                                                            label="Data *"
                                                             InputLabelProps={{ shrink: true }}
                                                             inputProps={{ min: todayISO() }}
                                                             value={formData.date}
@@ -1262,41 +1153,27 @@ const AdminPanel = () => {
                                                             required
                                                             error={!!errors.date}
                                                             helperText={errors.date}
-                                                            fullWidth
-                                                            InputProps={{
-                                                                startAdornment: (
-                                                                    <InputAdornment position="start">
-                                                                        <CalendarTodayIcon fontSize="small" />
-                                                                    </InputAdornment>
-                                                                ),
-                                                            }}
+                                                            InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment> }}
                                                         />
                                                     </Grid>
                                                     <Grid item xs={12} sm={6} md={12}>
                                                         <TextField
                                                             type="time"
                                                             name="time"
-                                                            label="Orario"
+                                                            label="Orario *"
                                                             InputLabelProps={{ shrink: true }}
                                                             value={formData.time}
                                                             onChange={handleChange}
                                                             required
                                                             error={!!errors.time}
                                                             helperText={errors.time}
-                                                            fullWidth
-                                                            InputProps={{
-                                                                startAdornment: (
-                                                                    <InputAdornment position="start">
-                                                                        <AccessTimeIcon fontSize="small" />
-                                                                    </InputAdornment>
-                                                                ),
-                                                            }}
+                                                            InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" /></InputAdornment> }}
                                                         />
                                                     </Grid>
                                                 </Grid>
                                             </Paper>
 
-                                            {/* Luogo */}
+                                            {/* Luogo (Google) */}
                                             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Luogo
@@ -1316,27 +1193,36 @@ const AdminPanel = () => {
                                                 />
 
                                                 {placeCoords && (
-                                                    <Box
-                                                        sx={{
-                                                            mt: 1.5,
-                                                            borderRadius: 1,
-                                                            overflow: "hidden",
-                                                            border: "1px solid rgba(255,255,255,0.08)",
-                                                        }}
-                                                    >
+                                                    <Box sx={{ mt: 1.5, borderRadius: 1, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
                                                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, opacity: 0.8 }}>
-                                                            <MapIcon fontSize="small" />{" "}
-                                                            <Typography variant="caption">Anteprima posizione</Typography>
+                                                            <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione (Google)</Typography>
                                                         </Box>
-                                                        <img
-                                                            src={`https://staticmap.openstreetmap.de/staticmap.php?center=${placeCoords.lat},${placeCoords.lon}&zoom=14&size=600x240&markers=${placeCoords.lat},${placeCoords.lon},lightred1`}
-                                                            alt="Mappa"
-                                                            style={{ width: "100%", height: 240, objectFit: "cover" }}
-                                                            loading="lazy"
-                                                            decoding="async"
-                                                        />
+                                                        {/* Embed mappa Google (no API addizionali) */}
+                                                        <Box sx={{ position: "relative", pt: "56.25%" }}>
+                                                            <iframe
+                                                                title="map-preview"
+                                                                src={`https://www.google.com/maps?q=${placeCoords.lat},${placeCoords.lon}&z=15&output=embed`}
+                                                                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+                                                                loading="lazy"
+                                                                referrerPolicy="no-referrer-when-downgrade"
+                                                            />
+                                                        </Box>
                                                     </Box>
                                                 )}
+                                            </Paper>
+
+                                            {/* Stato */}
+                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+                                                    Stato vendita
+                                                </Typography>
+                                                <Stack spacing={1.5}>
+                                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                                        <Typography variant="body2">Sold out</Typography>
+                                                        <Switch checked={formData.soldOut} onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))} color="warning" />
+                                                    </Stack>
+                                                    <FormHelperText>Se attivo, il campo prezzo viene disabilitato.</FormHelperText>
+                                                </Stack>
                                             </Paper>
 
                                             {/* Azioni desktop */}
@@ -1477,10 +1363,7 @@ const AdminPanel = () => {
                             <Button
                                 variant="text"
                                 startIcon={<ContentCopyIcon />}
-                                onClick={async () => {
-                                    if (!driveFolderLink) return;
-                                    try { await navigator.clipboard.writeText(driveFolderLink); } catch {}
-                                }}
+                                onClick={async () => { if (!driveFolderLink) return; try { await navigator.clipboard.writeText(driveFolderLink); } catch {} }}
                                 sx={{ color: "primary.main", ml: 1 }}
                                 disabled={!driveFolderLink}
                             >

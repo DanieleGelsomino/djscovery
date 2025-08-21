@@ -7,15 +7,23 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "grant:admin": "node tools/set-admin-claim.js",
+    "revoke:admin": "node tools/unset-admin-claim.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
     "firebase": "^11.9.0",
+    "firebase-admin": "^13.4.0",
     "framer-motion": "^10.16.4",
+    "helmet": "^8.1.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
@@ -23,9 +31,13 @@
     "react-swipeable": "^7.0.2",
     "styled-components": "^6.1.1",
     "swiper": "^11.2.10",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "vite": "^5.0.10"
-  }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
