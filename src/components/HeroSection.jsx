@@ -61,7 +61,7 @@ const CTAWrapper = styled(motion.div)`
 
 const BtnPrimary = styled(motion(Link))`
   padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+  border-radius: 12px;
   background-color: var(--green);
   color: var(--white);
   font-weight: bold;

@@ -91,7 +91,7 @@ import { useToast } from "./ToastContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/config";
 
-// Drive utils (pubblici, come la home)
+// Drive utils
 import { listImagesInFolder, driveCdnSrc, driveApiSrc } from "../lib/driveGallery";
 
 /* ---------------- THEME ---------------- */
@@ -99,7 +99,7 @@ const drawerWidth = 256;
 const muiTheme = createTheme({
     palette: {
         mode: "dark",
-        primary: { main: "#FFD54F" }, // giallo
+        primary: { main: "#FFD54F" },
         secondary: { main: "#E53935" },
         background: { default: "#0B0B0D", paper: "#141418" },
     },
@@ -112,9 +112,7 @@ const muiTheme = createTheme({
         MuiTableCell: { styleOverrides: { head: { fontWeight: 700, background: "#1b1b22" } } },
         MuiButton: { defaultProps: { disableElevation: true } },
         MuiPaper: { styleOverrides: { root: { backdropFilter: "blur(6px)" } } },
-        MuiTextField: {
-            defaultProps: { size: "medium", fullWidth: true },
-        },
+        MuiTextField: { defaultProps: { size: "medium", fullWidth: true } },
     },
 });
 const glass = {
@@ -150,7 +148,6 @@ const loadGooglePlaces = (() => {
         p = new Promise((resolve, reject) => {
             if (window.google?.maps?.places) return resolve(window.google.maps);
             const s = document.createElement("script");
-            // lingua e regione per risultati più pertinenti
             s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
                 key
             )}&libraries=places&language=it&region=IT`;
@@ -163,7 +160,15 @@ const loadGooglePlaces = (() => {
     };
 })();
 
-function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, helperText, onCoords }) {
+function PlaceAutocomplete({
+                               value,
+                               onChange,
+                               inputValue,
+                               onInputChange,
+                               error,
+                               helperText,
+                               onCoords,
+                           }) {
     const [preds, setPreds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [initError, setInitError] = useState("");
@@ -207,7 +212,7 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
                 {
                     input: q,
                     sessionToken: sessionRef.current,
-                    // componentRestrictions: { country: ["it"] }, // sblocca se vuoi restringere
+                    // componentRestrictions: { country: ["it"] },
                 },
                 (res, status) => {
                     setLoading(false);
@@ -249,10 +254,16 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
                 }
                 const loc = place.geometry?.location;
                 const coords = loc ? { lat: loc.lat?.(), lon: loc.lng?.() } : null;
-                onChange({ label: place.formatted_address || opt.label, place_id: opt.place_id, verified: true, ...coords });
+                onChange({
+                    label: place.formatted_address || opt.label,
+                    place_id: opt.place_id,
+                    verified: true,
+                    ...coords,
+                });
                 onCoords?.(coords);
-                // nuova sessione per ricerche successive
-                try { sessionRef.current = new window.google.maps.places.AutocompleteSessionToken(); } catch {}
+                try {
+                    sessionRef.current = new window.google.maps.places.AutocompleteSessionToken();
+                } catch {}
             }
         );
     };
@@ -273,9 +284,13 @@ function PlaceAutocomplete({ value, onChange, inputValue, onInputChange, error, 
             renderOption={(props, option) => (
                 <li {...props} key={option.place_id}>
                     <Stack>
-                        <Typography variant="body2" fontWeight={600}>{option.main_text || option.label}</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                            {option.main_text || option.label}
+                        </Typography>
                         {option.secondary_text && (
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{option.secondary_text}</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                {option.secondary_text}
+                            </Typography>
                         )}
                     </Stack>
                 </li>
@@ -335,7 +350,11 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
         setError("");
         setLoading(true);
         try {
-            const list = await listImagesInFolder(folderId, { apiKey, includeSharedDrives: true, pageSize: 200 });
+            const list = await listImagesInFolder(folderId, {
+                apiKey,
+                includeSharedDrives: true,
+                pageSize: 200,
+            });
             setItems(Array.isArray(list) ? list : []);
         } catch (e) {
             console.error(e);
@@ -345,7 +364,9 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
         }
     }, [apiKey, folderId]);
 
-    useEffect(() => { if (open) load(); }, [open, load]);
+    useEffect(() => {
+        if (open) load();
+    }, [open, load]);
 
     const filtered = useMemo(() => {
         const t = filter.trim().toLowerCase();
@@ -368,7 +389,13 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                         placeholder="Filtra per nome…"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
                     />
                     <Button onClick={load} variant="outlined" sx={{ color: "primary.main", borderColor: "primary.main" }}>
                         Ricarica
@@ -409,7 +436,10 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                                 <Box
                                     key={img.id}
                                     role="button"
-                                    onClick={() => { onPick(driveCdnSrc(img.id, 1600)); onClose(); }}
+                                    onClick={() => {
+                                        onPick(driveCdnSrc(img.id, 1600));
+                                        onClose();
+                                    }}
                                     sx={{
                                         position: "relative",
                                         width: "100%",
@@ -427,7 +457,14 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                                         onError={(e) => (e.currentTarget.src = fallback)}
                                         loading="lazy"
                                         decoding="async"
-                                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#111" }}
+                                        style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            background: "#111",
+                                        }}
                                     />
                                 </Box>
                             );
@@ -452,10 +489,16 @@ function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut }) {
             <CardContent sx={{ pb: 1.5 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                     {!past ? <CheckCircleIcon color="success" fontSize="small" /> : <LockClockIcon color="disabled" fontSize="small" />}
-                    <Typography variant="subtitle1" fontWeight={700}>{ev.name}</Typography>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                        {ev.name}
+                    </Typography>
                 </Stack>
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>{ev.dj || "—"}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>{ev.place || "—"}</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    {ev.dj || "—"}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    {ev.place || "—"}
+                </Typography>
                 <Stack direction="row" spacing={2} sx={{ mt: 1, opacity: 0.8 }}>
                     <Typography variant="caption">📅 {ev.date}</Typography>
                     <Typography variant="caption">⏰ {ev.time}</Typography>
@@ -465,11 +508,21 @@ function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut }) {
             <CardActions sx={{ pt: 0, pb: 1.5, px: 2, justifyContent: "space-between" }}>
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="caption">Sold Out</Typography>
-                    <Switch size="small" color="warning" checked={!!ev.soldOut} onChange={(e) => onToggleSoldOut(e.target.checked)} disabled={past} />
+                    <Switch
+                        size="small"
+                        color="warning"
+                        checked={!!ev.soldOut}
+                        onChange={(e) => onToggleSoldOut(e.target.checked)}
+                        disabled={past}
+                    />
                 </Stack>
                 <Stack direction="row" spacing={1}>
-                    <Button size="small" startIcon={<EditIcon />} onClick={onEdit} disabled={past}>Modifica</Button>
-                    <IconButton size="small" color="error" onClick={onDelete} disabled={past}><DeleteIcon fontSize="small" /></IconButton>
+                    <Button size="small" startIcon={<EditIcon />} onClick={onEdit} disabled={past}>
+                        Modifica
+                    </Button>
+                    <IconButton size="small" color="error" onClick={onDelete} disabled={past}>
+                        <DeleteIcon fontSize="small" />
+                    </IconButton>
                 </Stack>
             </CardActions>
         </Card>
@@ -479,8 +532,12 @@ function MobileBookingCard({ b }) {
     return (
         <Card sx={{ mb: 1.2, background: "#18181f", border: "1px solid rgba(255,255,255,0.06)" }}>
             <CardContent>
-                <Typography variant="subtitle1" fontWeight={700}>{b.nome} {b.cognome}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>{b.email}</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                    {b.nome} {b.cognome}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    {b.email}
+                </Typography>
                 <Stack direction="row" spacing={2} sx={{ mt: 0.5, opacity: 0.85 }}>
                     <Typography variant="caption">📞 {b.telefono}</Typography>
                     <Typography variant="caption">🎟️ {b.quantity || 1}</Typography>
@@ -506,8 +563,18 @@ const AdminPanel = () => {
 
     // form
     const [formData, setFormData] = useState({
-        name: "", dj: "", date: "", time: "", price: "", capacity: "",
-        description: "", soldOut: false, image: "", place: "", placeCoords: null, placeId: null,
+        name: "",
+        dj: "",
+        date: "",
+        time: "",
+        price: "",
+        capacity: "",
+        description: "",
+        soldOut: false,
+        image: "",
+        place: "",
+        placeCoords: null,
+        placeId: null,
     });
     const [errors, setErrors] = useState({});
     const [editingId, setEditingId] = useState(null);
@@ -523,7 +590,9 @@ const AdminPanel = () => {
     const driveFolderLinkEnv = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER;
     const driveFolderLink = driveFolderLinkEnv?.startsWith("http")
         ? driveFolderLinkEnv
-        : driveFolderId ? `https://drive.google.com/drive/u/0/folders/${driveFolderId}` : "";
+        : driveFolderId
+            ? `https://drive.google.com/drive/u/0/folders/${driveFolderId}`
+            : "";
 
     // bootstrap guard
     useEffect(() => {
@@ -560,7 +629,7 @@ const AdminPanel = () => {
         reader.readAsDataURL(file);
     };
 
-    // validazione (UX: messaggi chiari, vincoli reali)
+    // validazione
     const validate = () => {
         const e = {};
         if (!formData.name?.trim()) e.name = "Inserisci un nome";
@@ -578,8 +647,18 @@ const AdminPanel = () => {
         setPlaceInput("");
         setPlaceCoords(null);
         setFormData({
-            name: "", dj: "", date: "", time: "", price: "", capacity: "",
-            description: "", soldOut: false, image: "", place: "", placeCoords: null, placeId: null,
+            name: "",
+            dj: "",
+            date: "",
+            time: "",
+            price: "",
+            capacity: "",
+            description: "",
+            soldOut: false,
+            image: "",
+            place: "",
+            placeCoords: null,
+            placeId: null,
         });
     };
 
@@ -630,16 +709,32 @@ const AdminPanel = () => {
 
     const handleEdit = (ev) => {
         setFormData({
-            name: ev.name || "", dj: ev.dj || "", date: ev.date || "", time: ev.time || "",
-            price: ev.price || "", capacity: ev.capacity || "", description: ev.description || "",
-            soldOut: !!ev.soldOut, image: ev.image || "", place: ev.place || "", placeCoords: ev.placeCoords || null,
+            name: ev.name || "",
+            dj: ev.dj || "",
+            date: ev.date || "",
+            time: ev.time || "",
+            price: ev.price || "",
+            capacity: ev.capacity || "",
+            description: ev.description || "",
+            soldOut: !!ev.soldOut,
+            image: ev.image || "",
+            place: ev.place || "",
+            placeCoords: ev.placeCoords || null,
+            placeId: ev.placeId || null,
         });
         if (ev.place) {
-            setPlaceSelected({ label: ev.place, place_id: ev.placeId || "", ...(ev.placeCoords || {}), verified: true });
+            setPlaceSelected({
+                label: ev.place,
+                place_id: ev.placeId || "",
+                ...(ev.placeCoords || {}),
+                verified: true,
+            });
             setPlaceInput(ev.place);
             setPlaceCoords(ev.placeCoords || null);
         } else {
-            setPlaceSelected(null); setPlaceInput(""); setPlaceCoords(null);
+            setPlaceSelected(null);
+            setPlaceInput("");
+            setPlaceCoords(null);
         }
         setEditingId(ev.id);
         setSection("create");
@@ -675,9 +770,11 @@ const AdminPanel = () => {
                 va = eventDateTime(a)?.getTime() || 0;
                 vb = eventDateTime(b)?.getTime() || 0;
             } else if (evSort.key === "name") {
-                va = (a.name || "").toLowerCase(); vb = (b.name || "").toLowerCase();
+                va = (a.name || "").toLowerCase();
+                vb = (b.name || "").toLowerCase();
             } else {
-                va = (a.place || "").toLowerCase(); vb = (b.place || "").toLowerCase();
+                va = (a.place || "").toLowerCase();
+                vb = (b.place || "").toLowerCase();
             }
             if (va < vb) return evSort.dir === "asc" ? -1 : 1;
             if (va > vb) return evSort.dir === "asc" ? 1 : -1;
@@ -695,7 +792,9 @@ const AdminPanel = () => {
         let list = [...bookings];
         if (q) {
             list = list.filter((b) =>
-                [b.nome, b.cognome, b.email, b.telefono].filter(Boolean).some((s) => (s + "").toLowerCase().includes(q))
+                [b.nome, b.cognome, b.email, b.telefono].filter(Boolean).some((s) =>
+                    (s + "").toLowerCase().includes(q)
+                )
             );
         }
         const cmp = (a, b) => {
@@ -707,7 +806,8 @@ const AdminPanel = () => {
                 va = `${a.nome || ""} ${a.cognome || ""}`.toLowerCase();
                 vb = `${b.nome || ""} ${b.cognome || ""}`.toLowerCase();
             } else {
-                va = a.quantity || 1; vb = b.quantity || 1;
+                va = a.quantity || 1;
+                vb = b.quantity || 1;
             }
             if (va < vb) return bkSort.dir === "asc" ? -1 : 1;
             if (va > vb) return bkSort.dir === "asc" ? 1 : -1;
@@ -731,11 +831,17 @@ const AdminPanel = () => {
                 {navItems.map((item) => (
                     <ListItem disablePadding key={item.key}>
                         <ListItemButton
-                            onClick={() => { setSection(item.key); setMobileOpen(false); }}
+                            onClick={() => {
+                                setSection(item.key);
+                                setMobileOpen(false);
+                            }}
                             selected={section === item.key}
                             sx={{
                                 borderRadius: 1,
-                                "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.08)", "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" } },
+                                "&.Mui-selected": {
+                                    backgroundColor: "rgba(255,255,255,0.08)",
+                                    "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" },
+                                },
                             }}
                         >
                             <ListItemIcon>{item.icon}</ListItemIcon>
@@ -767,7 +873,9 @@ const AdminPanel = () => {
 
     /* ---------- Logout ---------- */
     const handleLogout = async () => {
-        try { await signOut(auth); } catch {}
+        try {
+            await signOut(auth);
+        } catch {}
         setAuthToken(null);
         localStorage.removeItem("isAdmin");
         localStorage.removeItem("adminToken");
@@ -775,7 +883,10 @@ const AdminPanel = () => {
     };
 
     /* ---------- isValid per azioni sticky ---------- */
-    const isValid = useMemo(() => Boolean(formData.name && formData.date && formData.time), [formData]);
+    const isValid = useMemo(
+        () => Boolean(formData.name && formData.date && formData.time),
+        [formData]
+    );
 
     return (
         <MuiThemeProvider theme={muiTheme}>
@@ -801,7 +912,9 @@ const AdminPanel = () => {
                                         <MenuIcon />
                                     </IconButton>
                                 )}
-                                <Typography variant="h6" noWrap>Admin — {section === "create" ? "Crea / Modifica Evento" : section.charAt(0).toUpperCase() + section.slice(1)}</Typography>
+                                <Typography variant="h6" noWrap>
+                                    Admin — {section === "create" ? "Crea / Modifica Evento" : section.charAt(0).toUpperCase() + section.slice(1)}
+                                </Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" } }}>
                                 <Badge icon={<EventAvailableIcon />} label={`Futuri: ${events.filter((e) => !isPast(e)).length}`} />
@@ -919,7 +1032,9 @@ const AdminPanel = () => {
                                             ev={ev}
                                             onEdit={() => handleEdit(ev)}
                                             onDelete={() => setConfirm({ open: true, id: ev.id, type: "event" })}
-                                            onToggleSoldOut={async (val) => { if (!isPast(ev)) await handleToggleSoldOut(ev.id, val); }}
+                                            onToggleSoldOut={async (val) => {
+                                                if (!isPast(ev)) await handleToggleSoldOut(ev.id, val);
+                                            }}
                                         />
                                     ))}
                                 </Box>
@@ -999,7 +1114,7 @@ const AdminPanel = () => {
                                 {editingId ? "Modifica evento" : "Crea nuovo evento"}
                             </Typography>
 
-                            {/* Copertina con overlay bottoni */}
+                            {/* Copertina */}
                             <Paper
                                 variant="outlined"
                                 sx={{
@@ -1024,23 +1139,54 @@ const AdminPanel = () => {
                                         position: "relative",
                                     }}
                                 >
-                                    <img src={formData.image || heroImg} alt="Anteprima evento" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                                    <Stack direction="row" spacing={1} sx={{ position: "absolute", right: 8, bottom: 8, bgcolor: "rgba(0,0,0,0.45)", p: 0.5, borderRadius: 2, backdropFilter: "blur(6px)" }}>
+                                    <img
+                                        src={formData.image || heroImg}
+                                        alt="Anteprima evento"
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                    />
+                                    <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{
+                                            position: "absolute",
+                                            right: 8,
+                                            bottom: 8,
+                                            bgcolor: "rgba(0,0,0,0.45)",
+                                            p: 0.5,
+                                            borderRadius: 2,
+                                            backdropFilter: "blur(6px)",
+                                        }}
+                                    >
                                         <Tooltip title="Scegli da Drive">
-                                            <IconButton onClick={() => setDriveDialogOpen(true)} aria-label="Scegli da Drive" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                            <IconButton
+                                                onClick={() => setDriveDialogOpen(true)}
+                                                aria-label="Scegli da Drive"
+                                                size="small"
+                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
                                                 <AddToDriveIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         <Tooltip title="Carica da dispositivo">
-                                            <IconButton onClick={onPickFromDevice} aria-label="Carica da dispositivo" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                            <IconButton
+                                                onClick={onPickFromDevice}
+                                                aria-label="Carica da dispositivo"
+                                                size="small"
+                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
                                                 <CloudUploadIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         {formData.image && (
                                             <Tooltip title="Rimuovi immagine">
-                                                <IconButton onClick={() => setFormData((f) => ({ ...f, image: "" }))} aria-label="Rimuovi immagine" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                                <IconButton
+                                                    onClick={() => setFormData((f) => ({ ...f, image: "" }))}
+                                                    aria-label="Rimuovi immagine"
+                                                    size="small"
+                                                    sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                                >
                                                     <ClearIcon fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
@@ -1054,94 +1200,93 @@ const AdminPanel = () => {
                                 </Typography>
                             </Paper>
 
-                            {/* FORM GRID — Desktop 7/5, Mobile 1 colonna */}
-                            <Box component="form" onSubmit={handleSubmit} noValidate>
-                                <Grid container spacing={2}>
-                                    {/* SINISTRA (Dettagli + Descrizione) */}
-                                    <Grid item xs={12} md={7}>
-                                        {/* Dettagli */}
-                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
-                                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
-                                                Dettagli
-                                            </Typography>
-
-                                            <Grid container spacing={1.5}>
-                                                <Grid item xs={12}>
-                                                    <TextField
-                                                        name="name"
-                                                        label="Nome evento *"
-                                                        value={formData.name}
-                                                        onChange={handleChange}
-                                                        required
-                                                        error={!!errors.name}
-                                                        helperText={errors.name || "Esempio: Friday Groove @ Rooftop"}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
-                                                    />
-                                                </Grid>
-
-                                                <Grid item xs={12} md={6}>
-                                                    <TextField
-                                                        name="dj"
-                                                        label="DJ / Line-up"
-                                                        value={formData.dj}
-                                                        onChange={handleChange}
-                                                        placeholder="DJ Name, Guest, Resident…"
-                                                        InputProps={{ startAdornment: <InputAdornment position="start">🎧</InputAdornment> }}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} md={3}>
-                                                    <TextField
-                                                        name="price"
-                                                        label="Prezzo (€)"
-                                                        type="number"
-                                                        value={formData.soldOut ? "" : formData.price}
-                                                        onChange={handleChange}
-                                                        disabled={formData.soldOut}
-                                                        inputProps={{ step: "0.5", min: "0" }}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
-                                                        helperText={formData.soldOut ? "Non richiesto se sold out" : ""}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} md={3}>
-                                                    <TextField
-                                                        name="capacity"
-                                                        label="Capienza"
-                                                        type="number"
-                                                        value={formData.capacity}
-                                                        onChange={handleChange}
-                                                        inputProps={{ min: "0", step: "1" }}
-                                                    />
-                                                </Grid>
+                            {/* SINISTRA: Dettagli + Descrizione */}
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} md={7}>
+                                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
+                                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+                                            Dettagli
+                                        </Typography>
+                                        <Grid container spacing={1.5}>
+                                            <Grid item xs={12}>
+                                                <TextField
+                                                    name="name"
+                                                    label="Nome evento *"
+                                                    value={formData.name}
+                                                    onChange={handleChange}
+                                                    required
+                                                    error={!!errors.name}
+                                                    helperText={errors.name || "Esempio: Friday Groove @ Rooftop"}
+                                                    InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
+                                                />
                                             </Grid>
-                                        </Paper>
+                                            <Grid item xs={12} md={6}>
+                                                <TextField
+                                                    name="dj"
+                                                    label="DJ / Line-up"
+                                                    value={formData.dj}
+                                                    onChange={handleChange}
+                                                    placeholder="DJ Name, Guest, Resident…"
+                                                    InputProps={{ startAdornment: <InputAdornment position="start">🎧</InputAdornment> }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} md={3}>
+                                                <TextField
+                                                    name="price"
+                                                    label="Prezzo (€)"
+                                                    type="number"
+                                                    value={formData.soldOut ? "" : formData.price}
+                                                    onChange={handleChange}
+                                                    disabled={formData.soldOut}
+                                                    inputProps={{ step: "0.5", min: "0" }}
+                                                    InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
+                                                    helperText={formData.soldOut ? "Non richiesto se sold out" : ""}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} md={3}>
+                                                <TextField
+                                                    name="capacity"
+                                                    label="Capienza"
+                                                    type="number"
+                                                    value={formData.capacity}
+                                                    onChange={handleChange}
+                                                    inputProps={{ min: "0", step: "1" }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Paper>
 
-                                        {/* Descrizione (a tutta larghezza per desktop) */}
-                                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
-                                                Descrizione
-                                            </Typography>
-                                            <TextField
-                                                name="description"
-                                                label="Dettagli, line-up, note"
-                                                value={formData.description}
-                                                onChange={handleChange}
-                                                multiline
-                                                minRows={7}
-                                                placeholder="Line-up, dress code, guestlist, promozioni…"
-                                            />
-                                        </Paper>
-                                    </Grid>
+                                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+                                            Descrizione
+                                        </Typography>
+                                        <TextField
+                                            name="description"
+                                            label="Dettagli, line-up, note"
+                                            value={formData.description}
+                                            onChange={handleChange}
+                                            multiline
+                                            minRows={7}
+                                            placeholder="Line-up, dress code, guestlist, promozioni…"
+                                        />
+                                    </Paper>
+                                </Grid>
 
-                                    {/* DESTRA (Programmazione + Luogo + Stato) */}
-                                    <Grid item xs={12} md={5}>
-                                        <Stack spacing={2} sx={{ position: { md: "sticky" }, top: { md: 16 } }}>
-                                            {/* Programmazione */}
-                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                {/* RIGA: Programmazione + Luogo + Stato (desktop affiancati) */}
+                                <Grid item xs={12} md={5}>
+                                    {/* lasciato vuoto per evitare spazi fantasma */}
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <Grid container spacing={2} alignItems="stretch">
+                                        {/* Programmazione */}
+                                        <Grid item xs={12} md={4}>
+                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, height: "100%" }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Programmazione
                                                 </Typography>
                                                 <Grid container spacing={1.5}>
-                                                    <Grid item xs={12} sm={6} md={12}>
+                                                    <Grid item xs={12} md={6}>
                                                         <TextField
                                                             type="date"
                                                             name="date"
@@ -1156,7 +1301,7 @@ const AdminPanel = () => {
                                                             InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment> }}
                                                         />
                                                     </Grid>
-                                                    <Grid item xs={12} sm={6} md={12}>
+                                                    <Grid item xs={12} md={6}>
                                                         <TextField
                                                             type="time"
                                                             name="time"
@@ -1172,9 +1317,11 @@ const AdminPanel = () => {
                                                     </Grid>
                                                 </Grid>
                                             </Paper>
+                                        </Grid>
 
-                                            {/* Luogo (Google) */}
-                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                        {/* Luogo */}
+                                        <Grid item xs={12} md={5}>
+                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, height: "100%" }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Luogo
                                                 </Typography>
@@ -1197,7 +1344,6 @@ const AdminPanel = () => {
                                                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, opacity: 0.8 }}>
                                                             <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione (Google)</Typography>
                                                         </Box>
-                                                        {/* Embed mappa Google (no API addizionali) */}
                                                         <Box sx={{ position: "relative", pt: "56.25%" }}>
                                                             <iframe
                                                                 title="map-preview"
@@ -1210,23 +1356,31 @@ const AdminPanel = () => {
                                                     </Box>
                                                 )}
                                             </Paper>
+                                        </Grid>
 
-                                            {/* Stato */}
-                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                                        {/* Stato vendita */}
+                                        <Grid item xs={12} md={3}>
+                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, height: "100%" }}>
                                                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
                                                     Stato vendita
                                                 </Typography>
                                                 <Stack spacing={1.5}>
                                                     <Stack direction="row" alignItems="center" spacing={1}>
                                                         <Typography variant="body2">Sold out</Typography>
-                                                        <Switch checked={formData.soldOut} onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))} color="warning" />
+                                                        <Switch
+                                                            checked={formData.soldOut}
+                                                            onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))}
+                                                            color="warning"
+                                                        />
                                                     </Stack>
                                                     <FormHelperText>Se attivo, il campo prezzo viene disabilitato.</FormHelperText>
                                                 </Stack>
                                             </Paper>
+                                        </Grid>
 
-                                            {/* Azioni desktop */}
-                                            <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" } }}>
+                                        {/* Azioni desktop */}
+                                        <Grid item xs={12} sx={{ display: { xs: "none", md: "block" } }}>
+                                            <Stack direction="row" spacing={1} justifyContent="flex-end">
                                                 <Button variant="contained" type="submit" disabled={!isValid}>
                                                     {editingId ? "Salva modifiche" : "Crea evento"}
                                                 </Button>
@@ -1234,34 +1388,34 @@ const AdminPanel = () => {
                                                     Annulla
                                                 </Button>
                                             </Stack>
-                                        </Stack>
+                                        </Grid>
                                     </Grid>
                                 </Grid>
+                            </Grid>
 
-                                {/* Action bar mobile sticky */}
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        position: "sticky",
-                                        bottom: 0,
-                                        mt: 2,
-                                        p: 1.5,
-                                        borderRadius: 2,
-                                        display: { xs: "flex", md: "none" },
-                                        gap: 1,
-                                        backdropFilter: "blur(8px)",
-                                        bgcolor: "rgba(20,20,22,0.7)",
-                                        border: "1px solid rgba(255,255,255,0.08)",
-                                    }}
-                                >
-                                    <Button fullWidth variant="contained" type="submit" disabled={!isValid}>
-                                        {editingId ? "Salva" : "Crea evento"}
-                                    </Button>
-                                    <Button fullWidth variant="text" onClick={() => { resetForm(); setSection("events"); }}>
-                                        Annulla
-                                    </Button>
-                                </Paper>
-                            </Box>
+                            {/* Action bar mobile sticky */}
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    position: "sticky",
+                                    bottom: 0,
+                                    mt: 2,
+                                    p: 1.5,
+                                    borderRadius: 2,
+                                    display: { xs: "flex", md: "none" },
+                                    gap: 1,
+                                    backdropFilter: "blur(8px)",
+                                    bgcolor: "rgba(20,20,22,0.7)",
+                                    border: "1px solid rgba(255,255,255,0.08)",
+                                }}
+                            >
+                                <Button fullWidth variant="contained" type="submit" disabled={!isValid}>
+                                    {editingId ? "Salva" : "Crea evento"}
+                                </Button>
+                                <Button fullWidth variant="text" onClick={() => { resetForm(); setSection("events"); }}>
+                                    Annulla
+                                </Button>
+                            </Paper>
                         </Paper>
                     )}
 
@@ -1312,9 +1466,7 @@ const AdminPanel = () => {
                             </Stack>
 
                             {isMobile ? (
-                                <Box>
-                                    {filteredSortedBookings.map((b) => <MobileBookingCard key={b.id} b={b} />)}
-                                </Box>
+                                <Box>{filteredSortedBookings.map((b) => <MobileBookingCard key={b.id} b={b} />)}</Box>
                             ) : (
                                 <TableContainer>
                                     <Table size="small" stickyHeader>
@@ -1347,7 +1499,9 @@ const AdminPanel = () => {
                     {/* GALLERY (link esterno) */}
                     {section === "gallery" && (
                         <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 520, mx: "auto", textAlign: "center" }}>
-                            <Typography variant="h5" gutterBottom>Gallery</Typography>
+                            <Typography variant="h5" gutterBottom>
+                                Gallery
+                            </Typography>
                             <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
                                 Le immagini della Home sono lette direttamente dalla cartella Drive pubblica.
                             </Typography>
@@ -1363,7 +1517,12 @@ const AdminPanel = () => {
                             <Button
                                 variant="text"
                                 startIcon={<ContentCopyIcon />}
-                                onClick={async () => { if (!driveFolderLink) return; try { await navigator.clipboard.writeText(driveFolderLink); } catch {} }}
+                                onClick={async () => {
+                                    if (!driveFolderLink) return;
+                                    try {
+                                        await navigator.clipboard.writeText(driveFolderLink);
+                                    } catch {}
+                                }}
                                 sx={{ color: "primary.main", ml: 1 }}
                                 disabled={!driveFolderLink}
                             >

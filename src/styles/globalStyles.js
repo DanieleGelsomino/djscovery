@@ -52,7 +52,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   button {
-    border-radius: 8px;
+    border-radius: 12px !important;
     border: none;
     font-weight: 600;
     padding: 0.5rem 1rem;
@@ -69,6 +69,7 @@ export const GlobalStyles = createGlobalStyle`
     cursor: pointer;
     font: inherit;
     transition: background-color 0.3s, transform 0.2s;
+      border-radius: 12px !important;
     &:focus {
       outline: none;
     }

@@ -12,7 +12,8 @@ import Footer from './components/Footer';
 import TicketBookingForm from './components/TicketBookingForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
-import AdminRoute from './components/AdminRoute'; // 👈 aggiunta
+import AdminRoute from './components/AdminRoute';
+import NotFound from "./components/NotFound"; // 👈 aggiunta
 
 const Main = styled.main`
     flex: 1;
@@ -53,7 +54,7 @@ const App = () => {
                         />
 
                         {/* opzionale: 404 */}
-                        {/* <Route path="*" element={<NotFound />} /> */}
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
                 </AnimatePresence>
             </Main>
