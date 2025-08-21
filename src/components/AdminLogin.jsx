@@ -170,7 +170,7 @@ const AdminLogin = () => {
                         src={logo}
                         alt="Admin logo"
                         style={{
-                            width: '260px',
+                            width: '200px',
                             maxWidth: '80%',
                             height: 'auto',
                             objectFit: 'contain',
