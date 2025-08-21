@@ -4,20 +4,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
     Box, Button, Paper, TextField, Typography,
     InputAdornment, IconButton, Dialog, DialogTitle,
-    DialogContent, DialogActions, CircularProgress
+    DialogContent, DialogActions, CircularProgress, GlobalStyles
 } from '@mui/material';
-import { useLanguage } from './LanguageContext';
 import {
     signInWithEmailAndPassword,
     onAuthStateChanged,
     sendPasswordResetEmail
 } from 'firebase/auth';
-import logo from '../assets/img/ADMIN.png';
-import heroImg from '../assets/img/hero.png';
-import { auth } from '../firebase/config';
-import { setAuthToken } from '../api';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+
+import { useLanguage } from './LanguageContext';
+import { auth } from '../firebase/config';
+import { setAuthToken } from '../api';
+
+import logo from '../assets/img/ADMIN.png';
+import heroImg from '../assets/img/hero.png';
 
 const AdminLogin = () => {
     const [email, setEmail] = useState('');
@@ -43,24 +45,22 @@ const AdminLogin = () => {
             if (!user) return;
 
             try {
-                const idToken = await user.getIdToken(/* forceRefresh */ true);
+                const idToken = await user.getIdToken(true);
                 const tokenResult = await user.getIdTokenResult();
                 const isAdmin = !!tokenResult.claims?.admin;
 
-                // (facoltativo) invia il token al backend
                 setAuthToken(idToken);
 
                 if (isAdmin) {
-                    localStorage.setItem('isAdmin', 'true'); // solo per UI hints; non è sicurezza
+                    localStorage.setItem('isAdmin', 'true'); // solo UI hints
                     navigate('/admin/panel');
                 } else {
-                    // Non admin: esce e redirect
                     localStorage.removeItem('isAdmin');
                     await auth.signOut();
                     setError('Accesso negato: non hai permessi amministratore.');
                     navigate('/');
                 }
-            } catch (e) {
+            } catch {
                 setError('Errore nella verifica dei permessi.');
             }
         });
@@ -78,8 +78,8 @@ const AdminLogin = () => {
         setInfo('');
         try {
             await signInWithEmailAndPassword(auth, email.trim(), password);
-            // onAuthStateChanged farà il resto (claim check + redirect)
-        } catch (err) {
+            // onAuthStateChanged farà il resto
+        } catch {
             setError('Credenziali non valide.');
         } finally {
             setSubmitting(false);
@@ -104,9 +104,21 @@ const AdminLogin = () => {
             await sendPasswordResetEmail(auth, resetEmail.trim());
             setInfo('Email di reset inviata. Controlla la tua casella di posta.');
             setResetOpen(false);
-        } catch (err) {
+        } catch {
             setError('Impossibile inviare email di reset. Verifica l’indirizzo.');
         }
+    };
+
+    // Stile comune “glass overlay” per i TextField
+    const textFieldSx = {
+        '& .MuiOutlinedInput-root': {
+            color: '#fff',
+            backgroundColor: 'rgba(255,255,255,0.12)', // overlay fisso anche senza autofill
+            '& fieldset': { borderRadius: '12px', borderColor: 'rgba(255,255,255,0.5)' },
+            '&:hover fieldset': { borderColor: '#fff' },
+            '&.Mui-focused fieldset': { borderColor: '#fff' },
+        },
+        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.85)' },
     };
 
     return (
@@ -114,7 +126,7 @@ const AdminLogin = () => {
             sx={{
                 textAlign: 'center',
                 minHeight: '100vh',
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${heroImg})`,
+                backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${heroImg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 display: 'flex',
@@ -123,42 +135,60 @@ const AdminLogin = () => {
                 p: 2,
             }}
         >
+            {/* Override globale per autofill: mantiene overlay e testo bianco */}
+            <GlobalStyles styles={{
+                'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active': {
+                    WebkitBoxShadow: '0 0 0 40px rgba(255,255,255,0.12) inset !important',
+                    WebkitTextFillColor: '#fff !important',
+                    caretColor: '#fff',
+                    transition: 'background-color 9999s ease-in-out 0s',
+                }
+            }} />
+
             <Paper
                 component="form"
                 onSubmit={handleSubmit}
+                elevation={6}
                 sx={{
-                    p: 4,
+                    p: { xs: 3, sm: 4 },
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 2,
-                    width: 400,
+                    width: 420,
                     maxWidth: '100%',
-                    minHeight: 420,
-                    backgroundColor: 'rgba(255,255,255,0.15)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                    borderRadius: 2,
+                    minHeight: 440,
+                    backgroundColor: 'rgba(255,255,255,0.14)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+                    borderRadius: '16px', // ✅ card 16px
+                    border: '1px solid rgba(255,255,255,0.25)',
                 }}
             >
-                <img
-                    src={logo}
-                    alt="Admin logo"
-                    style={{ width: '200px', alignSelf: 'center', marginBottom: '1rem' }}
-                />
+                {/* Logo più grande e responsivo */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                    <img
+                        src={logo}
+                        alt="Admin logo"
+                        style={{
+                            width: '260px',
+                            maxWidth: '80%',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))'
+                        }}
+                    />
+                </Box>
 
                 <TextField
                     label="Email"
                     type="email"
                     autoComplete="email"
+                    autoFocus
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     variant="outlined"
                     fullWidth
-                    sx={{
-                        '& .MuiOutlinedInput-root': { color: '#fff' },
-                        '& .MuiInputLabel-root': { color: '#fff' },
-                        '& fieldset': { borderRadius: 0 },
-                    }}
+                    sx={textFieldSx}
                     InputLabelProps={{ style: { color: '#fff' } }}
                     InputProps={{ style: { color: '#fff' } }}
                 />
@@ -171,11 +201,7 @@ const AdminLogin = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     variant="outlined"
                     fullWidth
-                    sx={{
-                        '& .MuiOutlinedInput-root': { color: '#fff' },
-                        '& .MuiInputLabel-root': { color: '#fff' },
-                        '& fieldset': { borderRadius: 0 },
-                    }}
+                    sx={textFieldSx}
                     InputLabelProps={{ style: { color: '#fff' } }}
                     InputProps={{
                         style: { color: '#fff' },
@@ -185,6 +211,7 @@ const AdminLogin = () => {
                                     onClick={() => setShowPassword((prev) => !prev)}
                                     edge="end"
                                     sx={{ color: '#fff' }}
+                                    aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
                                 >
                                     {showPassword ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>
@@ -199,7 +226,9 @@ const AdminLogin = () => {
                     sx={{
                         backgroundColor: 'var(--red)',
                         '&:hover': { backgroundColor: '#c62828' },
-                        borderRadius: 1,
+                        borderRadius: '12px', // ✅ button 12px
+                        py: 1.2,
+                        fontWeight: 700,
                     }}
                     disabled={submitting || !email || !password}
                 >
@@ -209,7 +238,7 @@ const AdminLogin = () => {
                 <Button
                     variant="text"
                     onClick={openReset}
-                    sx={{ color: '#fff', textDecoration: 'underline', mt: -1 }}
+                    sx={{ color: '#fff', textDecoration: 'underline', mt: -0.5 }}
                 >
                     Password dimenticata?
                 </Button>
@@ -218,7 +247,7 @@ const AdminLogin = () => {
                     <Typography color="error" variant="body2">{error}</Typography>
                 )}
                 {info && (
-                    <Typography color="success.main" variant="body2">{info}</Typography>
+                    <Typography sx={{ color: '#4caf50' }} variant="body2">{info}</Typography>
                 )}
 
                 <Button
@@ -226,8 +255,11 @@ const AdminLogin = () => {
                     to="/"
                     variant="outlined"
                     sx={{
-                        mt: 1, color: 'var(--yellow)',
-                        borderColor: 'var(--yellow)', borderRadius: 1
+                        mt: 1,
+                        color: 'var(--yellow)',
+                        borderColor: 'var(--yellow)',
+                        borderRadius: '12px',
+                        fontWeight: 600,
                     }}
                 >
                     {t('nav.home')}
@@ -255,6 +287,19 @@ const AdminLogin = () => {
                     <Button onClick={handleSendReset} variant="contained">Invia</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Overlay di checking auth (prima di sapere se è admin) */}
+            {checking && (
+                <Box
+                    sx={{
+                        position: 'fixed', inset: 0, display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(2px)',
+                    }}
+                >
+                    <CircularProgress />
+                </Box>
+            )}
         </Box>
     );
 };
