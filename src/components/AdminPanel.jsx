@@ -103,6 +103,10 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import StopCircleIcon from "@mui/icons-material/StopCircle";
+import UndoIcon from "@mui/icons-material/Undo";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+
 
 
 
@@ -374,6 +378,25 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
         return t ? items.filter((i) => (i.name || "").toLowerCase().includes(t)) : items;
     }, [filter, items]);
 
+    const [visible, setVisible] = useState(60);
+    const sentinelRef = useRef(null);
+
+    useEffect(() => { setVisible(60); }, [open, filter, items.length]);
+
+    useEffect(() => {
+        if (!open) return;
+        const el = sentinelRef.current;
+        if (!el) return;
+        const io = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setVisible((v) => Math.min(v + 60, filtered.length));
+            }
+        }, { root: null, rootMargin: "800px 0px", threshold: 0 });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [open, filtered.length]);
+
+
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 2 } }}>
             <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -430,17 +453,14 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                             gap: 1,
                         }}
                     >
-                        {filtered.map((img) => {
+                        {filtered.slice(0, visible).map((img) => {
                             const thumb = driveCdnSrc(img.id, 640);
                             const fallback = driveApiSrc(img.id, apiKey);
                             return (
                                 <Box
                                     key={img.id}
                                     role="button"
-                                    onClick={() => {
-                                        onPick(driveCdnSrc(img.id, 1600));
-                                        onClose();
-                                    }}
+                                    onClick={() => { onPick(driveCdnSrc(img.id, 1600)); onClose(); }}
                                     sx={{
                                         position: "relative",
                                         width: "100%",
@@ -450,6 +470,9 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                                         border: "1px solid rgba(255,255,255,0.08)",
                                         cursor: "pointer",
                                         "&:hover": { outline: "2px solid", outlineColor: "primary.main" },
+                                        // boost perf di layout
+                                        contentVisibility: "auto",
+                                        containIntrinsicSize: "120px 80px",
                                     }}
                                 >
                                     <img
@@ -459,17 +482,14 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                                         loading="lazy"
                                         decoding="async"
                                         style={{
-                                            position: "absolute",
-                                            inset: 0,
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                            background: "#111",
+                                            position: "absolute", inset: 0, width: "100%", height: "100%",
+                                            objectFit: "cover", background: "#111",
                                         }}
                                     />
                                 </Box>
                             );
                         })}
+                        <Box ref={sentinelRef} sx={{ height: 1, gridColumn: "1 / -1" }} />
                         {!filtered.length && (
                             <Box sx={{ gridColumn: "1/-1", p: 3, textAlign: "center", opacity: 0.7 }}>
                                 Nessuna immagine trovata.
@@ -477,6 +497,7 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                         )}
                     </Box>
                 )}
+
             </DialogContent>
         </Dialog>
     );
@@ -545,7 +566,7 @@ const AdminPanel = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 
     const [section, setSection] = useState("events");
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -597,6 +618,8 @@ const AdminPanel = () => {
     const evSearchRef = useRef(null);
     const bkSearchRef = useRef(null);
     const formRef = useRef(null);
+    const dateInputRef = useRef(null);
+    const timeInputRef = useRef(null);
 
     // form
     const [formData, setFormData] = useState({
@@ -1053,6 +1076,41 @@ const AdminPanel = () => {
         bkPage * bkRowsPerPage + bkRowsPerPage
     );
 
+    const [evMobileVis, setEvMobileVis] = useState(12);
+    const evSentinelRef = useRef(null);
+
+    useEffect(() => { setEvMobileVis(12); }, [evQuery, evStatus, evSort, statusFilter, events.length]);
+
+    useEffect(() => {
+        const el = evSentinelRef.current;
+        if (!isMobile || !el) return;
+        const io = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setEvMobileVis((v) => Math.min(v + 12, filteredSortedEvents.length));
+            }
+        }, { rootMargin: "600px 0px" });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [isMobile, filteredSortedEvents.length]);
+
+    const [bkMobileVis, setBkMobileVis] = useState(20);
+    const bkSentinelRef = useRef(null);
+
+    useEffect(() => { setBkMobileVis(20); }, [bkQuery, bkSort, bkEventFilter, bookings.length]);
+
+    useEffect(() => {
+        const el = bkSentinelRef.current;
+        if (!isMobile || !el) return;
+        const io = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setBkMobileVis((v) => Math.min(v + 20, filteredSortedBookings.length));
+            }
+        }, { rootMargin: "600px 0px" });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [isMobile, filteredSortedBookings.length]);
+
+
     /* ---------- CSV Export ---------- */
     const downloadCsv = (rows, filename) => {
         const headers = Object.keys(rows[0] || {});
@@ -1180,8 +1238,8 @@ const AdminPanel = () => {
 
     return (
         <MuiThemeProvider theme={muiTheme}>
-            <Box sx={{ display: "flex" }}>
-                <CssBaseline />
+            <Box sx={{ display: "flex", minHeight: "100vh", width: "100%", overflowX: "hidden" }}>
+            <CssBaseline />
 
                 {/* HEADER */}
                 <AppBar
@@ -1272,8 +1330,8 @@ const AdminPanel = () => {
                 </Drawer>
 
                 {/* MAIN */}
-                <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-                    <Toolbar />
+                <Box component="main" sx={{ flexGrow: 1,p: { xs: 1.5, md: 3 }, overflowX: "hidden" , minWidth: 0 }}>
+                <Toolbar />
 
                     {/* EVENTI */}
                     {section === "events" && (
@@ -1301,7 +1359,11 @@ const AdminPanel = () => {
                                     fullWidth={isMobile}
                                     sx={{ minWidth: 260 }}
                                 />
-                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                <Stack  direction="row"
+                                        spacing={1}
+                                        alignItems="center"
+                                        flexWrap="wrap"
+                                        sx={{ rowGap: 1, "& > *": { mt: { xs: 1, md: 0 } } }}>
                                     <FormControl size="small" sx={{ minWidth: 140 }}>
                                         <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                                             <MenuItem value="all">Tutti gli status</MenuItem>
@@ -1376,34 +1438,25 @@ const AdminPanel = () => {
                             </Stack>
 
                             {isMobile ? (
-                                <Box>
+                                <Box sx={{ overflowX: "hidden" }}>
                                     {filteredSortedEvents.length === 0 && (
-                                        <Box
-                                            sx={{
-                                                p: 3,
-                                                textAlign: "center",
-                                                opacity: 0.7,
-                                                border: "1px dashed rgba(255,255,255,0.15)",
-                                                borderRadius: 2,
-                                            }}
-                                        >
+                                        <Box sx={{ p: 3, textAlign: "center", opacity: 0.7, border: "1px dashed rgba(255,255,255,0.15)", borderRadius: 2 }}>
                                             Nessun evento con i filtri attuali.
                                         </Box>
                                     )}
-                                    {filteredSortedEvents.map((ev) => (
+                                    {filteredSortedEvents.slice(0, evMobileVis).map((ev) => (
                                         <MobileEventCard
                                             key={ev.id}
                                             ev={ev}
                                             onEdit={() => handleEdit(ev)}
                                             onDelete={() => setConfirm({ open: true, id: ev.id, type: "event" })}
-                                            onToggleSoldOut={async (val) => {
-                                                if (!isPast(ev)) await handleToggleSoldOut(ev.id, val);
-                                            }}
+                                            onToggleSoldOut={async (val) => { if (!isPast(ev)) await handleToggleSoldOut(ev.id, val); }}
                                             onDuplicate={() => handleDuplicate(ev)}
                                             onExportICS={() => exportICS(ev)}
                                             canDelete={canDeleteEvent(role)}
                                         />
                                     ))}
+                                    <Box ref={evSentinelRef} sx={{ height: 1 }} />
                                 </Box>
                             ) : (
                                 <TableContainer>
@@ -1674,28 +1727,29 @@ const AdminPanel = () => {
                                                         }}
                                                     />
                                                 </Grid>
+                                                {/* PREZZO */}
                                                 <Grid item xs={6} md={3}>
                                                     <TextField
                                                         name="price"
                                                         label="Prezzo (€)"
                                                         type="number"
-                                                        value={formData.soldOut ? "" : formData.price}
+                                                        value={formData.price}                // ← NON svuotiamo più se soldOut
                                                         onChange={handleChange}
-                                                        disabled={formData.soldOut}
+                                                        disabled={formData.soldOut}           // ← visibile ma non editabile
                                                         inputProps={{ step: "0.5", min: "0" }}
                                                         error={!!errors.price}
-                                                        helperText={
-                                                            errors.price || (formData.soldOut ? "Non richiesto se sold out" : "")
-                                                        }
+                                                        helperText={errors.price || (formData.soldOut ? "Sold out: il prezzo resta visibile" : "")}
                                                         InputProps={{
                                                             startAdornment: (
                                                                 <InputAdornment position="start">
                                                                     <EuroIcon fontSize="small" />
                                                                 </InputAdornment>
                                                             ),
+                                                            readOnly: formData.soldOut || undefined, // evita il tastierino in mobile se disabilitato
                                                         }}
                                                     />
                                                 </Grid>
+
                                                 <Grid item xs={6} md={3}>
                                                     <TextField
                                                         name="capacity"
@@ -1785,10 +1839,12 @@ const AdminPanel = () => {
                                                     </Typography>
                                                     <Grid container spacing={1.5}>
                                                         <Grid item xs={12}>
+                                                            {/* DATA */}
                                                             <TextField
                                                                 type="date"
                                                                 name="date"
                                                                 label="Data *"
+                                                                inputRef={dateInputRef}
                                                                 InputLabelProps={{ shrink: true }}
                                                                 inputProps={{ min: todayISO() }}
                                                                 value={formData.date}
@@ -1797,19 +1853,26 @@ const AdminPanel = () => {
                                                                 error={!!errors.date}
                                                                 helperText={errors.date}
                                                                 InputProps={{
-                                                                    startAdornment: (
-                                                                        <InputAdornment position="start">
-                                                                            <CalendarTodayIcon fontSize="small" />
+                                                                    endAdornment: (
+                                                                        <InputAdornment position="end">
+                                                                            <IconButton size="small" onClick={() => dateInputRef.current?.showPicker?.()}>
+                                                                                <CalendarTodayIcon fontSize="small" />
+                                                                            </IconButton>
                                                                         </InputAdornment>
                                                                     ),
+                                                                }}
+                                                                sx={{
+                                                                    "& input::-webkit-calendar-picker-indicator": { opacity: 0, display: "none" }, // nasconde l’icona nera di default
                                                                 }}
                                                             />
                                                         </Grid>
                                                         <Grid item xs={12}>
+                                                            {/* ORARIO */}
                                                             <TextField
                                                                 type="time"
                                                                 name="time"
                                                                 label="Orario *"
+                                                                inputRef={timeInputRef}
                                                                 InputLabelProps={{ shrink: true }}
                                                                 value={formData.time}
                                                                 onChange={handleChange}
@@ -1817,11 +1880,16 @@ const AdminPanel = () => {
                                                                 error={!!errors.time}
                                                                 helperText={errors.time}
                                                                 InputProps={{
-                                                                    startAdornment: (
-                                                                        <InputAdornment position="start">
-                                                                            <AccessTimeIcon fontSize="small" />
+                                                                    endAdornment: (
+                                                                        <InputAdornment position="end">
+                                                                            <IconButton size="small" onClick={() => timeInputRef.current?.showPicker?.()}>
+                                                                                <AccessTimeIcon fontSize="small" />
+                                                                            </IconButton>
                                                                         </InputAdornment>
                                                                     ),
+                                                                }}
+                                                                sx={{
+                                                                    "& input::-webkit-calendar-picker-indicator": { opacity: 0, display: "none" },
                                                                 }}
                                                             />
                                                         </Grid>
@@ -2012,7 +2080,11 @@ const AdminPanel = () => {
                                     fullWidth={isMobile}
                                     sx={{ minWidth: 260 }}
                                 />
-                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                <Stack   direction="row"
+                                         spacing={1}
+                                         alignItems="center"
+                                         flexWrap="wrap"
+                                         sx={{ rowGap: 1, "& > *": { mt: { xs: 1, md: 0 } } }}>
                                     <Button variant="outlined" startIcon={<IosShareIcon />} onClick={exportBookingsCsv}>
                                         Esporta CSV
                                     </Button>
@@ -2095,10 +2167,11 @@ const AdminPanel = () => {
                             </Stack>
 
                             {isMobile ? (
-                                <Box>
-                                    {filteredSortedBookings.map((b) => (
+                                <Box sx={{ overflowX: "hidden" }}>
+                                    {filteredSortedBookings.slice(0, bkMobileVis).map((b) => (
                                         <MobileBookingCard key={b.id} b={b} />
                                     ))}
+                                    <Box ref={bkSentinelRef} sx={{ height: 1 }} />
                                 </Box>
                             ) : (
                                 <TableContainer>
@@ -2171,8 +2244,18 @@ const AdminPanel = () => {
 
                     {/* CHECK-IN */}
                     {section === "checkin" && (
-                        <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 900, mx: "auto" }}>
-                            <Typography variant="h5" sx={{ mb: 2 }}>
+                        <Paper
+                            sx={{
+                                ...glass,
+                                p: { xs: 2, md: 3 },           // 16px mobile, 24px desktop
+                                mb: { xs: 2, md: 4 },
+                                borderRadius: 2,
+                                maxWidth: 900,
+                                mx: "auto",
+                            }}
+                        >
+
+                        <Typography variant="h5" sx={{ mb: 2 }}>
                                 Check-in
                             </Typography>
                             <CheckInBox events={events} />
@@ -2359,6 +2442,11 @@ function CheckInBox({ events = [] }) {
     const audioCtxRef = useRef(null);
     const [soundOn, setSoundOn] = useState(() => localStorage.getItem("checkinSound") !== "off");
 
+    // dentro CheckInBox, in alto tra gli hook:
+    const theme = useTheme();
+    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+
+
 // sblocca l’audio su gesto utente (iOS richiede interazione)
     async function ensureAudio() {
         try {
@@ -2468,7 +2556,7 @@ function CheckInBox({ events = [] }) {
 
             // ✅ AUTO CHECK-IN: +1 alla scansione
             if (opts.autoCheckIn && data.remaining > 0) {
-                await doCheckIn(token, 1, { silent: true });
+                await doCheckIn(token, data.remaining, { silent: true });
             } else if (data.remaining <= 0) {
                 showToast("Prenotazione già esaurita", "error");
                 playWarn();
@@ -2630,8 +2718,16 @@ function CheckInBox({ events = [] }) {
             <Grid container spacing={2}>
                 {/* Scanner */}
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(255,255,255,0.12)", background: "#0c0c12" }}>
-                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>Scanner QR</Typography>
+                    <Paper
+                        sx={{
+                            p: { xs: 1.25, md: 1.5 },       // 10px mobile
+                            borderRadius: 2,
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            background: "#0c0c12",
+                        }}
+                    >
+
+                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>Scanner QR</Typography>
                         <Box sx={{ position: "relative", width: "100%", borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,255,255,0.15)", background: "#000" }}>
                             <video ref={videoRef} playsInline muted style={{ width: "100%", height: "auto", display: "block" }} />
                             {!scanning && (
@@ -2647,28 +2743,65 @@ function CheckInBox({ events = [] }) {
                             )}
                         </Box>
 
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                            <Button startIcon={<QrCodeScannerIcon />} variant="contained" onClick={startScan} disabled={!support.camera || scanning}>
-                                Avvia scansione
-                            </Button>
-                            <Button variant="text" onClick={stopScan} disabled={!scanning}>Stop</Button>
-                            <Button variant="outlined" component="label">
-                                Carica immagine
-                                <input hidden accept="image/*" type="file" onChange={(e) => onPickImage(e.target.files?.[0])} />
-                            </Button>
-                            <IconButton
-                                onClick={() => {
-                                    const next = !soundOn;
-                                    setSoundOn(next);
-                                    try { localStorage.setItem("checkinSound", next ? "on" : "off"); } catch {}
-                                }}
-                                aria-label={soundOn ? "Disattiva suoni" : "Attiva suoni"}
-                                sx={{ ml: "auto" }}
-                            >
-                                {soundOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
-                            </IconButton>
+                        {/* --- PATCH mobile: pulsanti scanner --- */}
+                        <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1}
+                            sx={{ mt: 1, "& .MuiButton-root": { minHeight: 44 } }}
+                        >
+                            {/* riga 1 su mobile: Avvia + Carica (50/50) */}
+                            <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+                                <Button
+                                    startIcon={<QrCodeScannerIcon />}
+                                    variant="contained"
+                                    onClick={startScan}
+                                    disabled={!support.camera || scanning}
+                                    sx={{ width: { xs: "100%", md: "auto" } }}
+                                >
+                                    Avvia scansione
+                                </Button>
 
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                    sx={{ width: { xs: "100%", md: "auto" } }}
+                                >
+                                    Carica immagine
+                                    <input
+                                        hidden
+                                        accept="image/*"
+                                        type="file"
+                                        onChange={(e) => onPickImage(e.target.files?.[0])}
+                                    />
+                                </Button>
+                            </Stack>
+
+
+                            {/* riga 2 su mobile: Stop + volume */}
+                            <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
+                                <Button
+                                    variant="text"
+                                    onClick={stopScan}
+                                    disabled={!scanning}
+                                    sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" } }}
+                                >
+                                    Stop
+                                </Button>
+
+                                <IconButton
+                                    onClick={() => {
+                                        const next = !soundOn;
+                                        setSoundOn(next);
+                                        try { localStorage.setItem("checkinSound", next ? "on" : "off"); } catch {}
+                                    }}
+                                    aria-label={soundOn ? "Disattiva suoni" : "Attiva suoni"}
+                                    sx={{ ml: { xs: 0, sm: "auto" } }}
+                                >
+                                    {soundOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
+                                </IconButton>
+                            </Stack>
                         </Stack>
+
 
                         <FormHelperText sx={{ mt: 1 }}>
                             In alternativa carica una foto del QR.
@@ -2679,7 +2812,8 @@ function CheckInBox({ events = [] }) {
                             <Typography variant="subtitle2" sx={{ mb: 0.5, opacity: 0.9 }}>
                                 Verifica manuale (link del QR o token JWT)
                             </Typography>
-                            <Stack direction="row" spacing={1}>
+                            {/* --- PATCH mobile: verifica manuale --- */}
+                            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                                 <TextField
                                     placeholder="Incolla link completo ricevuto via email, o il token…"
                                     value={manual}
@@ -2687,7 +2821,6 @@ function CheckInBox({ events = [] }) {
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && manual && !verifying) {
                                             e.preventDefault();
-                                            // di default fa anche il +1 automatico se valido e l’evento è di oggi
                                             doVerify(manual, { autoCheckIn: true });
                                         }
                                     }}
@@ -2698,12 +2831,12 @@ function CheckInBox({ events = [] }) {
                                     variant="contained"
                                     onClick={() => doVerify(manual, { autoCheckIn: true })}
                                     disabled={!manual || verifying}
+                                    sx={{ width: { xs: "100%", sm: "auto" } }}
                                 >
                                     {verifying ? <CircularProgress size={18} /> : "Verifica"}
                                 </Button>
-                                {/* Se vuoi il pulsante “solo verifica” senza auto +1, lascia anche questo: */}
-                                {/* <Button variant="outlined" onClick={() => doVerify(manual, { autoCheckIn: false })} disabled={!manual || verifying}>Solo verifica</Button> */}
                             </Stack>
+
                             <FormHelperText sx={{ mt: 0.5 }}>
                                 Se valido e l’evento è di oggi (toggle attivo), viene registrato automaticamente un +1 check-in.
                             </FormHelperText>
@@ -2718,14 +2851,18 @@ function CheckInBox({ events = [] }) {
                 <Grid item xs={12} md={6}>
                     <Paper
                         sx={{
-                            p: 1.5,
+                            p: { xs: 1.25, md: 1.5 },
                             borderRadius: 2,
-                            border: `2px solid ${colorByKind[statusKind].border}`,
+                            border: {
+                                xs: `1px solid ${colorByKind[statusKind].border}`,
+                                md: `2px solid ${colorByKind[statusKind].border}`,
+                            },
                             background: colorByKind[statusKind].bg,
                             transition: "all .2s",
                         }}
                     >
-                        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
                             {statusKind === "ok" && <CheckCircleIcon color="success" />}
                             {statusKind === "done" && <CheckCircleIcon color="info" />}
                             {statusKind === "warn" && <WarningAmberIcon color="warning" />}
@@ -2754,20 +2891,47 @@ function CheckInBox({ events = [] }) {
                                     </Grid>
                                 </Grid>
 
-                                <Stack direction="row" spacing={1.5} sx={{ mt: 2 }} flexWrap="wrap">
-                                    <Button variant="contained" onClick={() => doCheckIn(result.token, 1)} disabled={(result.remaining ?? 0) <= 0}>
+                                {/* Esito & azioni */}
+                                <Stack
+                                    direction={{ xs: "column", md: "row" }}
+                                    spacing={{ xs: 1, md: 1.5 }}
+                                    sx={{ mt: 2, width: "100%" }}
+                                >
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        onClick={() => doCheckIn(result.token, 1)}
+                                        disabled={(result.remaining ?? 0) <= 0}
+                                        sx={{ height: 46, borderRadius: 999, fontWeight: 800 }}
+                                    >
                                         +1 Check-in
                                     </Button>
-                                    <Button variant="outlined" onClick={doUndo} disabled={(result?.checkedInCount || 0) <= 0}>
+
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        onClick={doUndo}
+                                        disabled={(result?.checkedInCount || 0) <= 0}
+                                        sx={{ height: 46, borderRadius: 999, fontWeight: 700 }}
+                                    >
                                         Annulla ultimo
                                     </Button>
-                                    <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => {
-                                        const base = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
-                                        window.open(`${base}/api/bookings/verify?token=${encodeURIComponent(result.token)}`, "_blank", "noopener,noreferrer");
-                                    }}>
+
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<LinkIcon />}
+                                        onClick={() => {
+                                            const base = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+                                            window.open(`${base}/api/bookings/verify?token=${encodeURIComponent(result.token)}`,
+                                                "_blank", "noopener,noreferrer");
+                                        }}
+                                        sx={{ height: 46, borderRadius: 999, fontWeight: 700 }}
+                                    >
                                         Apri verifica
                                     </Button>
                                 </Stack>
+
                             </>
                         )}
 
@@ -2813,7 +2977,7 @@ function CheckInBox({ events = [] }) {
 
                             <Typography sx={{ fontSize: 40, fontWeight: 900, letterSpacing: 1, mb: 1 }}>
                                 {statusKind === "ok"   && "VALIDO"}
-                                {statusKind === "done" && "ES AURITO"}
+                                {statusKind === "done" && "COMPLETO"}
                                 {statusKind === "warn" && (result?.reason === "expired" ? "SCADUTO" : "NON DI OGGI")}
                                 {statusKind === "error"&& "NON VALIDO"}
                                 {statusKind === "idle" && "IN ATTESA"}
@@ -2831,21 +2995,49 @@ function CheckInBox({ events = [] }) {
                         </Box>
                     </Box>
 
-                    <Stack direction="row" spacing={1} justifyContent="center" sx={{ pb: 1 }} flexWrap="wrap">
-                        <Button variant="contained" size="large" onClick={() => startScan()} startIcon={<QrCodeScannerIcon />}>
+                    {/* --- PATCH: bottoni footer modal operatore --- */}
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1}
+                        justifyContent="center"
+                        sx={{ pb: 1, width: "100%" }}
+                        flexWrap={{ xs: "nowrap", sm: "wrap" }}
+                    >
+                        <Button
+                            variant="contained"
+                            size="large"
+                            onClick={startScan}
+                            startIcon={<QrCodeScannerIcon />}
+                            sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 48 }}
+                        >
                             Scansiona
                         </Button>
+
                         {result?.valid && (
                             <>
-                                <Button variant="contained" size="large" onClick={() => doCheckIn(result.token, 1)} disabled={(result.remaining ?? 0) <= 0}>
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    onClick={() => doCheckIn(result.token, 1)}
+                                    disabled={(result.remaining ?? 0) <= 0}
+                                    sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 48 }}
+                                >
                                     +1
                                 </Button>
-                                <Button variant="outlined" size="large" onClick={doUndo} disabled={(result?.checkedInCount || 0) <= 0}>
+
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    onClick={doUndo}
+                                    disabled={(result?.checkedInCount || 0) <= 0}
+                                    sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 48 }}
+                                >
                                     Annulla
                                 </Button>
                             </>
                         )}
                     </Stack>
+
                 </Box>
             </Dialog>
         </Box>
@@ -2854,20 +3046,45 @@ function CheckInBox({ events = [] }) {
 
 
 
-
 // Piccola riga info con bottone copia
+// ⬇️ SOSTITUISCI TUTTA InfoRow con questa
 function InfoRow({ label, value, copy = false }) {
     return (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.6 }}>
-            <Typography sx={{ width: 120, opacity: 0.75 }}>{label}</Typography>
-            <Typography sx={{ fontWeight: 600 }}>{value}</Typography>
+        <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mb: 0.6, minWidth: 0 }}
+        >
+            <Typography
+                sx={{
+                    flex: { xs: "0 0 96px", sm: "0 0 120px" },
+                    width: { xs: 96, sm: 120 },
+                    opacity: 0.75,
+                }}
+            >
+                {label}
+            </Typography>
+
+            <Typography
+                sx={{
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    fontWeight: 600,
+                    overflowWrap: "anywhere",   // <-- niente scroll orizzontale
+                    wordBreak: "break-word",
+                }}
+            >
+                {value}
+            </Typography>
+
             {copy && (
                 <IconButton
                     size="small"
                     onClick={async () => {
                         try { await navigator.clipboard.writeText(String(value || "")); } catch {}
                     }}
-                    sx={{ ml: "auto", opacity: 0.8 }}
+                    sx={{ flex: "0 0 auto", ml: 0.5, opacity: 0.8 }}
                 >
                     <ContentCopyIcon fontSize="small" />
                 </IconButton>
@@ -2875,6 +3092,7 @@ function InfoRow({ label, value, copy = false }) {
         </Stack>
     );
 }
+
 
 
 export default AdminPanel;

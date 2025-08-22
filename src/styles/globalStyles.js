@@ -115,4 +115,8 @@ export const GlobalStyles = createGlobalStyle`
     background-color: rgba(255, 255, 255, 0.1) !important;
     color: fieldtext !important;
   }
+
+  .css-1vskvj5-MuiPaper-root{
+      padding: 10px !important;
+  }
 `;
