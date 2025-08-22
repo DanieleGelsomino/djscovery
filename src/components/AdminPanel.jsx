@@ -11,6 +11,10 @@ import {
     verifyBooking,
     checkInBooking,
     undoCheckIn,
+    updateBooking,
+    deleteBooking,
+    deleteAllBookings,
+    deleteAllEvents,
 } from "../api";
 
 import {
@@ -56,6 +60,7 @@ import {
     DialogTitle,
     DialogContent,
     FormHelperText,
+    TablePagination
 } from "@mui/material";
 import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/styles";
 
@@ -549,6 +554,42 @@ const AdminPanel = () => {
     const [bookings, setBookings] = useState([]);
     const [events, setEvents] = useState([]);
 
+    // pagination
+    const [evPage, setEvPage] = useState(0);
+    const [evRowsPerPage, setEvRowsPerPage] = useState(10);
+    const [bkPage, setBkPage] = useState(0);
+    const [bkRowsPerPage, setBkRowsPerPage] = useState(10);
+
+    // filtro prenotazioni per evento
+    const [bkEventFilter, setBkEventFilter] = useState("all");
+
+    // dialog modifica prenotazione
+    const [bkEdit, setBkEdit] = useState(null);
+    const openBookingEdit = (b) => setBkEdit(b);
+    const closeBookingEdit = () => setBkEdit(null);
+
+    // ⬇️⬇️ NUOVO: salva modifica prenotazione
+    const saveBookingEdit = async () => {
+        if (!bkEdit?.id) return;
+        const payload = {
+            eventId: bkEdit.eventId || "",
+            nome: (bkEdit.nome || "").trim(),
+            cognome: (bkEdit.cognome || "").trim(),
+            email: (bkEdit.email || "").trim(),
+            telefono: (bkEdit.telefono || "").trim(),
+            quantity: Math.max(1, parseInt(bkEdit.quantity, 10) || 1),
+        };
+        try {
+            await updateBooking(bkEdit.id, payload);
+            setBookings((prev) => prev.map((b) => (b.id === bkEdit.id ? { ...b, ...payload } : b)));
+            setBkEdit(null);
+            showToast("Prenotazione aggiornata", "success");
+        } catch (e) {
+            showToast("Errore aggiornamento prenotazione", "error");
+        }
+    };
+    // ⬆️⬆️ FINE NUOVO
+
     // rbac
     const role = (localStorage.getItem("role") || "admin").toLowerCase();
 
@@ -571,7 +612,7 @@ const AdminPanel = () => {
         place: "",
         placeCoords: null,
         placeId: null,
-        status: "published",          // draft | published | archived
+        status: "published", // draft | published | archived
         internalNotes: "",
         guestList: "",
     });
@@ -619,7 +660,6 @@ const AdminPanel = () => {
     // scorciatoie
     useEffect(() => {
         const onKey = (e) => {
-
             if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
                 e.preventDefault();
                 if (section === "events") evSearchRef.current?.focus();
@@ -641,18 +681,23 @@ const AdminPanel = () => {
         new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-                const w = img.width, h = img.height;
+                const w = img.width,
+                    h = img.height;
                 const targetRatio = 16 / 9;
-                let sx = 0, sy = 0, sw = w, sh = h;
+                let sx = 0,
+                    sy = 0,
+                    sw = w,
+                    sh = h;
                 if (w / h > targetRatio) {
-                    // troppo larga, crop orizzontale
-                    sw = h * targetRatio; sx = (w - sw) / 2;
+                    sw = h * targetRatio;
+                    sx = (w - sw) / 2;
                 } else {
-                    // troppo alta, crop verticale
-                    sh = w / targetRatio; sy = (h - sh) / 2;
+                    sh = w / targetRatio;
+                    sy = (h - sh) / 2;
                 }
                 const canvas = document.createElement("canvas");
-                canvas.width = 1600; canvas.height = 900;
+                canvas.width = 1600;
+                canvas.height = 900;
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1600, 900);
                 canvas.toBlob(
@@ -694,7 +739,10 @@ const AdminPanel = () => {
             if (isNaN(dt.getTime()) || dt.getTime() <= Date.now()) e.time = "Data/ora deve essere nel futuro";
         }
         if (formData.price !== "" && Number(formData.price) < 0) e.price = "Prezzo non valido";
-        if (formData.capacity !== "" && (!Number.isInteger(Number(formData.capacity)) || Number(formData.capacity) < 0))
+        if (
+            formData.capacity !== "" &&
+            (!Number.isInteger(Number(formData.capacity)) || Number(formData.capacity) < 0)
+        )
             e.capacity = "Capienza non valida";
         if (!placeSelected?.place_id || !placeCoords) e.place = "Seleziona un luogo dai suggerimenti";
         setErrors(e);
@@ -822,7 +870,11 @@ const AdminPanel = () => {
     };
 
     const handleToggleSoldOut = async (id, value) => {
-        await updateEvent(id, { soldOut: value, updatedAt: new Date().toISOString(), updatedBy: auth?.currentUser?.email || "admin" });
+        await updateEvent(id, {
+            soldOut: value,
+            updatedAt: new Date().toISOString(),
+            updatedBy: auth?.currentUser?.email || "admin",
+        });
         setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, soldOut: value } : e)));
     };
 
@@ -850,22 +902,21 @@ const AdminPanel = () => {
     const exportICS = (ev) => {
         const dtStart = `${ev.date}T${(ev.time || "00:00").replace(":", "")}00`;
         const dtEnd = `${ev.date}T${(ev.time || "00:00").replace(":", "")}00`;
-        const ics =
-            [
-                "BEGIN:VCALENDAR",
-                "VERSION:2.0",
-                "PRODID:-//AdminPanel//EN",
-                "BEGIN:VEVENT",
-                `UID:${ev.id || crypto.randomUUID()}@adminpanel`,
-                `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}Z`,
-                `DTSTART:${dtStart.replace(/[-:]/g, "")}`,
-                `DTEND:${dtEnd.replace(/[-:]/g, "")}`,
-                `SUMMARY:${(ev.name || "").replace(/\n/g, " ")}`,
-                `DESCRIPTION:${(ev.description || "").replace(/\n/g, "\\n")}`,
-                `LOCATION:${(ev.place || "").replace(/\n/g, " ")}`,
-                "END:VEVENT",
-                "END:VCALENDAR",
-            ].join("\r\n");
+        const ics = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//AdminPanel//EN",
+            "BEGIN:VEVENT",
+            `UID:${ev.id || crypto.randomUUID()}@adminpanel`,
+            `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}Z`,
+            `DTSTART:${dtStart.replace(/[-:]/g, "")}`,
+            `DTEND:${dtEnd.replace(/[-:]/g, "")}`,
+            `SUMMARY:${(ev.name || "").replace(/\n/g, " ")}`,
+            `DESCRIPTION:${(ev.description || "").replace(/\n/g, "\\n")}`,
+            `LOCATION:${(ev.place || "").replace(/\n/g, " ")}`,
+            "END:VEVENT",
+            "END:VCALENDAR",
+        ].join("\r\n");
         const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -882,9 +933,10 @@ const AdminPanel = () => {
             const capacity = Number(ev.capacity) || 0;
             let sold = Number(ev.bookingsCount || 0);
             if (!sold && Array.isArray(bookings) && bookings.length && ev.id) {
-                // prova mapping by eventId se disponibile
                 try {
-                    sold = bookings.filter((b) => b.eventId === ev.id).reduce((n, b) => n + (b.quantity || 1), 0);
+                    sold = bookings
+                        .filter((b) => b.eventId === ev.id)
+                        .reduce((n, b) => n + (b.quantity || 1), 0);
                 } catch {}
             }
             const shouldBeSoldOut = capacity > 0 && sold >= capacity;
@@ -900,7 +952,9 @@ const AdminPanel = () => {
         }
     }, [events, bookings, showToast]);
 
-    useEffect(() => { recomputeAutoSoldOut(); }, [recomputeAutoSoldOut]);
+    useEffect(() => {
+        recomputeAutoSoldOut();
+    }, [recomputeAutoSoldOut]);
 
     /* ---------- FILTRI EVENTI ---------- */
     const [evQuery, setEvQuery] = useState("");
@@ -917,7 +971,8 @@ const AdminPanel = () => {
             if (evStatus === "past") return past;
             return true;
         });
-        if (statusFilter !== "all") list = list.filter((e) => (e.status || "published") === statusFilter);
+        if (statusFilter !== "all")
+            list = list.filter((e) => (e.status || "published") === statusFilter);
         if (q) {
             list = list.filter((ev) =>
                 [ev.name, ev.dj, ev.place].filter(Boolean).some((s) => s.toLowerCase().includes(q))
@@ -929,9 +984,11 @@ const AdminPanel = () => {
                 va = eventDateTime(a)?.getTime() || 0;
                 vb = eventDateTime(b)?.getTime() || 0;
             } else if (evSort.key === "name") {
-                va = (a.name || "").toLowerCase(); vb = (b.name || "").toLowerCase();
+                va = (a.name || "").toLowerCase();
+                vb = (b.name || "").toLowerCase();
             } else {
-                va = (a.place || "").toLowerCase(); vb = (b.place || "").toLowerCase();
+                va = (a.place || "").toLowerCase();
+                vb = (b.place || "").toLowerCase();
             }
             if (va < vb) return evSort.dir === "asc" ? -1 : 1;
             if (va > vb) return evSort.dir === "asc" ? 1 : -1;
@@ -947,41 +1004,70 @@ const AdminPanel = () => {
     const filteredSortedBookings = useMemo(() => {
         const q = bkQuery.toLowerCase().trim();
         let list = [...bookings];
+
+        if (bkEventFilter !== "all") {
+            list = list.filter((b) => (b.eventId || "") === bkEventFilter);
+        }
+
         if (q) {
             list = list.filter((b) =>
-                [b.nome, b.cognome, b.email, b.telefono].filter(Boolean).some((s) => (s + "").toLowerCase().includes(q))
+                [b.nome, b.cognome, b.email, b.telefono]
+                    .filter(Boolean)
+                    .some((s) => (s + "").toLowerCase().includes(q))
             );
         }
+
         const cmp = (a, b) => {
             let va, vb;
             if (bkSort.key === "created") {
                 va = tsToDate(a.createdAt || a.created)?.getTime() ?? 0;
                 vb = tsToDate(b.createdAt || b.created)?.getTime() ?? 0;
-            }
-            else if (bkSort.key === "name") {
+            } else if (bkSort.key === "name") {
                 va = `${a.nome || ""} ${a.cognome || ""}`.toLowerCase();
                 vb = `${b.nome || ""} ${b.cognome || ""}`.toLowerCase();
             } else {
-                va = a.quantity || 1; vb = b.quantity || 1;
+                va = a.quantity || 1;
+                vb = b.quantity || 1;
             }
             if (va < vb) return bkSort.dir === "asc" ? -1 : 1;
             if (va > vb) return bkSort.dir === "asc" ? 1 : -1;
             return 0;
         };
+
         return list.sort(cmp);
-    }, [bookings, bkQuery, bkSort]);
+    }, [bookings, bkQuery, bkSort, bkEventFilter]);
+
+    useEffect(() => {
+        setEvPage(0);
+    }, [evQuery, evStatus, evSort, statusFilter, events.length]);
+    useEffect(() => {
+        setBkPage(0);
+    }, [bkQuery, bkSort, bkEventFilter, bookings.length]);
+
+    const evPageRows = filteredSortedEvents.slice(
+        evPage * evRowsPerPage,
+        evPage * evRowsPerPage + evRowsPerPage
+    );
+    const bkPageRows = filteredSortedBookings.slice(
+        bkPage * bkRowsPerPage,
+        bkPage * bkRowsPerPage + bkRowsPerPage
+    );
 
     /* ---------- CSV Export ---------- */
     const downloadCsv = (rows, filename) => {
         const headers = Object.keys(rows[0] || {});
         const csv = [
             headers.join(","),
-            ...rows.map((r) => headers.map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")),
+            ...rows.map((r) =>
+                headers.map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")
+            ),
         ].join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = filename; a.click();
+        a.href = url;
+        a.download = filename;
+        a.click();
         URL.revokeObjectURL(url);
     };
     const exportEventsCsv = () => {
@@ -1035,11 +1121,17 @@ const AdminPanel = () => {
                 {navItems.map((item) => (
                     <ListItem disablePadding key={item.key}>
                         <ListItemButton
-                            onClick={() => { setSection(item.key); setMobileOpen(false); }}
+                            onClick={() => {
+                                setSection(item.key);
+                                setMobileOpen(false);
+                            }}
                             selected={section === item.key}
                             sx={{
                                 borderRadius: 1,
-                                "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.08)", "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" } },
+                                "&.Mui-selected": {
+                                    backgroundColor: "rgba(255,255,255,0.08)",
+                                    "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" },
+                                },
                             }}
                         >
                             <ListItemIcon>{item.icon}</ListItemIcon>
@@ -1071,7 +1163,9 @@ const AdminPanel = () => {
 
     /* ---------- Logout ---------- */
     const handleLogout = async () => {
-        try { await signOut(auth); } catch {}
+        try {
+            await signOut(auth);
+        } catch {}
         setAuthToken(null);
         localStorage.removeItem("isAdmin");
         localStorage.removeItem("adminToken");
@@ -1079,7 +1173,10 @@ const AdminPanel = () => {
     };
 
     /* ---------- isValid per azioni sticky ---------- */
-    const isValid = useMemo(() => Boolean(formData.name && formData.date && formData.time), [formData]);
+    const isValid = useMemo(
+        () => Boolean(formData.name && formData.date && formData.time),
+        [formData]
+    );
 
     return (
         <MuiThemeProvider theme={muiTheme}>
@@ -1101,14 +1198,26 @@ const AdminPanel = () => {
                         <Box sx={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
                                 {isMobile && (
-                                    <IconButton color="inherit" onClick={() => setMobileOpen(true)} aria-label="Apri menu">
+                                    <IconButton
+                                        color="inherit"
+                                        onClick={() => setMobileOpen(true)}
+                                        aria-label="Apri menu"
+                                    >
                                         <MenuIcon />
                                     </IconButton>
                                 )}
-                                <Typography variant="h6" noWrap>Admin — {section === "create" ? "Crea / Modifica Evento" : section.charAt(0).toUpperCase() + section.slice(1)}</Typography>
+                                <Typography variant="h6" noWrap>
+                                    Admin —{" "}
+                                    {section === "create"
+                                        ? "Crea / Modifica Evento"
+                                        : section.charAt(0).toUpperCase() + section.slice(1)}
+                                </Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" } }}>
-                                <Badge icon={<EventAvailableIcon />} label={`Futuri: ${events.filter((e) => !isPast(e)).length}`} />
+                                <Badge
+                                    icon={<EventAvailableIcon />}
+                                    label={`Futuri: ${events.filter((e) => !isPast(e)).length}`}
+                                />
                                 <Badge icon={<EventBusyIcon />} label={`Passati: ${events.filter(isPast).length}`} />
                                 <Badge icon={<ListAltIcon />} label={`Prenotazioni: ${bookings.length}`} />
                             </Stack>
@@ -1117,7 +1226,14 @@ const AdminPanel = () => {
                         <Stack direction="row" spacing={1} alignItems="center">
                             {driveFolderLink && (
                                 <Tooltip title="Apri cartella Drive">
-                                    <IconButton component="a" href={driveFolderLink} target="_blank" rel="noopener noreferrer" color="inherit" aria-label="Drive">
+                                    <IconButton
+                                        component="a"
+                                        href={driveFolderLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        color="inherit"
+                                        aria-label="Drive"
+                                    >
                                         <AddToDriveIcon />
                                     </IconButton>
                                 </Tooltip>
@@ -1175,7 +1291,13 @@ const AdminPanel = () => {
                                     value={evQuery}
                                     inputRef={evSearchRef}
                                     onChange={(e) => setEvQuery(e.target.value)}
-                                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" />
+                                            </InputAdornment>
+                                        ),
+                                    }}
                                     fullWidth={isMobile}
                                     sx={{ minWidth: 260 }}
                                 />
@@ -1198,9 +1320,15 @@ const AdminPanel = () => {
                                                     setEvSort({ key, dir });
                                                 }}
                                                 sx={{
-                                                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.18)" },
-                                                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
-                                                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
+                                                    "& .MuiOutlinedInput-notchedOutline": {
+                                                        borderColor: "rgba(255,255,255,0.18)",
+                                                    },
+                                                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                                                        borderColor: "primary.main",
+                                                    },
+                                                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                                                        borderColor: "primary.main",
+                                                    },
                                                     "& .MuiSelect-icon": { color: "primary.main" },
                                                 }}
                                             >
@@ -1213,19 +1341,52 @@ const AdminPanel = () => {
                                             </Select>
                                         </FormControl>
                                     </Stack>
-                                    <Button variant="outlined" startIcon={<IosShareIcon />} onClick={exportEventsCsv}>Esporta CSV</Button>
+                                    <Button variant="outlined" startIcon={<IosShareIcon />} onClick={exportEventsCsv}>
+                                        Esporta CSV
+                                    </Button>
                                     {canEditEvent(role) && (
-                                        <Button startIcon={<AddCircleOutlineIcon />} variant="contained" color="primary" onClick={() => { resetForm(); setSection("create"); }}>
+                                        <Button
+                                            startIcon={<AddCircleOutlineIcon />}
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={() => {
+                                                resetForm();
+                                                setSection("create");
+                                            }}
+                                        >
                                             Nuovo evento
                                         </Button>
                                     )}
+                                    <Button
+                                        color="error"
+                                        variant="outlined"
+                                        startIcon={<DeleteIcon />}
+                                        onClick={() =>
+                                            setConfirm({
+                                                open: true,
+                                                id: null,
+                                                type: "event-all",
+                                                filterStatus: statusFilter !== "all" ? statusFilter : null,
+                                            })
+                                        }
+                                    >
+                                        Elimina {statusFilter !== "all" ? "tutti (filtrati)" : "tutti gli eventi"}
+                                    </Button>
                                 </Stack>
                             </Stack>
 
                             {isMobile ? (
                                 <Box>
                                     {filteredSortedEvents.length === 0 && (
-                                        <Box sx={{ p: 3, textAlign: "center", opacity: 0.7, border: "1px dashed rgba(255,255,255,0.15)", borderRadius: 2 }}>
+                                        <Box
+                                            sx={{
+                                                p: 3,
+                                                textAlign: "center",
+                                                opacity: 0.7,
+                                                border: "1px dashed rgba(255,255,255,0.15)",
+                                                borderRadius: 2,
+                                            }}
+                                        >
                                             Nessun evento con i filtri attuali.
                                         </Box>
                                     )}
@@ -1235,7 +1396,9 @@ const AdminPanel = () => {
                                             ev={ev}
                                             onEdit={() => handleEdit(ev)}
                                             onDelete={() => setConfirm({ open: true, id: ev.id, type: "event" })}
-                                            onToggleSoldOut={async (val) => { if (!isPast(ev)) await handleToggleSoldOut(ev.id, val); }}
+                                            onToggleSoldOut={async (val) => {
+                                                if (!isPast(ev)) await handleToggleSoldOut(ev.id, val);
+                                            }}
                                             onDuplicate={() => handleDuplicate(ev)}
                                             onExportICS={() => exportICS(ev)}
                                             canDelete={canDeleteEvent(role)}
@@ -1266,14 +1429,18 @@ const AdminPanel = () => {
                                                     </TableCell>
                                                 </TableRow>
                                             )}
-                                            {filteredSortedEvents.map((ev) => {
+                                            {evPageRows.map((ev) => {
                                                 const past = isPast(ev);
                                                 const status = ev.status || "published";
                                                 return (
                                                     <TableRow key={ev.id} hover sx={past ? { opacity: 0.55 } : {}}>
                                                         <TableCell>
                                                             <Stack direction="row" spacing={1} alignItems="center">
-                                                                {!past ? <CheckCircleIcon fontSize="small" color="success" /> : <LockClockIcon fontSize="small" color="disabled" />}
+                                                                {!past ? (
+                                                                    <CheckCircleIcon fontSize="small" color="success" />
+                                                                ) : (
+                                                                    <LockClockIcon fontSize="small" color="disabled" />
+                                                                )}
                                                                 <span>{ev.name}</span>
                                                             </Stack>
                                                         </TableCell>
@@ -1283,25 +1450,60 @@ const AdminPanel = () => {
                                                         <TableCell>{ev.time}</TableCell>
                                                         <TableCell>{ev.capacity || "-"}</TableCell>
                                                         <TableCell>
-                                                            <Chip size="small" label={status} color={status === "draft" ? "default" : status === "archived" ? "warning" : "success"} />
+                                                            <Chip
+                                                                size="small"
+                                                                label={status}
+                                                                color={
+                                                                    status === "draft"
+                                                                        ? "default"
+                                                                        : status === "archived"
+                                                                            ? "warning"
+                                                                            : "success"
+                                                                }
+                                                            />
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Switch checked={!!ev.soldOut} onChange={(e) => handleToggleSoldOut(ev.id, e.target.checked)} color="warning" disabled={past} />
+                                                            <Switch
+                                                                checked={!!ev.soldOut}
+                                                                onChange={(e) => handleToggleSoldOut(ev.id, e.target.checked)}
+                                                                color="warning"
+                                                                disabled={past}
+                                                            />
                                                         </TableCell>
                                                         <TableCell align="right">
                                                             <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                                <Tooltip title="Duplica"><IconButton size="small" onClick={() => handleDuplicate(ev)}><ContentCopyIcon fontSize="small" /></IconButton></Tooltip>
-                                                                <Tooltip title=".ics"><IconButton size="small" onClick={() => exportICS(ev)}><CalendarMonthIcon fontSize="small" /></IconButton></Tooltip>
+                                                                <Tooltip title="Duplica">
+                                                                    <IconButton size="small" onClick={() => handleDuplicate(ev)}>
+                                                                        <ContentCopyIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <Tooltip title=".ics">
+                                                                    <IconButton size="small" onClick={() => exportICS(ev)}>
+                                                                        <CalendarMonthIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Tooltip>
                                                                 <Tooltip title={past ? "Evento passato" : "Modifica"}>
                                   <span>
-                                    <Button size="small" startIcon={<EditIcon />} onClick={() => handleEdit(ev)} disabled={past || !canEditEvent(role)}>
+                                    <Button
+                                        size="small"
+                                        startIcon={<EditIcon />}
+                                        onClick={() => handleEdit(ev)}
+                                        disabled={past || !canEditEvent(role)}
+                                    >
                                       Modifica
                                     </Button>
                                   </span>
                                                                 </Tooltip>
                                                                 <Tooltip title={past ? "Evento passato" : "Elimina"}>
                                   <span>
-                                    <IconButton size="small" color="error" onClick={() => setConfirm({ open: true, id: ev.id, type: "event" })} disabled={past || !canDeleteEvent(role)}>
+                                    <IconButton
+                                        size="small"
+                                        color="error"
+                                        onClick={() =>
+                                            setConfirm({ open: true, id: ev.id, type: "event" })
+                                        }
+                                        disabled={past || !canDeleteEvent(role)}
+                                    >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   </span>
@@ -1313,6 +1515,18 @@ const AdminPanel = () => {
                                             })}
                                         </TableBody>
                                     </Table>
+                                    <TablePagination
+                                        component="div"
+                                        count={filteredSortedEvents.length}
+                                        page={evPage}
+                                        onPageChange={(_, p) => setEvPage(p)}
+                                        rowsPerPage={evRowsPerPage}
+                                        onRowsPerPageChange={(e) => {
+                                            setEvRowsPerPage(parseInt(e.target.value, 10));
+                                            setEvPage(0);
+                                        }}
+                                        rowsPerPageOptions={[5, 10, 25, 50]}
+                                    />
                                 </TableContainer>
                             )}
                         </Paper>
@@ -1321,7 +1535,10 @@ const AdminPanel = () => {
                     {/* CREA / MODIFICA EVENTO */}
                     {section === "create" && canEditEvent(role) && (
                         <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 1200, mx: "auto" }}>
-                            <Typography variant="h5" sx={{ textAlign: { xs: "center", md: "left" }, mb: 2, letterSpacing: 0.3 }}>
+                            <Typography
+                                variant="h5"
+                                sx={{ textAlign: { xs: "center", md: "left" }, mb: 2, letterSpacing: 0.3 }}
+                            >
                                 {editingId ? "Modifica evento" : "Crea nuovo evento"}
                             </Typography>
 
@@ -1365,30 +1582,50 @@ const AdminPanel = () => {
                                             bgcolor: "rgba(0,0,0,0.45)",
                                             p: 0.5,
                                             borderRadius: 2,
-                                            //backdropFilter: "blur(6px)",
                                         }}
                                     >
                                         <Tooltip title="Scegli da Drive">
-                                            <IconButton onClick={() => setDriveDialogOpen(true)} aria-label="Scegli da Drive" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                            <IconButton
+                                                onClick={() => setDriveDialogOpen(true)}
+                                                aria-label="Scegli da Drive"
+                                                size="small"
+                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
                                                 <AddToDriveIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         <Tooltip title="Carica da dispositivo">
-                                            <IconButton onClick={onPickFromDevice} aria-label="Carica da dispositivo" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                            <IconButton
+                                                onClick={onPickFromDevice}
+                                                aria-label="Carica da dispositivo"
+                                                size="small"
+                                                sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                            >
                                                 <CloudUploadIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
 
                                         {formData.image && (
                                             <Tooltip title="Rimuovi immagine">
-                                                <IconButton onClick={() => setFormData((f) => ({ ...f, image: "" }))} aria-label="Rimuovi immagine" size="small" sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}>
+                                                <IconButton
+                                                    onClick={() => setFormData((f) => ({ ...f, image: "" }))}
+                                                    aria-label="Rimuovi immagine"
+                                                    size="small"
+                                                    sx={{ color: "primary.main", border: "1px solid rgba(255,255,255,0.14)" }}
+                                                >
                                                     <ClearIcon fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
                                         )}
                                     </Stack>
-                                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onDeviceFileChange} />
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        onChange={onDeviceFileChange}
+                                    />
                                 </Box>
 
                                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
@@ -1415,7 +1652,13 @@ const AdminPanel = () => {
                                                         required
                                                         error={!!errors.name}
                                                         helperText={errors.name || "Esempio: Friday Groove @ Rooftop"}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
+                                                        InputProps={{
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <ImageIcon fontSize="small" />
+                                                                </InputAdornment>
+                                                            ),
+                                                        }}
                                                     />
                                                 </Grid>
 
@@ -1426,7 +1669,9 @@ const AdminPanel = () => {
                                                         value={formData.dj}
                                                         onChange={handleChange}
                                                         placeholder="DJ Name, Guest, Resident…"
-                                                        InputProps={{ startAdornment: <InputAdornment position="start">🎧</InputAdornment> }}
+                                                        InputProps={{
+                                                            startAdornment: <InputAdornment position="start">🎧</InputAdornment>,
+                                                        }}
                                                     />
                                                 </Grid>
                                                 <Grid item xs={6} md={3}>
@@ -1439,8 +1684,16 @@ const AdminPanel = () => {
                                                         disabled={formData.soldOut}
                                                         inputProps={{ step: "0.5", min: "0" }}
                                                         error={!!errors.price}
-                                                        helperText={errors.price || (formData.soldOut ? "Non richiesto se sold out" : "")}
-                                                        InputProps={{ startAdornment: <InputAdornment position="start"><EuroIcon fontSize="small" /></InputAdornment> }}
+                                                        helperText={
+                                                            errors.price || (formData.soldOut ? "Non richiesto se sold out" : "")
+                                                        }
+                                                        InputProps={{
+                                                            startAdornment: (
+                                                                <InputAdornment position="start">
+                                                                    <EuroIcon fontSize="small" />
+                                                                </InputAdornment>
+                                                            ),
+                                                        }}
                                                     />
                                                 </Grid>
                                                 <Grid item xs={6} md={3}>
@@ -1460,7 +1713,9 @@ const AdminPanel = () => {
                                                         <Select
                                                             name="status"
                                                             value={formData.status}
-                                                            onChange={(e) => setFormData((f) => ({ ...f, status: e.target.value }))}
+                                                            onChange={(e) =>
+                                                                setFormData((f) => ({ ...f, status: e.target.value }))
+                                                            }
                                                             displayEmpty
                                                         >
                                                             <MenuItem value="draft">Bozza</MenuItem>
@@ -1499,7 +1754,8 @@ const AdminPanel = () => {
                                                         label="Note interne"
                                                         value={formData.internalNotes}
                                                         onChange={handleChange}
-                                                        multiline minRows={4}
+                                                        multiline
+                                                        minRows={4}
                                                         placeholder="Es. briefing staff, orari, contatti…"
                                                     />
                                                 </Grid>
@@ -1509,7 +1765,8 @@ const AdminPanel = () => {
                                                         label="Guest list"
                                                         value={formData.guestList}
                                                         onChange={handleChange}
-                                                        multiline minRows={4}
+                                                        multiline
+                                                        minRows={4}
                                                         placeholder="Un nominativo per riga, o CSV 'Nome,Cognome,+#'…"
                                                     />
                                                 </Grid>
@@ -1539,7 +1796,13 @@ const AdminPanel = () => {
                                                                 required
                                                                 error={!!errors.date}
                                                                 helperText={errors.date}
-                                                                InputProps={{ startAdornment: <InputAdornment position="start"><CalendarTodayIcon fontSize="small" /></InputAdornment> }}
+                                                                InputProps={{
+                                                                    startAdornment: (
+                                                                        <InputAdornment position="start">
+                                                                            <CalendarTodayIcon fontSize="small" />
+                                                                        </InputAdornment>
+                                                                    ),
+                                                                }}
                                                             />
                                                         </Grid>
                                                         <Grid item xs={12}>
@@ -1553,7 +1816,13 @@ const AdminPanel = () => {
                                                                 required
                                                                 error={!!errors.time}
                                                                 helperText={errors.time}
-                                                                InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" /></InputAdornment> }}
+                                                                InputProps={{
+                                                                    startAdornment: (
+                                                                        <InputAdornment position="start">
+                                                                            <AccessTimeIcon fontSize="small" />
+                                                                        </InputAdornment>
+                                                                    ),
+                                                                }}
                                                             />
                                                         </Grid>
                                                     </Grid>
@@ -1571,7 +1840,11 @@ const AdminPanel = () => {
                                                         value={placeSelected}
                                                         onChange={(val) => {
                                                             setPlaceSelected(val);
-                                                            setFormData((f) => ({ ...f, place: val?.label || "", placeId: val?.place_id || null }));
+                                                            setFormData((f) => ({
+                                                                ...f,
+                                                                place: val?.label || "",
+                                                                placeId: val?.place_id || null,
+                                                            }));
                                                         }}
                                                         inputValue={placeInput}
                                                         onInputChange={(v) => setPlaceInput(v)}
@@ -1581,21 +1854,48 @@ const AdminPanel = () => {
                                                     />
 
                                                     {placeCoords && (
-                                                        <Box sx={{ mt: 1.5, borderRadius: 1, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-                                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, opacity: 0.8 }}>
-                                                                <MapIcon fontSize="small" /> <Typography variant="caption">Anteprima posizione (OpenStreetMap)</Typography>
+                                                        <Box
+                                                            sx={{
+                                                                mt: 1.5,
+                                                                borderRadius: 1,
+                                                                overflow: "hidden",
+                                                                border: "1px solid rgba(255,255,255,0.08)",
+                                                            }}
+                                                        >
+                                                            <Box
+                                                                sx={{
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    gap: 0.5,
+                                                                    p: 0.5,
+                                                                    opacity: 0.8,
+                                                                }}
+                                                            >
+                                                                <MapIcon fontSize="small" />{" "}
+                                                                <Typography variant="caption">
+                                                                    Anteprima posizione (OpenStreetMap)
+                                                                </Typography>
                                                             </Box>
                                                             <Box sx={{ position: "relative", pt: "56.25%" }}>
                                                                 {(() => {
-                                                                    const lat = placeCoords.lat, lon = placeCoords.lon;
+                                                                    const lat = placeCoords.lat,
+                                                                        lon = placeCoords.lon;
                                                                     const delta = 0.01; // zoom livello ~15
-                                                                    const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+                                                                    const bbox = `${lon - delta},${lat - delta},${lon + delta},${
+                                                                        lat + delta
+                                                                    }`;
                                                                     const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
                                                                     return (
                                                                         <iframe
                                                                             title="map-preview"
                                                                             src={src}
-                                                                            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+                                                                            style={{
+                                                                                position: "absolute",
+                                                                                inset: 0,
+                                                                                width: "100%",
+                                                                                height: "100%",
+                                                                                border: 0,
+                                                                            }}
                                                                             loading="lazy"
                                                                             referrerPolicy="no-referrer-when-downgrade"
                                                                         />
@@ -1604,7 +1904,6 @@ const AdminPanel = () => {
                                                             </Box>
                                                         </Box>
                                                     )}
-
                                                 </Paper>
                                             </Grid>
 
@@ -1617,9 +1916,17 @@ const AdminPanel = () => {
                                                     <Stack spacing={1.5}>
                                                         <Stack direction="row" alignItems="center" spacing={1}>
                                                             <Typography variant="body2">Sold out</Typography>
-                                                            <Switch checked={formData.soldOut} onChange={(_, checked) => setFormData((f) => ({ ...f, soldOut: checked }))} color="warning" />
+                                                            <Switch
+                                                                checked={formData.soldOut}
+                                                                onChange={(_, checked) =>
+                                                                    setFormData((f) => ({ ...f, soldOut: checked }))
+                                                                }
+                                                                color="warning"
+                                                            />
                                                         </Stack>
-                                                        <FormHelperText>Se attivo, il campo prezzo viene disabilitato.</FormHelperText>
+                                                        <FormHelperText>
+                                                            Se attivo, il campo prezzo viene disabilitato.
+                                                        </FormHelperText>
                                                     </Stack>
                                                 </Paper>
                                             </Grid>
@@ -1630,7 +1937,13 @@ const AdminPanel = () => {
                                                     <Button variant="contained" type="submit" disabled={!isValid}>
                                                         {editingId ? "Salva modifiche" : "Crea evento"}
                                                     </Button>
-                                                    <Button variant="text" onClick={() => { resetForm(); setSection("events"); }}>
+                                                    <Button
+                                                        variant="text"
+                                                        onClick={() => {
+                                                            resetForm();
+                                                            setSection("events");
+                                                        }}
+                                                    >
                                                         Annulla
                                                     </Button>
                                                 </Stack>
@@ -1658,7 +1971,14 @@ const AdminPanel = () => {
                                     <Button fullWidth variant="contained" type="submit" disabled={!isValid}>
                                         {editingId ? "Salva" : "Crea evento"}
                                     </Button>
-                                    <Button fullWidth variant="text" onClick={() => { resetForm(); setSection("events"); }}>
+                                    <Button
+                                        fullWidth
+                                        variant="text"
+                                        onClick={() => {
+                                            resetForm();
+                                            setSection("events");
+                                        }}
+                                    >
                                         Annulla
                                     </Button>
                                 </Paper>
@@ -1682,13 +2002,51 @@ const AdminPanel = () => {
                                     value={bkQuery}
                                     inputRef={bkSearchRef}
                                     onChange={(e) => setBkQuery(e.target.value)}
-                                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" />
+                                            </InputAdornment>
+                                        ),
+                                    }}
                                     fullWidth={isMobile}
                                     sx={{ minWidth: 260 }}
                                 />
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Button variant="outlined" startIcon={<IosShareIcon />} onClick={exportBookingsCsv}>Esporta CSV</Button>
+                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                    <Button variant="outlined" startIcon={<IosShareIcon />} onClick={exportBookingsCsv}>
+                                        Esporta CSV
+                                    </Button>
+
+                                    {/* Filtro per evento */}
+                                    <FormControl size="small" sx={{ minWidth: 220 }}>
+                                        <Select
+                                            value={bkEventFilter}
+                                            onChange={(e) => setBkEventFilter(e.target.value)}
+                                            displayEmpty
+                                            sx={{
+                                                "& .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "rgba(255,255,255,0.18)",
+                                                },
+                                                "&:hover .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "primary.main",
+                                                },
+                                                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "primary.main",
+                                                },
+                                                "& .MuiSelect-icon": { color: "primary.main" },
+                                            }}
+                                        >
+                                            <MenuItem value="all">Tutti gli eventi</MenuItem>
+                                            {events.map((ev) => (
+                                                <MenuItem key={ev.id} value={ev.id}>
+                                                    {ev.name} — {ev.date}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
                                     <SortIcon fontSize="small" sx={{ opacity: 0.7 }} />
+
                                     <FormControl size="small">
                                         <Select
                                             value={`${bkSort.key}-${bkSort.dir}`}
@@ -1697,9 +2055,15 @@ const AdminPanel = () => {
                                                 setBkSort({ key, dir });
                                             }}
                                             sx={{
-                                                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.18)" },
-                                                "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
-                                                "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
+                                                "& .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "rgba(255,255,255,0.18)",
+                                                },
+                                                "&:hover .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "primary.main",
+                                                },
+                                                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "primary.main",
+                                                },
                                                 "& .MuiSelect-icon": { color: "primary.main" },
                                             }}
                                         >
@@ -1711,11 +2075,31 @@ const AdminPanel = () => {
                                             <MenuItem value="tickets-asc">Biglietti ↑</MenuItem>
                                         </Select>
                                     </FormControl>
+
+                                    <Button
+                                        color="error"
+                                        variant="outlined"
+                                        startIcon={<DeleteIcon />}
+                                        onClick={() =>
+                                            setConfirm({
+                                                open: true,
+                                                id: null,
+                                                type: "booking-all",
+                                                filterEventId: bkEventFilter !== "all" ? bkEventFilter : null,
+                                            })
+                                        }
+                                    >
+                                        Elimina {bkEventFilter !== "all" ? "tutte (evento filtrato)" : "tutte le prenotazioni"}
+                                    </Button>
                                 </Stack>
                             </Stack>
 
                             {isMobile ? (
-                                <Box>{filteredSortedBookings.map((b) => <MobileBookingCard key={b.id} b={b} />)}</Box>
+                                <Box>
+                                    {filteredSortedBookings.map((b) => (
+                                        <MobileBookingCard key={b.id} b={b} />
+                                    ))}
+                                </Box>
                             ) : (
                                 <TableContainer>
                                     <Table size="small" stickyHeader>
@@ -1726,39 +2110,91 @@ const AdminPanel = () => {
                                                 <TableCell>Email</TableCell>
                                                 <TableCell>Telefono</TableCell>
                                                 <TableCell>Biglietti</TableCell>
+                                                <TableCell align="right">Azioni</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {filteredSortedBookings.map((b) => (
+                                            {filteredSortedEvents.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={9} align="center" sx={{ py: 4, opacity: 0.7 }}>
+                                                        Nessuna prenotazione presente.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                            {bkPageRows.map((b) => (
                                                 <TableRow key={b.id} hover>
                                                     <TableCell>{b.nome}</TableCell>
                                                     <TableCell>{b.cognome}</TableCell>
                                                     <TableCell>{b.email}</TableCell>
                                                     <TableCell>{b.telefono}</TableCell>
                                                     <TableCell>{b.quantity || 1}</TableCell>
+                                                    <TableCell align="right">
+                                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={<EditIcon />}
+                                                                onClick={() => openBookingEdit(b)}
+                                                            >
+                                                                Modifica
+                                                            </Button>
+                                                            <IconButton
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() =>
+                                                                    setConfirm({ open: true, id: b.id, type: "booking" })
+                                                                }
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Stack>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
+                                    <TablePagination
+                                        component="div"
+                                        count={filteredSortedBookings.length}
+                                        page={bkPage}
+                                        onPageChange={(_, p) => setBkPage(p)}
+                                        rowsPerPage={bkRowsPerPage}
+                                        onRowsPerPageChange={(e) => {
+                                            setBkRowsPerPage(parseInt(e.target.value, 10));
+                                            setBkPage(0);
+                                        }}
+                                        rowsPerPageOptions={[5, 10, 25, 50]}
+                                    />
                                 </TableContainer>
                             )}
                         </Paper>
                     )}
 
-                    {/* CHECK-IN (QR scanner nativo se disponibile) */}
+                    {/* CHECK-IN */}
                     {section === "checkin" && (
                         <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 900, mx: "auto" }}>
-                            <Typography variant="h5" sx={{ mb: 2 }}>Check-in</Typography>
-                            <CheckInBox events={events} />   {/* <--- passiamo gli eventi */}
+                            <Typography variant="h5" sx={{ mb: 2 }}>
+                                Check-in
+                            </Typography>
+                            <CheckInBox events={events} />
                         </Paper>
                     )}
 
-
-
                     {/* GALLERY */}
                     {section === "gallery" && (
-                        <Paper sx={{ ...glass, p: 3, mb: 4, borderRadius: 2, maxWidth: 520, mx: "auto", textAlign: "center" }}>
-                            <Typography variant="h5" gutterBottom>Gallery</Typography>
+                        <Paper
+                            sx={{
+                                ...glass,
+                                p: 3,
+                                mb: 4,
+                                borderRadius: 2,
+                                maxWidth: 520,
+                                mx: "auto",
+                                textAlign: "center",
+                            }}
+                        >
+                            <Typography variant="h5" gutterBottom>
+                                Gallery
+                            </Typography>
                             <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
                                 Le immagini della Home sono lette direttamente dalla cartella Drive pubblica.
                             </Typography>
@@ -1776,7 +2212,9 @@ const AdminPanel = () => {
                                 startIcon={<ContentCopyIcon />}
                                 onClick={async () => {
                                     if (!driveFolderLink) return;
-                                    try { await navigator.clipboard.writeText(driveFolderLink); } catch {}
+                                    try {
+                                        await navigator.clipboard.writeText(driveFolderLink);
+                                    } catch {}
                                 }}
                                 sx={{ color: "primary.main", ml: 1 }}
                                 disabled={!driveFolderLink}
@@ -1793,10 +2231,50 @@ const AdminPanel = () => {
                 open={confirm.open}
                 title="Conferma"
                 message="Eliminare definitivamente?"
-                onConfirm={() => {
-                    const id = confirm.id;
+                onConfirm={async () => {
+                    const { type, id, filterStatus, filterEventId } = confirm;
                     setConfirm({ open: false, id: null, type: "" });
-                    if (confirm.type === "event") handleDelete(id);
+
+                    try {
+                        switch (type) {
+                            case "event": {
+                                await deleteEvent(id);
+                                setEvents((prev) => prev.filter((ev) => ev.id !== id));
+                                showToast("Evento eliminato", "success");
+                                break;
+                            }
+                            case "booking": {
+                                await deleteBooking(id);
+                                setBookings((prev) => prev.filter((b) => b.id !== id));
+                                showToast("Prenotazione eliminata", "success");
+                                break;
+                            }
+                            case "event-all": {
+                                const ids = events
+                                    .filter((ev) =>
+                                        filterStatus ? (ev.status || "published") === filterStatus : true
+                                    )
+                                    .map((ev) => ev.id);
+                                await Promise.all(ids.map(deleteEvent));
+                                setEvents((prev) => prev.filter((ev) => !ids.includes(ev.id)));
+                                showToast("Eventi eliminati", "success");
+                                break;
+                            }
+                            case "booking-all": {
+                                const ids = bookings
+                                    .filter((b) => (filterEventId ? b.eventId === filterEventId : true))
+                                    .map((b) => b.id);
+                                await Promise.all(ids.map(deleteBooking));
+                                setBookings((prev) => prev.filter((b) => !ids.includes(b.id)));
+                                showToast("Prenotazioni eliminati", "success");
+                                break;
+                            }
+                            default:
+                                break;
+                        }
+                    } catch (e) {
+                        showToast("Errore", "error");
+                    }
                 }}
                 onClose={() => setConfirm({ open: false, id: null, type: "" })}
             />
@@ -1807,9 +2285,52 @@ const AdminPanel = () => {
                 onClose={() => setDriveDialogOpen(false)}
                 onPick={(src) => setFormData((f) => ({ ...f, image: src }))}
             />
+
+            <Dialog open={!!bkEdit} onClose={closeBookingEdit} fullWidth maxWidth="sm">
+                <DialogTitle>Modifica prenotazione</DialogTitle>
+                <DialogContent dividers sx={{ display: "grid", gap: 1.2, pt: 2 }}>
+                    <TextField
+                        label="Nome"
+                        value={bkEdit?.nome || ""}
+                        onChange={(e) => setBkEdit((s) => ({ ...s, nome: e.target.value }))}
+                    />
+                    <TextField
+                        label="Cognome"
+                        value={bkEdit?.cognome || ""}
+                        onChange={(e) => setBkEdit((s) => ({ ...s, cognome: e.target.value }))}
+                    />
+                    <TextField
+                        label="Email"
+                        value={bkEdit?.email || ""}
+                        onChange={(e) => setBkEdit((s) => ({ ...s, email: e.target.value }))}
+                    />
+                    <TextField
+                        label="Telefono"
+                        value={bkEdit?.telefono || ""}
+                        onChange={(e) => setBkEdit((s) => ({ ...s, telefono: e.target.value }))}
+                    />
+                    <TextField
+                        label="Biglietti"
+                        type="number"
+                        inputProps={{ min: 1 }}
+                        value={bkEdit?.quantity || 1}
+                        onChange={(e) => setBkEdit((s) => ({ ...s, quantity: e.target.value }))}
+                    />
+                    <FormHelperText>
+                        Attenzione: cambiare quantità impatta i contatori e il sold out.
+                    </FormHelperText>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
+                        <Button onClick={closeBookingEdit}>Annulla</Button>
+                        <Button variant="contained" onClick={saveBookingEdit}>
+                            Salva
+                        </Button>
+                    </Stack>
+                </DialogContent>
+            </Dialog>
         </MuiThemeProvider>
     );
 };
+
 
 /* =======================
    Check-in component

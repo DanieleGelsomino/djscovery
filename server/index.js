@@ -25,18 +25,28 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-const allowedOrigins = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim());
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            if (!origin || !allowedOrigins?.length || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-    })
-);
+// ---- CORS ----
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+const corsOptions = {
+    origin(origin, cb) {
+        // consenti Postman / SSR (no Origin) e, se non configurato, permetti tutti
+        if (!origin) return cb(null, true);
+        if (!allowedOrigins.length || allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET","HEAD","POST","PUT","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"],
+    optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+// ⬇️ fondamentale per preflight di PUT/DELETE
+app.options("*", cors(corsOptions));
+
 app.use(
     helmet({
         crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -331,6 +341,27 @@ app.delete("/api/events/:id", authenticate, requireRole("admin", "editor"), asyn
     }
 });
 
+// DELETE /api/events  (bulk)  (admin only)
+// opzionale: ?status=draft|published|archived
+app.delete("/api/events", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+        const { status } = req.query;
+        let ref = db.collection("events");
+        if (status && ["draft","published","archived"].includes(status)) {
+            ref = ref.where("status","==", status);
+        }
+        const snap = await ref.get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        res.json({ success: true, deleted: snap.size });
+    } catch (e) {
+        console.error("❌ DELETE /api/events (bulk):", e.message);
+        res.status(500).json({ error: "Failed to bulk delete events" });
+    }
+});
+
+
 app.post("/api/events/:id/duplicate", authenticate, requireRole("admin", "editor"), async (req, res) => {
     const id = req.params.id;
     try {
@@ -532,6 +563,181 @@ Verifica: ${verifyURL}`,
         res.status(500).json({ error: "Failed to save booking" });
     }
 });
+
+// PUT /api/bookings/:id  (admin|editor|staff)
+app.put("/api/bookings/:id", authenticate, requireRole("admin","editor","staff"), async (req, res) => {
+    const id = req.params.id;
+    const parsed = bookingSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid payload", details: parsed.error.format() });
+    }
+    const patch = parsed.data;
+
+    try {
+        await db.runTransaction(async (t) => {
+            const bkRef = db.collection("bookings").doc(id);
+            const bkSnap = await t.get(bkRef);
+            if (!bkSnap.exists) throw new Error("not_found");
+            const before = bkSnap.data();
+
+            const oldEventId = before.eventId;
+            const newEventId = patch.eventId ?? oldEventId;
+            const oldQ = Number(before.quantity || 1);
+            const newQ = Number(patch.quantity ?? oldQ);
+
+            // ---- LEGGI TUTTO PRIMA DI SCRIVERE ----
+            const oldEvRef = oldEventId ? db.collection("events").doc(oldEventId) : null;
+            const newEvRef = newEventId ? db.collection("events").doc(newEventId) : null;
+
+            let oldEvSnap = null;
+            let newEvSnap = null;
+
+            if (oldEvRef) oldEvSnap = await t.get(oldEvRef);
+            if (newEvRef && (!oldEvRef || newEvRef.id !== oldEvRef.id)) {
+                newEvSnap = await t.get(newEvRef);
+            } else {
+                // stesso evento o uno dei due manca: riusa lo snap
+                newEvSnap = oldEvSnap;
+            }
+
+            // ---- CALCOLA & SCRIVI DOPO LE LETTURE ----
+            if (oldEventId === newEventId) {
+                // stessa serata: variazione quantità
+                if (oldEvRef && oldEvSnap?.exists && (newQ !== oldQ)) {
+                    const ev = oldEvSnap.data();
+                    const cap = Number(ev.capacity || 0) || 0;
+                    const current = Number(ev.bookingsCount || 0) || 0;
+                    const updatedCount = Math.max(0, current - oldQ + newQ);
+                    if (cap > 0 && updatedCount > cap) throw new Error("capacity_exceeded");
+
+                    t.update(oldEvRef, {
+                        bookingsCount: updatedCount,
+                        soldOut: cap > 0 && updatedCount >= cap,
+                        updatedAt: now(),
+                    });
+                }
+            } else {
+                // evento cambiato
+                // 1) ripristina vecchio
+                if (oldEvRef && oldEvSnap?.exists) {
+                    const ev = oldEvSnap.data();
+                    const cap = Number(ev.capacity || 0) || 0;
+                    const updatedCount = Math.max(0, Number(ev.bookingsCount || 0) - oldQ);
+                    t.update(oldEvRef, {
+                        bookingsCount: updatedCount,
+                        soldOut: cap > 0 && updatedCount >= cap,
+                        updatedAt: now(),
+                    });
+                }
+                // 2) applica nuovo
+                if (newEvRef && newEvSnap?.exists) {
+                    const ev = newEvSnap.data();
+                    const cap = Number(ev.capacity || 0) || 0;
+                    const updatedCount = Number(ev.bookingsCount || 0) + newQ;
+                    if (cap > 0 && updatedCount > cap) throw new Error("capacity_exceeded");
+                    t.update(newEvRef, {
+                        bookingsCount: updatedCount,
+                        soldOut: cap > 0 && updatedCount >= cap,
+                        updatedAt: now(),
+                    });
+                }
+            }
+
+            // 3) aggiorna la prenotazione
+            t.update(bkRef, { ...patch });
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        if (e.message === "not_found") return res.status(404).json({ error: "booking_not_found" });
+        if (e.message === "capacity_exceeded") return res.status(409).json({ error: "capacity_exceeded" });
+        console.error("❌ PUT /api/bookings/:id:", e.message);
+        res.status(500).json({ error: "Failed to update booking" });
+    }
+});
+
+
+// DELETE /api/bookings/:id  (admin|editor)
+app.delete("/api/bookings/:id", authenticate, requireRole("admin","editor"), async (req, res) => {
+    try {
+        await db.runTransaction(async (t) => {
+            const bkRef = db.collection("bookings").doc(req.params.id);
+            const bkSnap = await t.get(bkRef);
+            if (!bkSnap.exists) throw new Error("not_found");
+            const b = bkSnap.data();
+
+            // aggiorna evento
+            if (b.eventId) {
+                const evRef = db.collection("events").doc(b.eventId);
+                const evSnap = await t.get(evRef);
+                if (evSnap.exists) {
+                    const ev = evSnap.data();
+                    const cap = Number(ev.capacity || 0) || 0;
+                    const updatedCount = Math.max(0, Number(ev.bookingsCount || 0) - (Number(b.quantity || 1)));
+                    t.update(evRef, {
+                        bookingsCount: updatedCount,
+                        soldOut: cap > 0 && updatedCount >= cap ? true : false,
+                        updatedAt: now(),
+                    });
+                }
+            }
+
+            t.delete(bkRef);
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        if (e.message === "not_found") return res.status(404).json({ error: "booking_not_found" });
+        console.error("❌ DELETE /api/bookings/:id:", e.message);
+        res.status(500).json({ error: "Failed to delete booking" });
+    }
+});
+
+// DELETE /api/bookings (bulk, opzionale eventId)  (admin only)
+app.delete("/api/bookings", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+        const { eventId } = req.query;
+        let ref = db.collection("bookings");
+        if (eventId) ref = ref.where("eventId", "==", eventId);
+        const snap = await ref.get();
+
+        const byEvent = {};
+        snap.forEach(doc => {
+            const b = doc.data();
+            if (b.eventId) {
+                byEvent[b.eventId] = (byEvent[b.eventId] || 0) + (Number(b.quantity || 1));
+            }
+        });
+
+        // aggiorna eventi (bookingsCount & soldOut)
+        const batch = db.batch();
+        const evUpdates = Object.entries(byEvent);
+        for (const [evId, minus] of evUpdates) {
+            const evRef = db.collection("events").doc(evId);
+            const evSnap = await evRef.get();
+            if (evSnap.exists) {
+                const ev = evSnap.data();
+                const cap = Number(ev.capacity || 0) || 0;
+                const updatedCount = Math.max(0, Number(ev.bookingsCount || 0) - minus);
+                batch.update(evRef, {
+                    bookingsCount: updatedCount,
+                    soldOut: cap > 0 && updatedCount >= cap ? true : false,
+                    updatedAt: now(),
+                });
+            }
+        }
+
+        // cancella bookings
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+
+        res.json({ success: true, deleted: snap.size });
+    } catch (e) {
+        console.error("❌ DELETE /api/bookings (bulk):", e.message);
+        res.status(500).json({ error: "Failed to bulk delete" });
+    }
+});
+
 
 // GET /api/bookings/verify?token=...
 app.get("/api/bookings/verify", async (req, res) => {

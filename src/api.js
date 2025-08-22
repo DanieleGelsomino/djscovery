@@ -180,6 +180,46 @@ export const undoCheckIn = async (token, count = 1) => {
 };
 
 
+// BOOKINGS admin
+export const updateBooking = async (id, data) => {
+    const res = await fetch(`${API_BASE}/api/bookings/${id}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+};
+
+export const deleteBooking = async (id) => {
+    const res = await fetch(`${API_BASE}/api/bookings/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    return handleResponse(res);
+};
+
+export const deleteAllBookings = async (eventId=null) => {
+    const url = new URL(`${API_BASE}/api/bookings`);
+    if (eventId) url.searchParams.set("eventId", eventId);
+    const res = await fetch(url.toString(), {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    return handleResponse(res);
+};
+
+// EVENTS bulk
+export const deleteAllEvents = async (status=null) => {
+    const url = new URL(`${API_BASE}/api/events`);
+    if (status) url.searchParams.set("status", status);
+    const res = await fetch(url.toString(), {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    return handleResponse(res);
+};
+
+
 
 
 /* =======================
