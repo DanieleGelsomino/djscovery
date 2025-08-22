@@ -63,5 +63,142 @@
     "invalid_email": "Email non valida",
     "error": "Errore durante il salvataggio",
     "success": "Prenotazione avvenuta con successo!"
+  },
+  "admin": {
+    "nav": {
+      "events": "Eventi",
+      "create": "Crea / Modifica Evento",
+      "bookings": "Prenotazioni",
+      "checkin": "Check-in",
+      "gallery": "Gallery"
+    },
+    "common": {
+      "open_menu": "Apri menu",
+      "no_results": "Nessun risultato",
+      "filter_by_name": "Filtra per nome…",
+      "reload": "Ricarica",
+      "no_images": "Nessuna immagine trovata."
+    },
+    "header": {
+      "admin": "Admin",
+      "createEditEvent": "Crea / Modifica Evento",
+      "futuri": "Futuri",
+      "passati": "Passati",
+      "prenotazioni": "Prenotazioni",
+      "drive": "Apri cartella Drive",
+      "logout": "Logout"
+    },
+    "events": {
+      "search": "Cerca per nome / DJ / luogo",
+      "filters": { "all_status": "Tutti gli status" },
+      "statuses": {
+        "draft": "Bozza",
+        "published": "Pubblicato",
+        "archived": "Archiviato"
+      },
+      "sort": {
+        "dateAsc": "Data ↑",
+        "dateDesc": "Data ↓",
+        "nameAsc": "Nome ↑",
+        "nameDesc": "Nome ↓",
+        "placeAsc": "Luogo ↑",
+        "placeDesc": "Luogo ↓"
+      },
+      "exportCsv": "Esporta CSV",
+      "newEvent": "Nuovo evento",
+      "noEvents": "Nessun evento con i filtri attuali.",
+      "columns": {
+        "nome": "Nome",
+        "dj": "DJ",
+        "luogo": "Luogo",
+        "data": "Data",
+        "ora": "Ora",
+        "capienza": "Capienza",
+        "status": "Status",
+        "soldOut": "Sold Out",
+        "azioni": "Azioni"
+      },
+      "actions": {
+        "duplicate": "Duplica",
+        "ics": ".ics",
+        "edit": "Modifica",
+        "delete": "Elimina"
+      },
+      "past": "Evento passato"
+    },
+    "form": {
+      "titleEdit": "Modifica evento",
+      "titleCreate": "Crea nuovo evento",
+      "cover_alt": "Anteprima evento",
+      "pick_from_drive": "Scegli da Drive",
+      "upload_from_device": "Carica da dispositivo",
+      "remove_image": "Rimuovi immagine",
+      "cover": "Copertina 16:9. Consigliato WEBP < 1MB.",
+      "details": "Dettagli",
+      "name_label": "Nome evento *",
+      "name_helper": "Esempio: Friday Groove @ Rooftop",
+      "dj_label": "DJ / Line-up",
+      "dj_placeholder": "DJ Name, Guest, Resident…",
+      "price_label": "Prezzo (€)",
+      "price_disabled": "Non richiesto se sold out",
+      "capacity_label": "Capienza",
+      "status": "Status evento",
+      "description": "Descrizione (pubblica)",
+      "description_label": "Dettagli, line-up, note",
+      "description_placeholder": "Line-up, dress code, guestlist, promozioni…",
+      "internalNotes": "Note interne (non pubbliche) & Guest list",
+      "internal_notes_label": "Note interne",
+      "internal_notes_placeholder": "Es. briefing staff, orari, contatti…",
+      "guest_list_label": "Guest list",
+      "guest_list_placeholder": "Un nominativo per riga, o CSV 'Nome,Cognome,+#'…",
+      "program": "Programmazione",
+      "date_label": "Data *",
+      "time_label": "Orario *",
+      "place": "Luogo",
+      "place_search_label": "Cerca e seleziona un luogo",
+      "place_suggestions": "Suggerimenti da OSM/Geoapify",
+      "map_preview": "Anteprima posizione (OpenStreetMap)",
+      "saleStatus": "Stato vendita",
+      "soldOut": "Sold out",
+      "soldOut_hint": "Se attivo, il campo prezzo viene disabilitato.",
+      "buttons": {
+        "save": "Salva modifiche",
+        "create": "Crea evento",
+        "cancel": "Annulla"
+      },
+      "errors": {
+        "name": "Inserisci un nome",
+        "date": "Scegli una data",
+        "time": "Inserisci un orario",
+        "future": "Data/ora deve essere nel futuro",
+        "price": "Prezzo non valido",
+        "capacity": "Capienza non valida",
+        "place": "Seleziona un luogo dai suggerimenti"
+      },
+      "geoapify_missing": "Geoapify API key mancante"
+    },
+    "gallery": {
+      "config_missing": "Config mancante: API_KEY o FOLDER_ID",
+      "load_error": "Impossibile caricare le immagini da Drive."
+    },
+    "toast": {
+      "created": "Evento creato",
+      "updated": "Evento aggiornato",
+      "save_error": "Errore nel salvataggio",
+      "deleted": "Evento eliminato",
+      "error": "Errore",
+      "auto_soldout": "Aggiornato stato Sold Out automaticamente"
+    },
+    "confirm": {
+      "title": "Conferma",
+      "message": "Eliminare definitivamente?"
+    },
+    "checkin": {
+      "title": "Check-in",
+      "start": "Avvia scansione",
+      "stop": "Stop",
+      "unsupported": "Il tuo browser non supporta il rilevamento nativo dei QR. La scansione potrebbe non funzionare."
+    }
   }
+
 }

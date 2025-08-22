@@ -63,5 +63,142 @@
     "invalid_email": "Invalid email",
     "error": "Error saving data",
     "success": "Booking successful!"
+  },
+  "admin": {
+    "nav": {
+      "events": "Events",
+      "create": "Create / Edit Event",
+      "bookings": "Bookings",
+      "checkin": "Check-in",
+      "gallery": "Gallery"
+    },
+    "common": {
+      "open_menu": "Open menu",
+      "no_results": "No results",
+      "filter_by_name": "Filter by name…",
+      "reload": "Reload",
+      "no_images": "No images found."
+    },
+    "header": {
+      "admin": "Admin",
+      "createEditEvent": "Create / Edit Event",
+      "futuri": "Upcoming",
+      "passati": "Past",
+      "prenotazioni": "Bookings",
+      "drive": "Open Drive folder",
+      "logout": "Logout"
+    },
+    "events": {
+      "search": "Search by name / DJ / place",
+      "filters": { "all_status": "All statuses" },
+      "statuses": {
+        "draft": "Draft",
+        "published": "Published",
+        "archived": "Archived"
+      },
+      "sort": {
+        "dateAsc": "Date ↑",
+        "dateDesc": "Date ↓",
+        "nameAsc": "Name ↑",
+        "nameDesc": "Name ↓",
+        "placeAsc": "Place ↑",
+        "placeDesc": "Place ↓"
+      },
+      "exportCsv": "Export CSV",
+      "newEvent": "New event",
+      "noEvents": "No events with current filters.",
+      "columns": {
+        "nome": "Name",
+        "dj": "DJ",
+        "luogo": "Place",
+        "data": "Date",
+        "ora": "Time",
+        "capienza": "Capacity",
+        "status": "Status",
+        "soldOut": "Sold Out",
+        "azioni": "Actions"
+      },
+      "actions": {
+        "duplicate": "Duplicate",
+        "ics": ".ics",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "past": "Past event"
+    },
+    "form": {
+      "titleEdit": "Edit event",
+      "titleCreate": "Create new event",
+      "cover_alt": "Event preview",
+      "pick_from_drive": "Pick from Drive",
+      "upload_from_device": "Upload from device",
+      "remove_image": "Remove image",
+      "cover": "16:9 cover. WEBP < 1MB recommended.",
+      "details": "Details",
+      "name_label": "Event name *",
+      "name_helper": "Example: Friday Groove @ Rooftop",
+      "dj_label": "DJ / Line-up",
+      "dj_placeholder": "DJ Name, Guest, Resident…",
+      "price_label": "Price (€)",
+      "price_disabled": "Not required if sold out",
+      "capacity_label": "Capacity",
+      "status": "Event status",
+      "description": "Public description",
+      "description_label": "Details, line-up, notes",
+      "description_placeholder": "Line-up, dress code, guestlist, promos…",
+      "internalNotes": "Private notes & Guest list",
+      "internal_notes_label": "Private notes",
+      "internal_notes_placeholder": "E.g. staff brief, timings, contacts…",
+      "guest_list_label": "Guest list",
+      "guest_list_placeholder": "One name per line, or CSV 'First,Last,+#'…",
+      "program": "Schedule",
+      "date_label": "Date *",
+      "time_label": "Time *",
+      "place": "Place",
+      "place_search_label": "Search and select a place",
+      "place_suggestions": "Suggestions by OSM/Geoapify",
+      "map_preview": "Location preview (OpenStreetMap)",
+      "saleStatus": "Sale status",
+      "soldOut": "Sold out",
+      "soldOut_hint": "If enabled, price field is disabled.",
+      "buttons": {
+        "save": "Save changes",
+        "create": "Create event",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "name": "Enter a name",
+        "date": "Pick a date",
+        "time": "Enter a time",
+        "future": "Date/time must be in the future",
+        "price": "Invalid price",
+        "capacity": "Invalid capacity",
+        "place": "Select a place from suggestions"
+      },
+      "geoapify_missing": "Missing Geoapify API key"
+    },
+    "gallery": {
+      "config_missing": "Missing config: API_KEY or FOLDER_ID",
+      "load_error": "Unable to load images from Drive."
+    },
+    "toast": {
+      "created": "Event created",
+      "updated": "Event updated",
+      "save_error": "Save error",
+      "deleted": "Event deleted",
+      "error": "Error",
+      "auto_soldout": "Sold Out status updated automatically"
+    },
+    "confirm": {
+      "title": "Confirm",
+      "message": "Delete permanently?"
+    },
+    "checkin": {
+      "title": "Check-in",
+      "start": "Start scan",
+      "stop": "Stop",
+      "unsupported": "Your browser doesn't support native QR detection. Scanning may not work."
+    }
   }
+
 }

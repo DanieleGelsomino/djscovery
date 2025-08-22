@@ -9,10 +9,21 @@ import { db } from "./firebase.js";
 import fetch from "node-fetch";
 import { z } from "zod";
 
+// Email + QR + JWT
+import nodemailer from "nodemailer";
+import QRCode from "qrcode";
+import jwt from "jsonwebtoken";
+
+/* ----------------- Fail-fast env ----------------- */
+if (!process.env.JWT_SECRET) {
+    console.error("❌ Manca JWT_SECRET nell'ambiente (.env del server)");
+    process.exit(1);
+}
+
 /* ----------------- App base ----------------- */
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", 1); // se dietro proxy/load balancer
+app.set("trust proxy", 1);
 
 const allowedOrigins = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim());
 app.use(
@@ -72,6 +83,45 @@ const toCSV = (rows) => {
     return lines.join("\n");
 };
 
+/* ----------------- Mailer & helpers ----------------- */
+const {
+    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL,
+    API_BASE_URL, JWT_SECRET,
+} = process.env;
+
+const mailer = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT || 587),
+    secure: false,
+    auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    logger: true,   // utile in debug; togli se non ti serve
+    debug: true,    // utile in debug; togli se non ti serve
+});
+
+mailer.verify((err) => {
+    if (err) console.error("❌ SMTP verify failed:", err.message);
+    else console.log("✅ SMTP ready");
+});
+
+function bookingEmailHTML({ nome, cognome, eventName, quantity, verifyURL }) {
+    return `
+  <div style="font-family: Arial, sans-serif; color:#222">
+    <h2>Conferma Prenotazione — ${eventName}</h2>
+    <p>Ciao ${nome} ${cognome},</p>
+    <p>La tua prenotazione è stata registrata.</p>
+    <ul>
+      <li><strong>Evento:</strong> ${eventName}</li>
+      <li><strong>Biglietti:</strong> ${quantity}</li>
+    </ul>
+    <p>Mostra questo QR all'ingresso:</p>
+    <img src="cid:qrimage" alt="QR Prenotazione" style="max-width:240px; width:100%;"/>
+    <p style="margin-top:16px; font-size:12px; color:#666">
+      Se il QR non si visualizza correttamente, puoi usare questo link:<br/>
+      <a href="${verifyURL}" style="word-break:break-all;">${verifyURL}</a>
+    </p>
+  </div>`;
+}
+
 /* ----------------- Auth & RBAC ----------------- */
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
@@ -79,11 +129,21 @@ const authenticate = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: "Unauthorized" });
     try {
         const decoded = await getAuth().verifyIdToken(token);
-        req.user = {
-            uid: decoded.uid,
-            email: decoded.email,
-            roles: decoded.roles || decoded.role || [], // custom claims
-        };
+
+        const rolesSet = new Set();
+        if (Array.isArray(decoded.roles)) decoded.roles.forEach((r) => rolesSet.add(String(r)));
+        if (decoded.role) rolesSet.add(String(decoded.role));
+        if (decoded.admin) rolesSet.add("admin");
+        if (decoded.editor) rolesSet.add("editor");
+        if (decoded.staff) rolesSet.add("staff");
+
+        const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+            .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (decoded.email && ADMIN_EMAILS.includes(decoded.email.toLowerCase())) {
+            rolesSet.add("admin");
+        }
+
+        req.user = { uid: decoded.uid, email: decoded.email, roles: Array.from(rolesSet) };
         next();
     } catch {
         res.status(401).json({ error: "Unauthorized" });
@@ -127,6 +187,7 @@ const eventSchemaCreate = z.object({
 
 const eventSchemaUpdate = eventSchemaCreate.partial();
 
+// SOLO quantity
 const bookingSchema = z.object({
     nome: z.string().min(1),
     cognome: z.string().min(1),
@@ -144,16 +205,11 @@ async function auditEventChange(eventId, user, action, before, after) {
         if (before && after) {
             const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
             keys.forEach((k) => {
-                if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) {
-                    diff[k] = { from: before[k], to: after[k] };
-                }
+                if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) diff[k] = { from: before[k], to: after[k] };
             });
         }
         await db.collection("events").doc(eventId).collection("audits").add({
-            action, // 'create' | 'update' | 'delete' | 'duplicate'
-            by: pick(user || {}, ["uid", "email"]),
-            at: now(),
-            diff,
+            action, by: pick(user || {}, ["uid", "email"]), at: now(), diff,
         });
     } catch (e) {
         console.warn("Audit write failed:", e?.message);
@@ -161,8 +217,6 @@ async function auditEventChange(eventId, user, action, before, after) {
 }
 
 /* ----------------- EVENTI ----------------- */
-
-// GET /api/events?status=published|draft|archived
 app.get("/api/events", async (req, res) => {
     const { status } = req.query;
     try {
@@ -170,18 +224,14 @@ app.get("/api/events", async (req, res) => {
         if (status && ["draft", "published", "archived"].includes(status)) {
             ref = ref.where("status", "==", status);
         }
-
-        // primo tentativo: ordinamento composito (richiede indice)
         try {
             const snap = await ref.orderBy("date").orderBy("time").get();
             const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
             return res.json(data);
         } catch (e) {
-            // se l’indice non c’è, fallback
             if (String(e?.message || "").toLowerCase().includes("index")) {
                 const snap = await ref.orderBy("date").get();
                 const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                // ordina in memoria per time come secondo criterio
                 data.sort((a, b) => {
                     const da = `${a.date || ""}T${a.time || "00:00"}`;
                     const dbb = `${b.date || ""}T${b.time || "00:00"}`;
@@ -197,8 +247,6 @@ app.get("/api/events", async (req, res) => {
     }
 });
 
-
-// POST /api/events
 app.post("/api/events", authenticate, requireRole("admin", "editor"), async (req, res) => {
     const parsed = eventSchemaCreate.safeParse(req.body);
     if (!parsed.success) {
@@ -229,7 +277,6 @@ app.post("/api/events", authenticate, requireRole("admin", "editor"), async (req
     }
 });
 
-// PUT /api/events/:id
 app.put("/api/events/:id", authenticate, requireRole("admin", "editor"), async (req, res) => {
     const id = req.params.id;
     const parsed = eventSchemaUpdate.safeParse(req.body);
@@ -252,7 +299,6 @@ app.put("/api/events/:id", authenticate, requireRole("admin", "editor"), async (
             updatedBy: pick(req.user, ["uid", "email"]),
         };
 
-        // Se cambia capienza, ricontrolla soldOut
         if (patch.capacity !== undefined) {
             const current = before.bookingsCount || 0;
             patch.soldOut = current >= patch.capacity && patch.capacity > 0 ? true : !!patch.soldOut;
@@ -268,7 +314,6 @@ app.put("/api/events/:id", authenticate, requireRole("admin", "editor"), async (
     }
 });
 
-// DELETE /api/events/:id
 app.delete("/api/events/:id", authenticate, requireRole("admin", "editor"), async (req, res) => {
     try {
         const id = req.params.id;
@@ -286,7 +331,6 @@ app.delete("/api/events/:id", authenticate, requireRole("admin", "editor"), asyn
     }
 });
 
-// POST /api/events/:id/duplicate
 app.post("/api/events/:id/duplicate", authenticate, requireRole("admin", "editor"), async (req, res) => {
     const id = req.params.id;
     try {
@@ -314,7 +358,7 @@ app.post("/api/events/:id/duplicate", authenticate, requireRole("admin", "editor
     }
 });
 
-// GET /api/events/:id/ics  (UTC)
+// ICS
 app.get("/api/events/:id/ics", async (req, res) => {
     try {
         const snap = await db.collection("events").doc(req.params.id).get();
@@ -360,8 +404,7 @@ END:VCALENDAR`.replace(/\r?\n/g, "\r\n");
 });
 
 /* ----------------- PRENOTAZIONI ----------------- */
-
-// GET /api/bookings?eventId=...
+// GET /api/bookings
 app.get("/api/bookings", async (req, res) => {
     try {
         const { eventId } = req.query;
@@ -376,15 +419,16 @@ app.get("/api/bookings", async (req, res) => {
     }
 });
 
-// POST /api/bookings (pubblico)
+// POST /api/bookings — salva, genera token/QR, invia email (QR inline CID)
 app.post("/api/bookings", publicLimiter, async (req, res) => {
     const parsed = bookingSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: "Invalid payload", details: parsed.error.format() });
     }
-    const { eventId, quantity } = parsed.data;
+    const { eventId, quantity, ...rest } = parsed.data;
 
     try {
+        // 1) transazione
         const result = await db.runTransaction(async (t) => {
             const evRef = db.collection("events").doc(eventId);
             const evSnap = await t.get(evRef);
@@ -398,12 +442,10 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
             if (ev.soldOut) throw new Error("sold_out");
             if (cap > 0 && current + quantity > cap) throw new Error("capacity_exceeded");
 
-            // salva booking
             const bookingRef = db.collection("bookings").doc();
-            const payload = { ...parsed.data, createdAt: now() };
+            const payload = { ...rest, eventId, quantity, createdAt: now(), status: "pending" };
             t.set(bookingRef, payload);
 
-            // aggiorna contatore + soldOut
             const newCount = current + quantity;
             const newSoldOut = cap > 0 && newCount >= cap;
             t.update(evRef, {
@@ -412,13 +454,73 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
                 updatedAt: now(),
             });
 
-            return { bookingId: bookingRef.id, bookingsCount: newCount, soldOut: newSoldOut };
+            return { bookingId: bookingRef.id, event: { id: evRef.id, ...ev }, newCount, newSoldOut };
         });
 
-        res.json({
+        // 2) token + QR
+        const token = jwt.sign(
+            { bid: result.bookingId, eid: eventId, qty: quantity },
+            JWT_SECRET,
+            { expiresIn: "180d" }
+        );
+
+        const verifyURL = `${API_BASE_URL || "http://localhost:3000"}/api/bookings/verify?token=${encodeURIComponent(token)}`;
+        const qrDataURL = await QRCode.toDataURL(verifyURL, { errorCorrectionLevel: "M" });
+        const qrBase64 = qrDataURL.split(",")[1];
+
+        // dati per email
+        const bookingDoc = await db.collection("bookings").doc(result.bookingId).get();
+        const booking = bookingDoc.data();
+        const eventName = result.event?.name || "Evento";
+
+        // 3) invio email (QR inline con CID)
+        try {
+            const info = await mailer.sendMail({
+                from: FROM_EMAIL,
+                to: booking.email,
+                replyTo: FROM_EMAIL,
+                subject: `Conferma Prenotazione — ${eventName}`,
+                text: `Ciao ${booking.nome} ${booking.cognome},
+La tua prenotazione è stata registrata.
+Evento: ${eventName}
+Biglietti: ${quantity}
+Verifica: ${verifyURL}`,
+                html: bookingEmailHTML({
+                    nome: booking.nome,
+                    cognome: booking.cognome,
+                    eventName,
+                    quantity,
+                    verifyURL,
+                }),
+                attachments: [
+                    {
+                        filename: "qrcode.png",
+                        content: Buffer.from(qrBase64, "base64"),
+                        cid: "qrimage",
+                        contentType: "image/png",
+                    },
+                ],
+            });
+            console.log("📧 Email inviata:", info.messageId);
+
+            await db.collection("bookings").doc(result.bookingId).update({
+                status: "sent",
+                token,
+                emailSentAt: now(),
+            });
+        } catch (sendErr) {
+            console.error("❌ Errore invio email:", sendErr?.response || sendErr?.message || sendErr);
+            await db.collection("bookings").doc(result.bookingId).update({
+                status: "pending_email",
+                token,
+                emailError: String(sendErr?.message || sendErr),
+            });
+        }
+
+        return res.json({
             id: result.bookingId,
-            bookingsCount: result.bookingsCount,
-            soldOut: result.soldOut,
+            bookingsCount: result.newCount,
+            soldOut: result.newSoldOut,
         });
     } catch (err) {
         const code = err.message;
@@ -431,9 +533,184 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
     }
 });
 
-/* ----------------- EXPORT CSV ----------------- */
+// GET /api/bookings/verify?token=...
+app.get("/api/bookings/verify", async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) return res.status(400).json({ valid: false, reason: "missing_token" });
 
-// GET /api/export/events.csv
+        const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
+        const { bid, eid, qty } = decoded;
+
+        const doc = await db.collection("bookings").doc(bid).get();
+        if (!doc.exists) return res.status(404).json({ valid: false, reason: "not_found" });
+
+        const b = doc.data();
+
+        // se vuoi vincolare al token "ufficiale" salvato
+        if (b.token && b.token !== token) {
+            return res.status(400).json({ valid: false, reason: "token_mismatch" });
+        }
+
+        const quantity = Number(b.quantity || qty || 1);
+        const checkedInCount = Number(b.checkedInCount || 0);
+        const remaining = Math.max(quantity - checkedInCount, 0);
+
+        return res.json({
+            valid: true,
+            bookingId: bid,
+            eventId: eid,
+            quantity,
+            checkedInCount,
+            remaining,
+            nome: b.nome,
+            cognome: b.cognome,
+            email: b.email,
+            telefono: b.telefono,
+            status: b.status || "sent",
+            createdAt: b.createdAt,
+        });
+    } catch (err) {
+        if (err?.name === "TokenExpiredError") {
+            return res.status(401).json({ valid: false, reason: "expired" });
+        }
+        return res.status(400).json({ valid: false, reason: "invalid" });
+    }
+});
+
+// POST /api/bookings/checkin
+// body: { token: string, count?: number }
+// roles: admin | editor | staff
+app.post("/api/bookings/checkin", authenticate, requireRole("admin","editor","staff"), async (req, res) => {
+    try {
+        const { token, count = 1 } = req.body || {};
+        if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+
+        const n = Math.max(1, parseInt(count, 10) || 1);
+        const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
+        const { bid } = decoded;
+
+        const result = await db.runTransaction(async (t) => {
+            const ref = db.collection("bookings").doc(bid);
+            const snap = await t.get(ref);
+            if (!snap.exists) throw new Error("not_found");
+
+            const b = snap.data();
+            if (b.token && b.token !== token) throw new Error("token_mismatch");
+
+            const quantity = Number(b.quantity || 1);
+            const checkedInCount = Number(b.checkedInCount || 0);
+            const remaining = Math.max(quantity - checkedInCount, 0);
+
+            if (remaining <= 0) throw new Error("already_fully_checked_in");
+            if (n > remaining) {
+                const err = new Error("exceeds_quantity");
+                err.remaining = remaining;
+                throw err;
+            }
+
+            const newCount = checkedInCount + n;
+
+            t.update(ref, {
+                checkedInCount: newCount,
+                lastCheckInAt: new Date(),
+                lastCheckInBy: req.user ? { uid: req.user.uid, email: req.user.email } : null,
+                firstCheckInAt: b.firstCheckInAt || new Date(),
+            });
+
+            // audit movimento
+            try {
+                const auditRef = ref.collection("checkins").doc();
+                t.set(auditRef, {
+                    at: new Date(),
+                    by: req.user ? { uid: req.user.uid, email: req.user.email } : null,
+                    count: n,
+                    from: checkedInCount,
+                    to: newCount,
+                });
+            } catch {}
+
+            return { quantity, newCount };
+        });
+
+        const remaining = Math.max(result.quantity - result.newCount, 0);
+        res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+    } catch (e) {
+        const code = e?.message;
+        if (code === "not_found") return res.status(404).json({ ok: false, error: code });
+        if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
+        if (code === "already_fully_checked_in") return res.status(409).json({ ok: false, error: code });
+        if (code === "exceeds_quantity") return res.status(409).json({ ok: false, error: code, remaining: e?.remaining ?? 0 });
+        if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+        return res.status(400).json({ ok: false, error: "invalid" });
+    }
+});
+
+
+
+// POST /api/bookings/checkin/undo
+// body: { token: string, count?: number }
+// roles: admin | editor | staff
+app.post("/api/bookings/checkin/undo", authenticate, requireRole("admin","editor","staff"), async (req, res) => {
+    try {
+        const { token, count = 1 } = req.body || {};
+        if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+
+        const n = Math.max(1, parseInt(count, 10) || 1);
+        const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
+        const { bid } = decoded;
+
+        const result = await db.runTransaction(async (t) => {
+            const ref = db.collection("bookings").doc(bid);
+            const snap = await t.get(ref);
+            if (!snap.exists) throw new Error("not_found");
+
+            const b = snap.data();
+            if (b.token && b.token !== token) throw new Error("token_mismatch");
+
+            const checkedInCount = Number(b.checkedInCount || 0);
+            if (checkedInCount <= 0) throw new Error("nothing_to_undo");
+
+            const dec = Math.min(n, checkedInCount);
+            const newCount = checkedInCount - dec;
+
+            t.update(ref, {
+                checkedInCount: newCount,
+                lastUndoAt: new Date(),
+                lastUndoBy: req.user ? { uid: req.user.uid, email: req.user.email } : null,
+            });
+
+            // audit movimento negativo
+            try {
+                const auditRef = ref.collection("checkins").doc();
+                t.set(auditRef, {
+                    at: new Date(),
+                    by: req.user ? { uid: req.user.uid, email: req.user.email } : null,
+                    count: -dec,
+                    from: checkedInCount,
+                    to: newCount,
+                });
+            } catch {}
+
+            const quantity = Number(b.quantity || 1);
+            return { quantity, newCount };
+        });
+
+        const remaining = Math.max(result.quantity - result.newCount, 0);
+        res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+    } catch (e) {
+        const code = e?.message;
+        if (code === "not_found") return res.status(404).json({ ok: false, error: code });
+        if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
+        if (code === "nothing_to_undo") return res.status(409).json({ ok: false, error: code });
+        if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+        return res.status(400).json({ ok: false, error: "invalid" });
+    }
+});
+
+
+
+/* ----------------- EXPORT CSV ----------------- */
 app.get(
     "/api/export/events.csv",
     authenticate,
@@ -475,7 +752,6 @@ app.get(
     }
 );
 
-// GET /api/export/bookings.csv
 app.get(
     "/api/export/bookings.csv",
     authenticate,
@@ -554,7 +830,7 @@ app.delete(
     }
 );
 
-/* ----------------- NEWSLETTER (Brevo) ----------------- */
+/* ----------------- NEWSLETTER (Brevo API v3) ----------------- */
 async function brevoSubscribeHandler(req, res) {
     const {
         BREVO_API_KEY,
