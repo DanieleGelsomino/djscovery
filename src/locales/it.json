@@ -204,6 +204,10 @@
       "stop": "Stop",
       "unsupported": "Il tuo browser non supporta il rilevamento nativo dei QR. La scansione potrebbe non funzionare."
     }
+  },
+  "notFound": {
+    "title": "Ops! Pagina non trovata",
+    "desc": "Il percorso richiesto non esiste:"
   }
 
 }

@@ -204,6 +204,10 @@
       "stop": "Stop",
       "unsupported": "Your browser doesn't support native QR detection. Scanning may not work."
     }
+  },
+  "notFound": {
+    "title": "Oops! Page not found",
+    "desc": "The requested path does not exist:"
   }
 
 }
