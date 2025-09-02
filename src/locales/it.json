@@ -47,7 +47,10 @@
     "message": "Messaggio",
     "send": "Invia",
     "sent": "Messaggio inviato! Ti risponderemo al più presto \uD83D\uDE0E",
-    "sending": "Invio..."
+    "sending": "Invio...",
+    "whatsappDefault": "Ciao! Vorrei informazioni.",
+    "whatsappCta": "Scrivici su WhatsApp",
+    "or": "oppure"
   },
   "footer": {
     "text": "Lorem ipsum dolor sit amet.",

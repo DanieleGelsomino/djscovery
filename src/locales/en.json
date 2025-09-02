@@ -47,7 +47,10 @@
     "message": "Message",
     "send": "Send",
     "sent": "Message sent! We'll get back to you as soon as possible \uD83D\uDE0E",
-    "sending": "Sending..."
+    "sending": "Sending...",
+    "whatsappDefault": "Hi! I'd like some information.",
+    "whatsappCta": "Write to us on WhatsApp",
+    "or": "or"
   },
   "footer": {
     "text": "Lorem ipsum dolor sit amet.",
