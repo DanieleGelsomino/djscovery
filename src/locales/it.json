@@ -12,7 +12,9 @@
     "cta_events": "Scopri i prossimi eventi"
   },
   "gallery": {
-    "title": "Gallery"
+    "title": "Gallery",
+    "subtitle": "Scatti dalle nostre serate: tocca un’immagine per ingrandire.",
+    "empty": "Nessuna immagine disponibile."
   },
   "newsletter": {
     "title": "Newsletter",

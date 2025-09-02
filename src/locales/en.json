@@ -12,7 +12,9 @@
     "cta_events": "Discover upcoming events"
   },
   "gallery": {
-    "title": "Gallery"
+    "title": "Gallery",
+    "subtitle": "Snapshots from our evenings: tap an image to enlarge.",
+    "empty": "No images available."
   },
   "newsletter": {
     "title": "Newsletter",
