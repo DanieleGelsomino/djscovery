@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { listImagesInFolder } from "../lib/driveGallery";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
-
 import "swiper/css";
 
 const widths = [480, 768, 1024, 1600];
@@ -24,6 +23,7 @@ const HomeGallerySlider = ({
                                    1024: { slidesPerView: 3, spaceBetween: 16 },
                                },
                            }) => {
+    // 1) Hook SEMPRE allo stesso ordine
     const FOLDER_ID = useMemo(
         () =>
             folderId ??
@@ -67,62 +67,62 @@ const HomeGallerySlider = ({
         };
     }, [FOLDER_ID, API_KEY, includeSharedDrives]);
 
+    // 2) Anche QUESTO è un hook → deve stare prima di qualunque return
+    const slides = useMemo(() => {
+        return imgs.map((img) => {
+            const cdnSet = widths
+                .map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`)
+                .join(", ");
+            const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
+
+            return (
+                <SwiperSlide key={img.id}>
+                    <figure style={{ margin: 0 }}>
+                        <div
+                            style={{
+                                position: "relative",
+                                width: "100%",
+                                paddingTop: "56.25%",
+                                background: "#111",
+                            }}
+                        >
+                            <img
+                                src={cdnDefault}
+                                srcSet={cdnSet}
+                                sizes="(max-width:768px) 100vw, 50vw"
+                                alt={img.name || "gallery"}
+                                loading="lazy"
+                                decoding="async"
+                                fetchpriority="low"
+                                onError={(e) => {
+                                    e.currentTarget.removeAttribute("srcset");
+                                    e.currentTarget.removeAttribute("sizes");
+                                    e.currentTarget.src = img.fallbackSrc;
+                                }}
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                }}
+                            />
+                        </div>
+                        {caption && (
+                            <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
+                                {img.name}
+                            </figcaption>
+                        )}
+                    </figure>
+                </SwiperSlide>
+            );
+        });
+    }, [imgs, caption]);
+
+    // 3) Ora i return condizionali possono stare qui sotto
     if (loading) return <div>Carico gallery…</div>;
     if (err) return <div className="text-danger">{err}</div>;
     if (!imgs.length) return <div>Nessuna immagine disponibile.</div>;
-
-    const slides = useMemo(
-        () =>
-            imgs.map((img) => {
-                const cdnSet = widths
-                    .map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`)
-                    .join(", ");
-                const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
-
-                return (
-                    <SwiperSlide key={img.id}>
-                        <figure style={{ margin: 0 }}>
-                            <div
-                                style={{
-                                    position: "relative",
-                                    width: "100%",
-                                    paddingTop: "56.25%",
-                                    background: "#111",
-                                }}
-                            >
-                                <img
-                                    src={cdnDefault}
-                                    srcSet={cdnSet}
-                                    sizes="(max-width:768px) 100vw, 50vw"
-                                    alt={img.name || "gallery"}
-                                    loading="lazy"
-                                    decoding="async"
-                                    fetchpriority="low"
-                                    onError={(e) => {
-                                        e.currentTarget.removeAttribute("srcset");
-                                        e.currentTarget.removeAttribute("sizes");
-                                        e.currentTarget.src = img.fallbackSrc;
-                                    }}
-                                    style={{
-                                        position: "absolute",
-                                        inset: 0,
-                                        width: "100%",
-                                        height: "100%",
-                                        objectFit: "cover",
-                                    }}
-                                />
-                            </div>
-                            {caption && (
-                                <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
-                                    {img.name}
-                                </figcaption>
-                            )}
-                        </figure>
-                    </SwiperSlide>
-                );
-            }),
-        [imgs, caption]
-    );
 
     return (
         <div className={className}>
