@@ -78,56 +78,55 @@ const EventiSection = () => {
                 overflow: "hidden",
               }}
             >
-              <CardMedia
-                component="div"
-                sx={{
-                  position: "relative",
-                  height: "220px",
-                  backgroundImage: `url(${event.image || heroImg})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              >
-                {event.soldOut && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: "1.5rem",
-                      fontWeight: "bold",
-                      zIndex: 99,
+                <CardMedia
+                    component="div"
+                    image={event.image || heroImg}   // 👈 usa l’API giusta di MUI
+                    sx={{
+                        position: "relative",
+                        height: 220,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
                     }}
-                  >
-                    {t("events.sold_out")}
-                  </div>
-                )}
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    width: "100%",
-                    padding: "1rem",
-                    background:
-                      "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
-                    color: "#fff",
-                  }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {event.name}
-                  </Typography>
-                  <Typography variant="body2">{event.dj}</Typography>
-                </div>
-              </CardMedia>
+                    {event.soldOut && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                inset: 0,
+                                backgroundColor: "rgba(0,0,0,0.6)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#fff",
+                                fontSize: "1.5rem",
+                                fontWeight: "bold",
+                                zIndex: 1,
+                            }}
+                        >
+                            {t("events.sold_out")}
+                        </div>
+                    )}
 
-              <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
+                    <div
+                        style={{
+                            position: "absolute",
+                            bottom: 0,
+                            width: "100%",
+                            padding: "1rem",
+                            background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                            color: "#fff",
+                            zIndex: 2,
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                            {event.name}
+                        </Typography>
+                        <Typography variant="body2">{event.dj}</Typography>
+                    </div>
+                </CardMedia>
+
+
+                <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
                 <Typography
                   variant="body2"
                   sx={{ mb: 2, color: "text.secondary" }}
