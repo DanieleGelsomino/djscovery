@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ScrollToTop from './components/ScrollToTop';
 import App from './App';
 import { ThemeProvider } from 'styled-components';
@@ -12,21 +13,24 @@ import { LoadingProvider } from './components/LoadingContext';
 
 const container = document.getElementById('root');
 const root = createRoot(container);
+const queryClient = new QueryClient();
 
 root.render(
-  <ThemeProvider theme={theme}>
-    <GlobalStyles />
-    <LanguageProvider>
-      <CartProvider>
-        <ToastProvider>
-          <LoadingProvider>
-            <BrowserRouter>
-              <ScrollToTop />
-              <App />
-            </BrowserRouter>
-          </LoadingProvider>
-        </ToastProvider>
-      </CartProvider>
-    </LanguageProvider>
-  </ThemeProvider>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <LanguageProvider>
+        <CartProvider>
+          <ToastProvider>
+            <LoadingProvider>
+              <BrowserRouter>
+                <ScrollToTop />
+                <App />
+              </BrowserRouter>
+            </LoadingProvider>
+          </ToastProvider>
+        </CartProvider>
+      </LanguageProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 );
