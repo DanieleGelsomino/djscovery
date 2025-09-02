@@ -1,4 +1,3 @@
-// src/components/AdminPanel.jsx
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {

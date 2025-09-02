@@ -42,11 +42,12 @@
   "contacts": {
     "title": "Contact Us",
     "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "name": "Name",
+    "name": "Full Name",
     "email": "Email",
     "message": "Message",
     "send": "Send",
-    "sent": "Message sent!"
+    "sent": "Message sent! We'll get back to you as soon as possible \uD83D\uDE0E",
+    "sending": "Sending..."
   },
   "footer": {
     "text": "Lorem ipsum dolor sit amet.",
