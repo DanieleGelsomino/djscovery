@@ -71,6 +71,59 @@ const HomeGallerySlider = ({
     if (err) return <div className="text-danger">{err}</div>;
     if (!imgs.length) return <div>Nessuna immagine disponibile.</div>;
 
+    const slides = useMemo(
+        () =>
+            imgs.map((img) => {
+                const cdnSet = widths
+                    .map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`)
+                    .join(", ");
+                const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
+
+                return (
+                    <SwiperSlide key={img.id}>
+                        <figure style={{ margin: 0 }}>
+                            <div
+                                style={{
+                                    position: "relative",
+                                    width: "100%",
+                                    paddingTop: "56.25%",
+                                    background: "#111",
+                                }}
+                            >
+                                <img
+                                    src={cdnDefault}
+                                    srcSet={cdnSet}
+                                    sizes="(max-width:768px) 100vw, 50vw"
+                                    alt={img.name || "gallery"}
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchpriority="low"
+                                    onError={(e) => {
+                                        e.currentTarget.removeAttribute("srcset");
+                                        e.currentTarget.removeAttribute("sizes");
+                                        e.currentTarget.src = img.fallbackSrc;
+                                    }}
+                                    style={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                    }}
+                                />
+                            </div>
+                            {caption && (
+                                <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
+                                    {img.name}
+                                </figcaption>
+                            )}
+                        </figure>
+                    </SwiperSlide>
+                );
+            }),
+        [imgs, caption]
+    );
+
     return (
         <div className={className}>
             <Swiper
@@ -82,57 +135,10 @@ const HomeGallerySlider = ({
                 autoplay={{ delay: autoplayMs, disableOnInteraction: false }}
                 style={{ width: "100%", overflow: "hidden" }}
             >
-                {imgs.map((img) => {
-                    const cdnSet = widths
-                        .map((w) => `https://lh3.googleusercontent.com/d/${img.id}=w${w} ${w}w`)
-                        .join(", ");
-                    const cdnDefault = `https://lh3.googleusercontent.com/d/${img.id}=w1280`;
-
-                    return (
-                        <SwiperSlide key={img.id}>
-                            <figure style={{ margin: 0 }}>
-                                <div
-                                    style={{
-                                        position: "relative",
-                                        width: "100%",
-                                        paddingTop: "56.25%",
-                                        background: "#111",
-                                    }}
-                                >
-                                    <img
-                                        src={cdnDefault}
-                                        srcSet={cdnSet}
-                                        sizes="(max-width:768px) 100vw, 50vw"
-                                        alt={img.name || "gallery"}
-                                        loading="lazy"
-                                        decoding="async"
-                                        fetchpriority="low"
-                                        onError={(e) => {
-                                            e.currentTarget.removeAttribute("srcset");
-                                            e.currentTarget.removeAttribute("sizes");
-                                            e.currentTarget.src = img.fallbackSrc;
-                                        }}
-                                        style={{
-                                            position: "absolute",
-                                            inset: 0,
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                        }}
-                                    />
-                                </div>
-                                {caption && (
-                                    <figcaption style={{ padding: "8px 10px", fontSize: 14 }}>
-                                        {img.name}
-                                    </figcaption>
-                                )}
-                            </figure>
-                        </SwiperSlide>
-                    );
-                })}
+                {slides}
             </Swiper>
         </div>
     );
 };
 
-export default HomeGallerySlider;
+export default React.memo(HomeGallerySlider);
