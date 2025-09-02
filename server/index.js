@@ -1129,6 +1129,27 @@ async function brevoSubscribeHandler(req, res) {
 app.post("/api/newsletter", publicLimiter, brevoSubscribeHandler);
 app.post("/api/newsletter/subscribe", publicLimiter, brevoSubscribeHandler);
 
+// Contatti: invia email a staff
+app.post("/api/contact", publicLimiter, async (req, res) => {
+    const { name, email, message } = req.body || {};
+    if (!name || !email || !message) {
+        return res.status(400).json({ ok: false, error: "missing_fields" });
+    }
+    try {
+        await mailer.sendMail({
+            from: FROM_EMAIL,
+            to: process.env.CONTACT_EMAIL || "djscovery.channel@gmail.com",
+            replyTo: email,
+            subject: `Nuovo contatto dal sito - ${name}`,
+            text: `Nome: ${name}\nEmail: ${email}\n\n${message}`,
+        });
+        res.json({ ok: true });
+    } catch (err) {
+        console.error("Errore invio contatto:", err?.message || err);
+        res.status(500).json({ ok: false, error: "email_failed" });
+    }
+});
+
 /* ----------------- Health & Debug ----------------- */
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/auth/whoami", authenticate, (req, res) => res.json({ user: req.user }));

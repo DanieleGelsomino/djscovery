@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
+import { sendContact } from "../api";
 
 const Section = styled(motion.section)`
   text-align: center;
@@ -62,12 +63,24 @@ const Button = styled(motion.button)`
 
 const ContattiSection = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
   const { t } = useLanguage();
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 2000);
+    try {
+      await sendContact(form);
+      setSubmitted(true);
+      setForm({ name: "", email: "", message: "" });
+      setTimeout(() => setSubmitted(false), 2000);
+    } catch (err) {
+      console.error("Errore invio contatto:", err);
+    }
   };
 
   return (
@@ -85,17 +98,26 @@ const ContattiSection = () => {
           <Input
             whileFocus={{ scale: 1.02 }}
             type="text"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
             placeholder={t("contacts.name")}
             required
           />
           <Input
             whileFocus={{ scale: 1.02 }}
             type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
             placeholder={t("contacts.email")}
             required
           />
           <TextArea
             whileFocus={{ scale: 1.02 }}
+            name="message"
+            value={form.message}
+            onChange={handleChange}
             placeholder={t("contacts.message")}
             rows="5"
             required

@@ -10,6 +10,7 @@ import {
     mockUploadGalleryImage,
     mockDeleteGalleryImage,
     mockSubscribeNewsletter,
+    mockSendContact,
 } from "./mockApi";
 import { withLoading } from "./loading";
 
@@ -221,6 +222,21 @@ export const deleteAllEvents = async (status=null) => {
 
 
 
+
+/* =======================
+   CONTACT
+   ======================= */
+export const sendContact = async (data) => {
+    if (useMock) return mockSendContact(data);
+    return withLoading(async () => {
+        const res = await fetch(`${API_BASE}/api/contact`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return handleResponse(res);
+    });
+};
 
 /* =======================
    GALLERY
