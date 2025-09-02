@@ -232,3 +232,8 @@ export const mockSubscribeNewsletter = async (email) => {
   save();
   return sub;
 };
+
+// mock contact form
+export const mockSendContact = async () => {
+  return { ok: true };
+};
