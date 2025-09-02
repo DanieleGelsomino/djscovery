@@ -18,3 +18,4 @@ key.json
 # OS files
 .DS_Store
 Thumbs.db
+server/.env
