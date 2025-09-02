@@ -572,22 +572,50 @@ const AdminPanel = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
 
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+
+    const {
+        data: bookingsData = [],
+        refetch: refetchBookings,
+    } = useQuery({
+        queryKey: ["bookings"],
+        queryFn: fetchBookings,
+        enabled: isAdmin,
+        onError: (err) => {
+            if (err?.response?.status === 401) {
+                setAuthToken(null);
+                localStorage.removeItem("isAdmin");
+                navigate("/admin");
+            }
+        },
+    });
+
+    const {
+        data: eventsData = [],
+        refetch: refetchEvents,
+    } = useQuery({
+        queryKey: ["events"],
+        queryFn: fetchEvents,
+        enabled: isAdmin,
+        onError: (err) => {
+            if (err?.response?.status === 401) {
+                setAuthToken(null);
+                localStorage.removeItem("isAdmin");
+                navigate("/admin");
+            }
+        },
+    });
+
     const [bookings, setBookings] = useState([]);
     const [events, setEvents] = useState([]);
 
-    const { refetch: refetchBookings } = useQuery({
-        queryKey: ["bookings"],
-        queryFn: fetchBookings,
-        enabled: false,
-        onSuccess: (data) => setBookings(data || []),
-    });
+    useEffect(() => {
+        setBookings(bookingsData);
+    }, [bookingsData]);
 
-    const { refetch: refetchEvents } = useQuery({
-        queryKey: ["events"],
-        queryFn: fetchEvents,
-        enabled: false,
-        onSuccess: (data) => setEvents(data || []),
-    });
+    useEffect(() => {
+        setEvents(eventsData);
+    }, [eventsData]);
 
     // pagination
     const [evPage, setEvPage] = useState(0);
@@ -671,26 +699,14 @@ const AdminPanel = () => {
             ? `https://drive.google.com/drive/u/0/folders/${driveFolderId}`
             : "";
 
-    // bootstrap guard + fetch
+    // bootstrap guard
     useEffect(() => {
         const t = localStorage.getItem("adminToken");
         if (t) setAuthToken(t);
-        if (localStorage.getItem("isAdmin") !== "true") {
+        if (!isAdmin) {
             navigate("/admin");
-            return;
         }
-        (async () => {
-            try {
-                await Promise.all([refetchBookings(), refetchEvents()]);
-            } catch (err) {
-                if (err?.response?.status === 401) {
-                    setAuthToken(null);
-                    localStorage.removeItem("isAdmin");
-                    navigate("/admin");
-                }
-            }
-        })();
-    }, [navigate, refetchBookings, refetchEvents]);
+    }, [navigate, isAdmin]);
 
     // scorciatoie
     useEffect(() => {
