@@ -6,6 +6,8 @@ import { FaPaperPlane } from "react-icons/fa";
 import { useToast } from "./ToastContext";
 import { subscribeNewsletter } from "../api";
 import heroImg from "../assets/img/newsletter.jpg";
+import {Typography} from "@mui/material";
+import DOMPurify from "dompurify";
 
 const Section = styled.section`
     position: relative;
@@ -152,11 +154,17 @@ const NewsletterSection = () => {
                             onChange={(e) => setConsent(e.target.checked)}
                             required
                         />
-                        <span>
-              {t("newsletter.consent_text") || (
-                  <>Acconsento al trattamento dei dati secondo la <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</>
-              )}
-            </span>
+                        <Typography
+                            variant="body2"
+                            component="div"
+                            sx={{ mt: 1, opacity: 0.9 }}
+                            dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(t("newsletter.consent_text") || "", {
+                                    ALLOWED_TAGS: ["a","b","strong","em","br"],
+                                    ALLOWED_ATTR: ["href","target","rel"]
+                                })
+                            }}
+                        />
                     </ConsentRow>
 
                     {err && (

@@ -330,9 +330,8 @@ function PlaceAutocomplete({
     );
 }
 
-
 /* =========================================
-   Dialog selezione copertina da Drive — griglia responsive
+   Dialog selezione copertina da Drive — griglia responsive (ottimizzata + HEIC)
    ========================================= */
 function DriveImagePickerDialog({ open, onClose, onPick }) {
     const apiKey =
@@ -346,6 +345,15 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState("");
     const [error, setError] = useState("");
+
+    // Preconnect al CDN immagini di Google per ridurre il TTFB
+    useEffect(() => {
+        const link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = "https://lh3.googleusercontent.com";
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
 
     const load = useCallback(async () => {
         if (!apiKey || !folderId) {
@@ -369,9 +377,7 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
         }
     }, [apiKey, folderId]);
 
-    useEffect(() => {
-        if (open) load();
-    }, [open, load]);
+    useEffect(() => { if (open) load(); }, [open, load]);
 
     const filtered = useMemo(() => {
         const t = filter.trim().toLowerCase();
@@ -391,11 +397,159 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
             if (entries[0].isIntersecting) {
                 setVisible((v) => Math.min(v + 60, filtered.length));
             }
-        }, { root: null, rootMargin: "800px 0px", threshold: 0 });
+        }, { root: null, rootMargin: "1200px 0px", threshold: 0 });
         io.observe(el);
         return () => io.disconnect();
     }, [open, filtered.length]);
 
+    /* ====== Thumb ottimizzato con lazy + srcset + HEIC fallback ====== */
+
+    // Cache per gli oggetti URL (HEIC → WEBP) per non riconvertire
+    const heicUrlCacheRef = useRef(new Map());
+
+    function DriveThumb({ id, name, mimeType, index }) {
+        const boxRef = useRef(null);
+        const imgRef = useRef(null);
+        const objectUrlRef = useRef(null);
+        const isHeic = useMemo(
+            () =>
+                /heic|heif/i.test(mimeType || "") ||
+                /\.heic$|\.heif$/i.test(name || ""),
+            [mimeType, name]
+        );
+
+        // Lazy load on-intersect
+        useEffect(() => {
+            const el = boxRef.current;
+            if (!el) return;
+            const io = new IntersectionObserver(
+                (entries) => {
+                    if (!entries[0].isIntersecting) return;
+                    const img = imgRef.current;
+                    if (!img || img.getAttribute("src")) return;
+
+                    // srcset: lascia decidere al browser la risoluzione
+                    const srcset = [200, 320, 480, 640, 800]
+                        .map((w) => `${driveCdnSrc(id, w)} ${w}w`)
+                        .join(", ");
+
+                    img.src = driveCdnSrc(id, 320);
+                    img.srcset = srcset;
+                    img.sizes =
+                        "(max-width:600px) 50vw, (max-width:900px) 33vw, (max-width:1200px) 25vw, 16.66vw";
+                    img.setAttribute("fetchpriority", index < 8 ? "high" : "low");
+
+                    io.disconnect();
+                },
+                { rootMargin: "300px 0px" }
+            );
+            io.observe(el);
+            return () => io.disconnect();
+        }, [id, index]);
+
+        // Prefetch versione grande per click istantaneo
+        const prefetchLarge = useCallback(() => {
+            const i = new Image();
+            i.decoding = "async";
+            i.src = driveCdnSrc(id, 1600);
+        }, [id]);
+
+        // Cleanup di eventuali objectURL creati per HEIC
+        const revokeObjUrl = useCallback(() => {
+            if (objectUrlRef.current) {
+                URL.revokeObjectURL(objectUrlRef.current);
+                objectUrlRef.current = null;
+            }
+        }, []);
+
+        useEffect(() => revokeObjUrl, [revokeObjUrl]);
+
+        const handleError = useCallback(async (e) => {
+            const img = e.currentTarget;
+
+            // Se già abbiamo una conversione in cache → usa quella
+            const cached = heicUrlCacheRef.current.get(id);
+            if (cached) {
+                img.removeAttribute("srcset");
+                img.removeAttribute("sizes");
+                img.src = cached;
+                return;
+            }
+
+            // Se HEIC/HEIF: prova transcodifica client-side → WEBP
+            if (isHeic) {
+                try {
+                    // prendi l'originale (potrebbe essere HEIC)
+                    const r = await fetch(driveApiSrc(id, apiKey));
+                    const blob = await r.blob();
+
+                    // import dinamico: caricato SOLO quando serve
+                    const heic2any = (await import("heic2any")).default;
+                    const out = await heic2any({ blob, toType: "image/webp", quality: 0.8 });
+
+                    const webpBlob = Array.isArray(out) ? out[0] : out;
+                    const url = URL.createObjectURL(webpBlob);
+                    objectUrlRef.current = url;
+                    heicUrlCacheRef.current.set(id, url);
+
+                    img.removeAttribute("srcset");
+                    img.removeAttribute("sizes");
+                    img.src = url;
+                    return;
+                } catch (err) {
+                    // se conversione fallisce, tenta comunque l'originale (se il browser lo supporta)
+                    console.warn("HEIC conversion failed, fallback to original", err);
+                }
+            }
+
+            // Fallback generico: original via API (PNG/JPEG ok, HEIC no se browser non supporta)
+            img.removeAttribute("srcset");
+            img.removeAttribute("sizes");
+            img.src = driveApiSrc(id, apiKey);
+        }, [apiKey, id, isHeic]);
+
+        return (
+            <Box
+                ref={boxRef}
+                role="button"
+                onClick={() => { onPick(driveCdnSrc(id, 1600)); onClose(); }}
+                onMouseEnter={prefetchLarge}
+                onTouchStart={prefetchLarge}
+                sx={{
+                    position: "relative",
+                    width: "100%",
+                    pt: "66.666%",
+                    overflow: "hidden",
+                    borderRadius: 1,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    cursor: "pointer",
+                    "&:hover": { outline: "2px solid", outlineColor: "primary.main" },
+                    contentVisibility: "auto",
+                    containIntrinsicSize: "120px 80px",
+                    background: "#111",
+                }}
+            >
+                <img
+                    ref={imgRef}
+                    alt={name}
+                    decoding="async"
+                    loading="lazy"
+                    onError={handleError}
+                    onLoad={() => {
+                        // se abbiamo usato un objectURL per HEIC, nulla da fare qui
+                    }}
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                    }}
+                />
+            </Box>
+        );
+    }
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 2 } }}>
@@ -453,42 +607,15 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                             gap: 1,
                         }}
                     >
-                        {filtered.slice(0, visible).map((img) => {
-                            const thumb = driveCdnSrc(img.id, 640);
-                            const fallback = driveApiSrc(img.id, apiKey);
-                            return (
-                                <Box
-                                    key={img.id}
-                                    role="button"
-                                    onClick={() => { onPick(driveCdnSrc(img.id, 1600)); onClose(); }}
-                                    sx={{
-                                        position: "relative",
-                                        width: "100%",
-                                        pt: "66.666%",
-                                        overflow: "hidden",
-                                        borderRadius: 1,
-                                        border: "1px solid rgba(255,255,255,0.08)",
-                                        cursor: "pointer",
-                                        "&:hover": { outline: "2px solid", outlineColor: "primary.main" },
-                                        // boost perf di layout
-                                        contentVisibility: "auto",
-                                        containIntrinsicSize: "120px 80px",
-                                    }}
-                                >
-                                    <img
-                                        src={thumb}
-                                        alt={img.name}
-                                        onError={(e) => (e.currentTarget.src = fallback)}
-                                        loading="lazy"
-                                        decoding="async"
-                                        style={{
-                                            position: "absolute", inset: 0, width: "100%", height: "100%",
-                                            objectFit: "cover", background: "#111",
-                                        }}
-                                    />
-                                </Box>
-                            );
-                        })}
+                        {filtered.slice(0, visible).map((img, i) => (
+                            <DriveThumb
+                                key={img.id}
+                                id={img.id}
+                                name={img.name}
+                                mimeType={img.mimeType}
+                                index={i}
+                            />
+                        ))}
                         <Box ref={sentinelRef} sx={{ height: 1, gridColumn: "1 / -1" }} />
                         {!filtered.length && (
                             <Box sx={{ gridColumn: "1/-1", p: 3, textAlign: "center", opacity: 0.7 }}>
@@ -497,11 +624,11 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
                         )}
                     </Box>
                 )}
-
             </DialogContent>
         </Dialog>
     );
 }
+
 
 /* ------------ MOBILE CARDS ------------ */
 function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut, onDuplicate, onExportICS, canDelete }) {

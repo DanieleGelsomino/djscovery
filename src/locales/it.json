@@ -22,7 +22,8 @@
     "email": "Email",
     "subscribe": "Iscriviti",
     "success": "Grazie per la tua iscrizione!",
-    "error": "Errore durante l'iscrizione"
+    "error": "Errore durante l'iscrizione",
+    "consent_text": "Acconsento al trattamento dei dati secondo la <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a>."
   },
   "youtube": {
     "title": "Ultimi Video",

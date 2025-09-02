@@ -13,7 +13,8 @@ import TicketBookingForm from './components/TicketBookingForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import AdminRoute from './components/AdminRoute';
-import NotFound from "./components/NotFound"; // 👈 aggiunta
+import NotFound from "./components/NotFound";
+import PrivacyPolicy from "./components/PrivacyPolicy"; // 👈 aggiunta
 
 const Main = styled.main`
     flex: 1;
@@ -38,6 +39,8 @@ const App = () => {
                         <Route path="/chi-siamo" element={<ChiSiamoSection />} />
                         <Route path="/contatti" element={<ContattiSection />} />
                         <Route path="/prenota" element={<TicketBookingForm />} />
+                        <Route path="/privacy" element={<PrivacyPolicy />} />
+
 
                         {/* Admin: login (puoi lasciare /admin oppure usare /admin/login) */}
                         <Route path="/admin" element={<AdminLogin />} />
