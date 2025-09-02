@@ -62,7 +62,8 @@
     "required": "Tutti i campi sono obbligatori",
     "invalid_email": "Email non valida",
     "error": "Errore durante il salvataggio",
-    "success": "Prenotazione avvenuta con successo!"
+    "success": "Prenotazione avvenuta con successo!",
+    "quantity": "Quantità"
   },
   "admin": {
     "nav": {

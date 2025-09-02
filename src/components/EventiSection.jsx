@@ -127,15 +127,6 @@ const EventiSection = () => {
                     {event.name}
                   </Typography>
                   <Typography variant="body2">{event.dj}</Typography>
-                  <Typography variant="body2">
-                    {event.place} • {event.time}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: "bold", mt: 1 }}
-                  >
-                    {event.date}
-                  </Typography>
                 </div>
               </CardMedia>
 

@@ -62,7 +62,8 @@
     "required": "All fields are required",
     "invalid_email": "Invalid email",
     "error": "Error saving data",
-    "success": "Booking successful!"
+    "success": "Booking successful!",
+    "quantity": "Quantity"
   },
   "admin": {
     "nav": {
