@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
     fetchBookings,
@@ -574,6 +575,20 @@ const AdminPanel = () => {
     const [bookings, setBookings] = useState([]);
     const [events, setEvents] = useState([]);
 
+    const { refetch: refetchBookings } = useQuery({
+        queryKey: ["bookings"],
+        queryFn: fetchBookings,
+        enabled: false,
+        onSuccess: (data) => setBookings(data || []),
+    });
+
+    const { refetch: refetchEvents } = useQuery({
+        queryKey: ["events"],
+        queryFn: fetchEvents,
+        enabled: false,
+        onSuccess: (data) => setEvents(data || []),
+    });
+
     // pagination
     const [evPage, setEvPage] = useState(0);
     const [evRowsPerPage, setEvRowsPerPage] = useState(10);
@@ -666,9 +681,7 @@ const AdminPanel = () => {
         }
         (async () => {
             try {
-                const [b, e] = await Promise.all([fetchBookings(), fetchEvents()]);
-                setBookings(b || []);
-                setEvents(e || []);
+                await Promise.all([refetchBookings(), refetchEvents()]);
             } catch (err) {
                 if (err?.response?.status === 401) {
                     setAuthToken(null);
@@ -677,7 +690,7 @@ const AdminPanel = () => {
                 }
             }
         })();
-    }, [navigate]);
+    }, [navigate, refetchBookings, refetchEvents]);
 
     // scorciatoie
     useEffect(() => {
@@ -830,8 +843,7 @@ const AdminPanel = () => {
                 await createEvent(payload);
                 showToast("Evento creato", "success");
             }
-            const eList = await fetchEvents();
-            setEvents(eList || []);
+            await refetchEvents();
             resetForm();
             setSection("events");
         } catch (err) {
@@ -848,7 +860,7 @@ const AdminPanel = () => {
     const handleDelete = async (id) => {
         try {
             await deleteEvent(id);
-            setEvents((prev) => prev.filter((ev) => ev.id !== id));
+            await refetchEvents();
             showToast("Evento eliminato", "success");
         } catch {
             showToast("Errore", "error");
@@ -968,11 +980,10 @@ const AdminPanel = () => {
         }
         if (updates.length) {
             await Promise.all(updates);
-            const eList = await fetchEvents();
-            setEvents(eList || []);
+            await refetchEvents();
             showToast("Aggiornato stato Sold Out automaticamente", "info");
         }
-    }, [events, bookings, showToast]);
+    }, [events, bookings, showToast, refetchEvents]);
 
     useEffect(() => {
         recomputeAutoSoldOut();
@@ -2321,13 +2332,13 @@ const AdminPanel = () => {
                         switch (type) {
                             case "event": {
                                 await deleteEvent(id);
-                                setEvents((prev) => prev.filter((ev) => ev.id !== id));
+                                await refetchEvents();
                                 showToast("Evento eliminato", "success");
                                 break;
                             }
                             case "booking": {
                                 await deleteBooking(id);
-                                setBookings((prev) => prev.filter((b) => b.id !== id));
+                                await refetchBookings();
                                 showToast("Prenotazione eliminata", "success");
                                 break;
                             }
@@ -2338,7 +2349,7 @@ const AdminPanel = () => {
                                     )
                                     .map((ev) => ev.id);
                                 await Promise.all(ids.map(deleteEvent));
-                                setEvents((prev) => prev.filter((ev) => !ids.includes(ev.id)));
+                                await refetchEvents();
                                 showToast("Eventi eliminati", "success");
                                 break;
                             }
@@ -2347,7 +2358,7 @@ const AdminPanel = () => {
                                     .filter((b) => (filterEventId ? b.eventId === filterEventId : true))
                                     .map((b) => b.id);
                                 await Promise.all(ids.map(deleteBooking));
-                                setBookings((prev) => prev.filter((b) => !ids.includes(b.id)));
+                                await refetchBookings();
                                 showToast("Prenotazioni eliminati", "success");
                                 break;
                             }

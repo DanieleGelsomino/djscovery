@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "./LanguageContext";
+import { useQuery } from "@tanstack/react-query";
 import { fetchEvents } from "../api";
 import heroImg from "../assets/img/hero.png";
 import Spinner from "./Spinner";
@@ -41,24 +42,20 @@ const MotionButton = motion(MuiButton);
 
 const EventiSection = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState([]);
   const { t } = useLanguage();
 
-  useEffect(() => {
-    fetchEvents()
-      .then(setEvents)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["events"],
+    queryFn: fetchEvents,
+  });
 
   return (
     <Section>
       <div className="container">
         <h2>{t("events.title")}</h2>
         <p>{t("events.subtitle")}</p>
-        {loading && <Spinner aria-label={t("events.loading")} />}
-        {!loading && events.length === 0 && <p>{t("events.none")}</p>}
+        {isLoading && <Spinner aria-label={t("events.loading")} />}
+        {!isLoading && events.length === 0 && <p>{t("events.none")}</p>}
         <Cards>
           {events.map((event) => (
             <MotionCard
