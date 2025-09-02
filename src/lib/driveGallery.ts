@@ -39,11 +39,22 @@ type DriveFile = {
     shortcutDetails?: { targetId?: string; targetMimeType?: string };
 };
 
+// semplice cache in memoria per evitare richieste ripetute
+const listCache = new Map<string, DriveImage[]>();
+
+function cacheKey(folderId: string, { apiKey, pageSize, includeSharedDrives }: ListOpts) {
+    return [folderId, apiKey, pageSize, includeSharedDrives].join("|");
+}
+
 export async function listImagesInFolder(
     folderId: string,
     { apiKey, pageSize = 100, includeSharedDrives = true }: ListOpts
 ): Promise<DriveImage[]> {
     if (!apiKey) throw new Error("Google API key mancante");
+
+    const key = cacheKey(folderId, { apiKey, pageSize, includeSharedDrives });
+    const cached = listCache.get(key);
+    if (cached) return cached;
 
     const fetchAll = async (q: string): Promise<DriveFile[]> => {
         const acc: DriveFile[] = [];
@@ -95,5 +106,7 @@ export async function listImagesInFolder(
 
     // de-duplica per id
     const seen = new Set<string>();
-    return items.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
+    const deduped = items.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
+    listCache.set(key, deduped);
+    return deduped;
 }
