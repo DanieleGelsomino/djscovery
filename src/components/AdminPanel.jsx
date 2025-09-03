@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "./LanguageContext";
+import { formatDate } from "./admin/eventUtils";
 import {
     fetchBookings,
     createEvent,
@@ -174,6 +176,7 @@ const canEditEvent = (role) => role === roles.admin || role === roles.editor;
 /* --------------- MAIN --------------- */
 const AdminPanel = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const { showToast } = useToast();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
@@ -607,7 +610,7 @@ const AdminPanel = () => {
         if (updates.length) {
             await Promise.all(updates);
             await refetchEvents();
-            showToast("Aggiornato stato Sold Out automaticamente", "info");
+            showToast(t("admin.toast.auto_soldout"), "info");
         }
     }, [events, bookings, showToast, refetchEvents]);
 
@@ -1106,7 +1109,7 @@ const AdminPanel = () => {
                                                 <TableCell>Ora</TableCell>
                                                 <TableCell>Capienza</TableCell>
                                                 <TableCell>Status</TableCell>
-                                                <TableCell>Sold Out</TableCell>
+                                                <TableCell>{t("admin.events.columns.soldOut")}</TableCell>
                                                 <TableCell align="right">Azioni</TableCell>
                                             </TableRow>
                                         </TableHead>
@@ -1135,13 +1138,13 @@ const AdminPanel = () => {
                                                         </TableCell>
                                                         <TableCell>{ev.dj || "—"}</TableCell>
                                                         <TableCell>{ev.place || "—"}</TableCell>
-                                                        <TableCell>{ev.date}</TableCell>
+                                                        <TableCell>{formatDate(ev.date)}</TableCell>
                                                         <TableCell>{ev.time}</TableCell>
                                                         <TableCell>{ev.capacity || "-"}</TableCell>
                                                         <TableCell>
                                                             <Chip
                                                                 size="small"
-                                                                label={status}
+                                                                label={t(`admin.events.statuses.${status}`)}
                                                                 color={
                                                                     status === "draft"
                                                                         ? "default"
@@ -1374,7 +1377,7 @@ const AdminPanel = () => {
                                                         disabled={formData.soldOut}           // ← visibile ma non editabile
                                                         inputProps={{ step: "0.5", min: "0" }}
                                                         error={!!errors.price}
-                                                        helperText={errors.price || (formData.soldOut ? "Sold out: il prezzo resta visibile" : "")}
+                                                        helperText={errors.price || (formData.soldOut ? t("admin.form.soldOut_hint") : "")}
                                                         InputProps={{
                                                             startAdornment: (
                                                                 <InputAdornment position="start">
@@ -1619,7 +1622,7 @@ const AdminPanel = () => {
                                                     </Typography>
                                                     <Stack spacing={1.5}>
                                                         <Stack direction="row" alignItems="center" spacing={1}>
-                                                            <Typography variant="body2">Sold out</Typography>
+                                                            <Typography variant="body2">{t("admin.form.soldOut")}</Typography>
                                                             <Switch
                                                                 checked={formData.soldOut}
                                                                 onChange={(_, checked) =>
@@ -1629,7 +1632,7 @@ const AdminPanel = () => {
                                                             />
                                                         </Stack>
                                                         <FormHelperText>
-                                                            Se attivo, il campo prezzo viene disabilitato.
+                                                            {t("admin.form.soldOut_hint")}
                                                         </FormHelperText>
                                                     </Stack>
                                                 </Paper>
@@ -1747,7 +1750,7 @@ const AdminPanel = () => {
                                             <MenuItem value="all">Tutti gli eventi</MenuItem>
                                             {events.map((ev) => (
                                                 <MenuItem key={ev.id} value={ev.id}>
-                                                    {ev.name} — {ev.date}
+                                                    {ev.name} — {formatDate(ev.date)}
                                                 </MenuItem>
                                             ))}
                                         </Select>
