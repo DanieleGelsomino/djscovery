@@ -30,6 +30,14 @@ npm run server
 
 ---
 
+## Testing
+
+```bash
+npm test
+```
+
+---
+
 ## Struttura progetto
 
 ```
