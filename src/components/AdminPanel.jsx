@@ -447,7 +447,14 @@ const AdminPanel = () => {
         });
     };
 
-    const handleChange = (ev) => setFormData({ ...formData, [ev.target.name]: ev.target.value });
+    const handleChange = (ev) => {
+        const { name, value, type } = ev.target;
+        let v = value;
+        if (type === "number") {
+            v = value === "" ? "" : Number(value);
+        }
+        setFormData({ ...formData, [name]: v });
+    };
 
     const handleSubmit = async (ev) => {
         ev.preventDefault();

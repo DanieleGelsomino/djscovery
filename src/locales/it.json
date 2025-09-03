@@ -35,7 +35,7 @@
     "loading": "Caricamento eventi...",
     "none": "Nessun evento disponibile",
     "book_now": "Prenota ora",
-      "sold_out": "Esaurito"
+      "sold_out": "Sold out"
   },
   "about": {
     "title": "Chi Siamo",
@@ -68,6 +68,9 @@
     "book": "Prenota",
     "required": "Tutti i campi sono obbligatori",
     "invalid_email": "Email non valida",
+    "invalid_phone": "Telefono non valido",
+    "invalid_quantity": "Minimo 1 biglietto",
+    "max_quantity": "Max 20 a prenotazione",
     "error": "Errore durante il salvataggio",
     "success": "Prenotazione avvenuta con successo!",
     "quantity": "Quantità"
@@ -123,7 +126,7 @@
         "ora": "Ora",
         "capienza": "Capienza",
         "status": "Status",
-        "soldOut": "Esaurito",
+        "soldOut": "Sold out",
         "azioni": "Azioni"
       },
       "actions": {
@@ -167,7 +170,7 @@
       "place_suggestions": "Suggerimenti da OSM/Geoapify",
       "map_preview": "Anteprima posizione (OpenStreetMap)",
       "saleStatus": "Stato vendita",
-      "soldOut": "Esaurito",
+      "soldOut": "Sold out",
       "soldOut_hint": "Se attivo, il campo prezzo viene disabilitato.",
       "buttons": {
         "save": "Salva modifiche",
@@ -195,7 +198,7 @@
       "save_error": "Errore nel salvataggio",
       "deleted": "Evento eliminato",
       "error": "Errore",
-      "auto_soldout": "Aggiornato stato Esaurito automaticamente"
+      "auto_soldout": "Aggiornato stato Sold out automaticamente"
     },
     "confirm": {
       "title": "Conferma",
