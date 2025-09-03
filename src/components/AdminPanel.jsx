@@ -805,11 +805,14 @@ const AdminPanel = () => {
         { key: "create", label: "Crea / Modifica Evento", icon: <AddCircleOutlineIcon /> },
         { key: "bookings", label: "Prenotazioni", icon: <ListAltIcon /> },
         { key: "checkin", label: "Check-in", icon: <QrCodeScannerIcon /> },
-        { key: "gallery", label: "Gallery", icon: <PhotoLibraryIcon /> },
+        { key: "gallery", label: "Galleria", icon: <PhotoLibraryIcon /> },
     ].filter((item) => {
         if (role === roles.staff) return item.key === "checkin" || item.key === "bookings";
         return true;
     });
+
+    const currentSectionLabel =
+        navItems.find((item) => item.key === section)?.label || "";
 
     const drawer = (
         <div>
@@ -911,9 +914,7 @@ const AdminPanel = () => {
                                     sx={{ height: 32 }}
                                 />
                                 <Typography variant="h6" noWrap>
-                                    {section === "create"
-                                        ? "Crea / Modifica Evento"
-                                        : section.charAt(0).toUpperCase() + section.slice(1)}
+                                    {currentSectionLabel}
                                 </Typography>
                             </Stack>
                             <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" } }}>
@@ -941,8 +942,8 @@ const AdminPanel = () => {
                                     </IconButton>
                                 </Tooltip>
                             )}
-                            <Tooltip title="Logout">
-                                <IconButton color="inherit" onClick={handleLogout} aria-label="Logout">
+                            <Tooltip title="Esci">
+                                <IconButton color="inherit" onClick={handleLogout} aria-label="Esci">
                                     <LogoutIcon />
                                 </IconButton>
                             </Tooltip>
