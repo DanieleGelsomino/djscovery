@@ -64,6 +64,7 @@ import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/st
 
 // assets
 import heroImg from "../assets/img/hero.png";
+import logo from "../assets/img/ADMIN.png";
 
 // icons
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -903,8 +904,13 @@ const AdminPanel = () => {
                                         <MenuIcon />
                                     </IconButton>
                                 )}
+                                <Box
+                                    component="img"
+                                    src={logo}
+                                    alt="Djscovery logo"
+                                    sx={{ height: 32 }}
+                                />
                                 <Typography variant="h6" noWrap>
-                                    Admin —{" "}
                                     {section === "create"
                                         ? "Crea / Modifica Evento"
                                         : section.charAt(0).toUpperCase() + section.slice(1)}
