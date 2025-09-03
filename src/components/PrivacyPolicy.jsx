@@ -46,7 +46,11 @@ const Card = styled(motion.div)`
 `;
 
 const PrivacyPolicy = () => {
-    const lastUpdate = new Date().toLocaleDateString("it-IT");
+    const lastUpdate = new Date().toLocaleDateString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
 
     return (
         <Section>
