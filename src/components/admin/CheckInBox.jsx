@@ -51,6 +51,12 @@ function CheckInBox({ events = [] }) {
     const todayISO = new Date().toISOString().slice(0,10);
     const eventById = useCallback((id) => events.find((e) => e.id === id), [events]);
 
+    const formatDate = (iso) => {
+        if (!iso) return "—";
+        const [y, m, d] = iso.split("-");
+        return `${d}/${m}/${y}`;
+    };
+
     // Audio
     const audioCtxRef = useRef(null);
     const [soundOn, setSoundOn] = useState(() => localStorage.getItem("checkinSound") !== "off");
@@ -171,7 +177,7 @@ function CheckInBox({ events = [] }) {
             if (opts.autoCheckIn && data.remaining > 0) {
                 await doCheckIn(token, data.remaining, { silent: true });
             } else if (data.remaining <= 0) {
-                showToast("Prenotazione già esaurita", "error");
+                showToast("Prenotazione già Sold out", "error");
                 playWarn();
             }
         } catch {
@@ -271,7 +277,7 @@ function CheckInBox({ events = [] }) {
             try { navigator.vibrate?.(30); } catch {}
         } catch (e) {
             const code = e?.response?.data?.error || e?.message;
-            if (code === "already_fully_checked_in") showToast("Prenotazione già esaurita", "error");
+            if (code === "already_fully_checked_in") showToast("Prenotazione già Sold out", "error");
             else if (code === "exceeds_quantity") showToast("Numero superiore ai biglietti disponibili", "error");
             else if (code === "token_mismatch") showToast("Token non corrisponde alla prenotazione", "error");
             else showToast("Errore nel check-in", "error");
@@ -507,7 +513,7 @@ function CheckInBox({ events = [] }) {
                                     </Grid>
                                     <Grid item xs={12} md={6}>
                                         <InfoRow label="Evento" value={ev?.name || result.eventId} />
-                                        <InfoRow label="Data evento" value={ev?.date || "—"} />
+                                        <InfoRow label="Data evento" value={formatDate(ev?.date)} />
                                         <InfoRow label="Biglietti" value={`${result.checkedInCount || 0} / ${result.quantity} (rim. ${result.remaining ?? 0})`} />
                                     </Grid>
                                 </Grid>

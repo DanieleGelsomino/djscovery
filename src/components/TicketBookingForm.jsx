@@ -120,6 +120,11 @@ const TicketBookingForm = () => {
             setFormData((prev) => ({ ...prev, quantita: Number.isNaN(n) ? '' : n }));
             return;
         }
+        if (name === 'telefono') {
+            const digits = value.replace(/\D/g, '');
+            setFormData({ ...formData, [name]: digits });
+            return;
+        }
         setFormData({ ...formData, [name]: value });
     };
 
@@ -133,6 +138,7 @@ const TicketBookingForm = () => {
         if (!email) errs.email = t('booking.required_field') || 'Campo obbligatorio';
         if (email && !validateEmail(email)) errs.email = t('booking.invalid_email') || 'Email non valida';
         if (!telefono) errs.telefono = t('booking.required_field') || 'Campo obbligatorio';
+        if (telefono && !/^\d+$/.test(telefono)) errs.telefono = t('booking.invalid_phone') || 'Numero non valido';
         const q = Number(quantita);
         if (!q || q < 1) errs.quantita = t('booking.invalid_quantity') || 'Minimo 1 biglietto';
         if (q > 20) errs.quantita = t('booking.max_quantity') || 'Max 20 a prenotazione';
@@ -211,9 +217,12 @@ const TicketBookingForm = () => {
                     <FieldWrapper>
                         <label htmlFor="telefono">{t('booking.phone') || 'Telefono'}</label>
                         <Input
+                            type="tel"
                             id="telefono"
                             name="telefono"
                             placeholder={t('booking.phone')}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={formData.telefono}
                             onChange={handleChange}
                             required
