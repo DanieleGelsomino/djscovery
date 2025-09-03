@@ -347,13 +347,17 @@ function CheckInBox({ events = [] }) {
                             sx={{ mt: 1, "& .MuiButton-root": { minHeight: 44 } }}
                         >
                             {/* riga 1 su mobile: Avvia + Carica (50/50) */}
-                            <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+                            <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                spacing={1}
+                                sx={{ flexShrink: { sm: 0 } }}
+                            >
                                 <Button
                                     startIcon={<QrCodeScannerIcon />}
                                     variant="contained"
                                     onClick={startScan}
                                     disabled={!support.camera || scanning}
-                                    sx={{ width: { xs: "100%", md: "auto" } }}
+                                    sx={{ width: { xs: "100%", md: "auto" }, whiteSpace: "nowrap" }}
                                 >
                                     Avvia scansione
                                 </Button>
@@ -361,7 +365,7 @@ function CheckInBox({ events = [] }) {
                                 <Button
                                     variant="outlined"
                                     component="label"
-                                    sx={{ width: { xs: "100%", md: "auto" } }}
+                                    sx={{ width: { xs: "100%", md: "auto" }, whiteSpace: "nowrap" }}
                                 >
                                     Carica immagine
                                     <input
@@ -375,7 +379,11 @@ function CheckInBox({ events = [] }) {
 
 
                             {/* riga 2 su mobile: Stop + volume */}
-                            <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                sx={{ flexGrow: 1, width: { xs: "100%", sm: "auto" } }}
+                            >
                                 <Button
                                     variant="text"
                                     onClick={stopScan}
