@@ -1,5 +1,21 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Box, Button, IconButton, Stack, Typography, Switch, Dialog, DialogContent, FormControl, FormHelperText, TextField, CircularProgress, useTheme, useMediaQuery } from "@mui/material";
+import {
+    Box,
+    Button,
+    IconButton,
+    Stack,
+    Typography,
+    Switch,
+    Dialog,
+    DialogContent,
+    FormControl,
+    FormHelperText,
+    TextField,
+    CircularProgress,
+    useTheme,
+    useMediaQuery,
+    Grid, Paper
+} from "@mui/material";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";

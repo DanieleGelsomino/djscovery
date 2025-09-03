@@ -1,5 +1,16 @@
 import React from "react";
-import { Card, CardContent, Chip, Stack, Typography, Switch, Tooltip, IconButton, Button } from "@mui/material";
+import {
+    Card,
+    CardContent,
+    Chip,
+    Stack,
+    Typography,
+    Switch,
+    Tooltip,
+    IconButton,
+    Button,
+    CardActions
+} from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LockClockIcon from "@mui/icons-material/LockClock";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
