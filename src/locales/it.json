@@ -78,7 +78,7 @@
       "create": "Crea / Modifica Evento",
       "bookings": "Prenotazioni",
       "checkin": "Check-in",
-      "gallery": "Gallery"
+      "gallery": "Galleria"
     },
     "common": {
       "open_menu": "Apri menu",
@@ -88,13 +88,13 @@
       "no_images": "Nessuna immagine trovata."
     },
     "header": {
-      "admin": "Admin",
+      "admin": "Amministrazione",
       "createEditEvent": "Crea / Modifica Evento",
       "futuri": "Futuri",
       "passati": "Passati",
       "prenotazioni": "Prenotazioni",
       "drive": "Apri cartella Drive",
-      "logout": "Logout"
+      "logout": "Esci"
     },
     "events": {
       "search": "Cerca per nome / DJ / luogo",
