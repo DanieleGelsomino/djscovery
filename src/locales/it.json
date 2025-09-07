@@ -21,9 +21,12 @@
     "subtitle": "Rimani aggiornato sugli eventi esclusivi",
     "email": "Email",
     "subscribe": "Iscriviti",
+    "loading": "Invio…",
+    "email_invalid": "Email non valida",
+    "consent_required": "Devi accettare la privacy",
     "success": "Grazie per la tua iscrizione!",
     "error": "Errore durante l'iscrizione",
-    "consent_text": "Acconsento al trattamento dei dati secondo la <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a>."
+    "consent_text": "Acconsento al trattamento dei dati secondo la <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a> e i <a href=\"/tos\" target=\"_blank\" rel=\"noopener noreferrer\">Termini di Servizio</a>."
   },
   "youtube": {
     "title": "Ultimi Video",

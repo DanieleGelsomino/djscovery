@@ -1119,6 +1119,34 @@ async function brevoSubscribeHandler(req, res) {
             console.error("❌ Brevo error:", r.status, data);
             return res.status(r.status).json({ ok: false, error: data?.message || "brevo_error", details: data });
         }
+
+        // --- Firestore save/update ---
+        try {
+            const emailId = String(email).trim().toLowerCase();
+            const ref = db.collection("newsletter_subscribers").doc(emailId);
+            const snap = await ref.get();
+            const nowTs = now();
+
+            const base = {
+                email: emailId,
+                consent: !!consent,
+                attributes: extendedAttributes,
+                brevo: { mode: isDOI ? "double_opt_in" : "single_opt_in", listId: Number(BREVO_LIST_ID) },
+                userAgent: req.headers["user-agent"] || "",
+                ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+                status: "active",
+                lastUpdateAt: nowTs,
+            };
+            if (!snap.exists) {
+                await ref.set({ ...base, createdAt: nowTs });
+            } else {
+                await ref.set(base, { merge: true });
+            }
+        } catch (fsErr) {
+            // Non bloccare la risposta all'utente per errori di logging
+            console.warn("newsletter_subscribers save failed:", fsErr?.message);
+        }
+
         return res.json({ ok: true, mode: isDOI ? "double_opt_in" : "single_opt_in" });
     } catch (err) {
         console.error("❌ Brevo exception:", err?.message);
@@ -1128,6 +1156,41 @@ async function brevoSubscribeHandler(req, res) {
 
 app.post("/api/newsletter", publicLimiter, brevoSubscribeHandler);
 app.post("/api/newsletter/subscribe", publicLimiter, brevoSubscribeHandler);
+
+// Brevo webhook (opzionale) per sincronizzare status
+app.post("/api/webhooks/brevo", publicLimiter, async (req, res) => {
+    try {
+        const payload = Array.isArray(req.body) ? req.body : [req.body];
+        const updates = payload.filter(Boolean);
+        const mapStatus = (ev) => {
+            if (!ev) return "active";
+            const e = String(ev).toLowerCase();
+            return e === "unsubscribed" ? "unsubscribed"
+                : e === "hard_bounce" ? "bounced"
+                : e === "spam" ? "complaint" : "active";
+        };
+
+        const batch = db.batch();
+        const at = now();
+        for (const evt of updates) {
+            const email = (evt?.email || evt?.emailId || evt?.recipient || "").toString().trim().toLowerCase();
+            const eventName = evt?.event || evt?.type || evt?.eventType || "";
+            if (!email) continue;
+            const ref = db.collection("newsletter_subscribers").doc(email);
+            batch.set(ref, {
+                lastEvent: eventName,
+                lastEventAt: at,
+                status: mapStatus(eventName),
+                lastUpdateAt: at,
+            }, { merge: true });
+        }
+        await batch.commit();
+        return res.json({ ok: true });
+    } catch (e) {
+        console.error("❌ /api/webhooks/brevo:", e?.message);
+        return res.status(500).json({ ok: false, error: "webhook_failed" });
+    }
+});
 
 // Contatti: invia email a staff
 app.post("/api/contact", publicLimiter, async (req, res) => {

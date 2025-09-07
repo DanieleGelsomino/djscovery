@@ -21,8 +21,12 @@
     "subtitle": "Stay updated on exclusive events",
     "email": "Email",
     "subscribe": "Subscribe",
+    "loading": "Sending…",
+    "email_invalid": "Invalid email",
+    "consent_required": "You must accept privacy",
     "success": "Thank you for subscribing!",
-    "error": "Subscription failed"
+    "error": "Subscription failed",
+    "consent_text": "I consent to data processing according to the <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a> and <a href=\"/tos\" target=\"_blank\" rel=\"noopener noreferrer\">Terms of Service</a>."
   },
   "youtube": {
     "title": "Latest Videos",
