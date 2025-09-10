@@ -1,167 +1,56 @@
 import React from "react";
-import styled from "styled-components";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "./LanguageContext";
 import { useQuery } from "@tanstack/react-query";
 import { fetchEvents } from "../api";
-import heroImg from "../assets/img/hero.png";
 import Spinner from "./Spinner";
-import {
-  Card as MuiCard,
-  CardContent,
-  CardMedia,
-  Button as MuiButton,
-  Typography,
-} from "@mui/material";
-
-const Section = styled.section`
-  text-align: center;
-  background-color: #f7f7f7;
-  color: var(--black);
-`;
-
-const Cards = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-top: 2rem;
-  padding-bottom: 2rem;
-
-  @media (min-width: 600px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: 992px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const MotionCard = motion(MuiCard);
-const MotionButton = motion(MuiButton);
+import ComingSoon from "./ComingSoon";
+import TimedCardsLite from "./TimedCardsLite";
+import heroFallback from "../assets/img/hero.png";
 
 const EventiSection = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
+    queryKey: ["events", { status: "published" }],
+    queryFn: () => fetchEvents({ status: "published" }),
+  });
+
+  if (isLoading) return <Spinner aria-label={t("events.loading")} />;
+  if (!events.length) return <ComingSoon />;
+
+  const slides = events.map((e) => {
+    const title1 = e.name || "Evento";
+    const dateFmt = e.date ? (() => { const [y,m,d] = (e.date||"").split("-"); return (y&&m&&d) ? `${d}/${m}/${y}` : (e.date||""); })() : "";
+    const title2 = e.dj || (dateFmt ? `${dateFmt}${e.time ? ` · ${e.time}` : ""}` : "");
+    const desc = e.description || (e.place ? `${e.place}` : "");
+    const place = e.place || "";
+    const image = e.image || heroFallback;
+    const time = e.time || "";
+    const date = dateFmt;
+    const price = e.soldOut ? "" : (e.price ? `${e.price}€` : (t('events.free') || 'Gratis'));
+    return {
+      place,
+      title1,
+      title2,
+      desc,
+      time,
+      date,
+      price,
+      soldOut: !!e.soldOut,
+      image,
+      onDiscover: () => navigate(`/prenota?event=${e.id}`),
+    };
   });
 
   return (
-    <Section>
-      <div className="container">
-        <h2>{t("events.title")}</h2>
-        <p>{t("events.subtitle")}</p>
-        {isLoading && <Spinner aria-label={t("events.loading")} />}
-        {!isLoading && events.length === 0 && <p>{t("events.none")}</p>}
-        <Cards>
-          {events.map((event) => (
-            <MotionCard
-              key={event.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              whileHover={{ scale: 1.03 }}
-              sx={{
-                backgroundColor: "#fff",
-                border: "1px solid #ddd",
-                color: "var(--black)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                textAlign: "left",
-                width: "100%",
-                margin: 0,
-                display: "flex",
-                flexDirection: "column",
-                borderRadius: "8px",
-                overflow: "hidden",
-              }}
-            >
-                <CardMedia
-                    component="div"
-                    image={event.image || heroImg}   // 👈 usa l’API giusta di MUI
-                    sx={{
-                        position: "relative",
-                        height: 220,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                    }}
-                >
-                    {event.soldOut && (
-                        <div
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                backgroundColor: "rgba(0,0,0,0.6)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#fff",
-                                fontSize: "1.5rem",
-                                fontWeight: "bold",
-                                zIndex: 1,
-                            }}
-                        >
-                            {t("events.sold_out")}
-                        </div>
-                    )}
-
-                    <div
-                        style={{
-                            position: "absolute",
-                            bottom: 0,
-                            width: "100%",
-                            padding: "1rem",
-                            background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
-                            color: "#fff",
-                            zIndex: 2,
-                        }}
-                    >
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            {event.name}
-                        </Typography>
-                        <Typography variant="body2">{event.dj}</Typography>
-                    </div>
-                </CardMedia>
-
-
-                <CardContent sx={{ flex: "1 1 auto", padding: "1rem" }}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 2, color: "text.secondary" }}
-                >
-                  {event.description}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  {event.place} - {event.time} | € {event.price}
-                </Typography>
-              </CardContent>
-
-              {!event.soldOut && (
-                <MotionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(`/prenota?event=${event.id}`)}
-                  sx={{
-                    backgroundColor: "var(--black)",
-                    color: "white",
-                    borderRadius: "20px",
-                    alignSelf: "start",
-                    margin: "0 1rem 1rem",
-                    padding: "0.5rem 1.5rem",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                  }}
-                >
-                  {t("events.book_now")}
-                </MotionButton>
-              )}
-            </MotionCard>
-          ))}
-        </Cards>
-      </div>
-    </Section>
+    <TimedCardsLite
+      slides={slides}
+      autoPlay={true}
+      intervalMs={6000}
+      className="events-timed-cards"
+    />
   );
 };
 

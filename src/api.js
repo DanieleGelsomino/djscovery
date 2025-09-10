@@ -17,8 +17,10 @@ import { withLoading } from "./loading";
 // ⬇️ Usa mock SOLO se esplicitamente "true"
 const useMock = (import.meta.env.VITE_MOCK || "").toString().toLowerCase() === "true";
 
-// ⬇️ Base URL backend; in dev fallback a http://localhost:3000
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+// ⬇️ Base URL backend; default a same-origin ('' => /api/*) e solo in SSR usa localhost
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== "undefined" ? "" : "http://localhost:3000");
 
 // Token bearer (Firebase ID token)
 let authToken = null;
@@ -63,10 +65,20 @@ async function handleResponse(res) {
 /* =======================
    EVENTS
    ======================= */
-export const fetchEvents = async () => {
-    if (useMock) return mockFetchEvents();
+export const fetchEvents = async (opts = {}) => {
+    const { status } = opts || {};
+    if (useMock) {
+        const all = await mockFetchEvents();
+        if (!status) return all;
+        // Nei mock, gli eventi potrebbero non avere lo status: trattali come "published"
+        return all.filter((e) => (e.status || "published") === status);
+    }
     return withLoading(async () => {
-        const res = await fetch(`${API_BASE}/api/events`);
+        const url = new URL(`${API_BASE}/api/events`);
+        if (status && ["draft", "published", "archived"].includes(status)) {
+            url.searchParams.set("status", status);
+        }
+        const res = await fetch(url.toString());
         return handleResponse(res);
     });
 };

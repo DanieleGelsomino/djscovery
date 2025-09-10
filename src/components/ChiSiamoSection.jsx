@@ -1,7 +1,7 @@
-import React from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { useLanguage } from './LanguageContext';
+import React from "react";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import { useLanguage } from "./LanguageContext";
 
 const Section = styled(motion.section)`
   padding: 2rem 0;
@@ -27,28 +27,35 @@ const Text = styled(motion.div)`
 const ImageWrapper = styled(motion.div)`
   img {
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   }
 `;
 
 const ChiSiamoSection = () => {
   const { t } = useLanguage();
   return (
-  <Section>
-    <div className="container">
-      <Content>
-        <Text initial={{ x: -50, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} viewport={{ once: true }}>
-          <h2>{t('about.title')}</h2>
-          <p>
-            {t('about.p1')}</p>
-          <p>{t('about.p2')}</p>
-        </Text>
-        <ImageWrapper initial={{ x: 50, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} viewport={{ once: true }}>
-          <img src="https://source.unsplash.com/600x400/?dj" alt="Chi siamo" />
-        </ImageWrapper>
-      </Content>
-    </div>
-  </Section>
+    <Section>
+      <div className="container">
+        <Content>
+          <Text
+            initial={{ x: -50, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <h2>{t("about.title")}</h2>
+            <p>{t("about.p1")}</p>
+            <p>{t("about.p2")}</p>
+          </Text>
+          <ImageWrapper
+            initial={{ x: 50, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <img src="/src/assets/img/gallery-1.png" alt="Chi siamo" />
+          </ImageWrapper>
+        </Content>
+      </div>
+    </Section>
   );
 };
 

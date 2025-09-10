@@ -1,185 +1,208 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
-import { FaPaperPlane } from "react-icons/fa";
-import { useToast } from "./ToastContext";
-import { subscribeNewsletter } from "../api";
+import { FaWhatsapp } from "react-icons/fa";
 import heroImg from "../assets/img/newsletter.jpg";
-import {Typography} from "@mui/material";
-import DOMPurify from "dompurify";
 
 const Section = styled.section`
-    position: relative;
-    padding: 3rem 0;
-    color: var(--white);
-    text-align: center;
-    overflow: hidden;
-    background-image: url(${heroImg});
-    background-size: cover;
-    background-position: center;
+  position: relative;
+  padding: 5rem 0; /* + altezza verticale */
+  min-height: 55vh; /* assicura presenza visiva della sezione */
+  color: var(--white);
+  text-align: center;
+  overflow: hidden;
+  background-image: url(${heroImg});
+  background-size: cover;
+  background-position: center;
+
+  @media (max-width: 640px) {
+    padding: 4rem 0;
+    min-height: 50vh;
+  }
 `;
 const Overlay = styled.div`
-    position: absolute; inset: 0;
-    background: linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5));
-    z-index: 0;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+  z-index: 0;
 `;
-const Content = styled.div` position: relative; z-index: 1; `;
-const Form = styled.form`
-    display: flex; flex-direction: column; gap: 1rem; width: 100%;
-    max-width: 400px; margin: 1rem auto 0;
-    background-color: rgba(0,0,0,.25);
-    padding: 1.5rem; border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+const Content = styled.div`
+  position: relative;
+  z-index: 1;
 `;
-const Input = styled(motion.input)`
-    width: 100%; padding: .75rem; border: none; border-radius: 4px;
+const CTAGrid = styled.div`
+  display: grid;
+  gap: 1rem;
+  margin: 1rem auto 0;
+  width: 100%;
+  max-width: 800px; /* più ampio su desktop */
+  grid-template-columns: 1fr; /* una sola colonna: card a piena larghezza */
+  align-items: stretch; /* assicura altezze uguali tra le card */
 `;
-const Button = styled(motion.button)`
-    width: 100%; padding: .75rem; border: none; border-radius: 4px;
-    background: var(--yellow); color: var(--black); font-weight: bold;
-    display: flex; align-items: center; justify-content: center; gap: .5rem;
-    &:disabled { opacity: .6; cursor: not-allowed; }
+
+// Widget card con bordo sfumato animato
+const Card = styled(motion.article)`
+  position: relative;
+  isolation: isolate;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 1.25rem;
+  border-radius: 16px;
+  color: var(--white);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  display: flex; /* layout verticale per uniformare gli spazi */
+  flex-direction: column;
+  height: 100%;
+
+  /* tipografia coerente */
+  h3 {
+    margin: 0 0 0.25rem;
+  }
+  p {
+    margin: 0 0 1rem;
+  }
+
+  &:before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: conic-gradient(
+      from 180deg at 50% 50%,
+      #00ffab,
+      #ffe066,
+      #00c2ff,
+      #ff6ec7,
+      #00ffab
+    );
+    filter: blur(18px);
+    opacity: 0.18;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+  }
+  &:hover:before {
+    opacity: 0.3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:before {
+      display: none;
+    }
+  }
 `;
-const ConsentRow = styled.label`
-  display: flex; align-items: flex-start; gap: .5rem; font-size: .9rem; text-align: left;
+
+const ButtonRow = styled.div`
+  margin-top: auto; /* spinge il bottone in basso per allinearlo tra le card */
+  display: grid;
+  justify-items: stretch; /* piena larghezza su mobile */
+
+  @media (min-width: 520px) {
+    justify-items: center; /* su desktop torna centrato */
+  }
+`;
+
+const CTAButton = styled(motion.a)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--yellow);
+  color: var(--black);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  width: 100%; /* piena larghezza su mobile */
+  text-align: center;
+  transition: color var(--transition-med);
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.65),
+      0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  @media (min-width: 520px) {
+    width: auto; /* desktop: dimensione in base al contenuto */
+    min-width: 220px;
+  }
+
+  &:hover {
+    color: var(--red);
+  }
+`;
+
+const IconBubble = styled(motion.div)`
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
 `;
 
 const NewsletterSection = () => {
-    const [email, setEmail] = useState("");
-    const [consent, setConsent] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState("");
-    const [website, setWebsite] = useState(""); // honeypot
-    const { t } = useLanguage();
-    const { showToast } = useToast();
+  const { t } = useLanguage();
+  const waUrl =
+    import.meta.env.VITE_WHATSAPP_COMMUNITY_URL ||
+    "https://chat.whatsapp.com/your-community";
 
-    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  return (
+    <Section>
+      <Overlay />
+      <Content className="container">
+        <h2>{t("cta.title") || "Unisciti alla community"}</h2>
+        <p style={{ opacity: 0.9 }}>
+          {t("cta.subtitle") ||
+            "Seguici su WhatsApp e ascolta la nostra playlist su Spotify."}
+        </p>
 
-    useEffect(() => {
-        if (!siteKey) return;
-        if (window.grecaptcha) return;
-        const s = document.createElement("script");
-        s.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
-        s.async = true;
-        document.head.appendChild(s);
-    }, [siteKey]);
-
-    const runRecaptcha = async () => {
-        if (!siteKey || !window.grecaptcha) return null;
-        try {
-            await window.grecaptcha.ready();
-            return await window.grecaptcha.execute(siteKey, { action: "newsletter" });
-        } catch {
-            return null;
-        }
-    };
-
-    const validate = (v) => /\S+@\S+\.\S+/.test(v);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setErr("");
-
-        if (!validate(email)) {
-            setErr(t("newsletter.email_invalid") || "Email non valida");
-            return;
-        }
-        if (!consent) {
-            setErr(t("newsletter.consent_required") || "Devi accettare la privacy");
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const recaptchaToken = await runRecaptcha();
-
-            // Se la tua subscribeNewsletter accetta SOLO l'email, questa riga funziona comunque:
-            // await subscribeNewsletter(email);
-
-            // Se hai aggiornato l'API client come consigliato:
-            await subscribeNewsletter(email, {
-                attributes: { PAGE: window.location.pathname || "/" },
-                consent: true,
-                recaptchaToken,
-                website, // honeypot (vuoto per umani)
-            });
-
-            setEmail("");
-            setConsent(false);
-            showToast(t("newsletter.success"), "success");
-        } catch (e2) {
-            setErr(e2?.message || t("newsletter.error"));
-            showToast(t("newsletter.error"), "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <Section>
-            <Overlay />
-            <Content className="container">
-                <h2>{t("newsletter.title")}</h2>
-                <p>{t("newsletter.subtitle")}</p>
-
-                <Form onSubmit={handleSubmit} noValidate>
-                    {/* Honeypot (invisibile per gli utenti) */}
-                    <input
-                        type="text"
-                        name="website"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                        tabIndex="-1"
-                        autoComplete="off"
-                        aria-hidden="true"
-                        style={{ position: "absolute", left: "-5000px" }}
-                    />
-
-                    <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder={t("newsletter.email")}
-                        required
-                        whileFocus={{ scale: 1.02 }}
-                        aria-invalid={!!err}
-                    />
-
-                    <ConsentRow>
-                        <input
-                            id="consent"
-                            type="checkbox"
-                            checked={consent}
-                            onChange={(e) => setConsent(e.target.checked)}
-                            required
-                        />
-                        <Typography
-                            variant="body2"
-                            component="div"
-                            sx={{ mt: 1, opacity: 0.9 }}
-                            dangerouslySetInnerHTML={{
-                                __html: DOMPurify.sanitize(t("newsletter.consent_text") || "", {
-                                    ALLOWED_TAGS: ["a","b","strong","em","br"],
-                                    ALLOWED_ATTR: ["href","target","rel"]
-                                })
-                            }}
-                        />
-                    </ConsentRow>
-
-                    {err && (
-                        <div role="alert" style={{ color: "#ffdede", fontSize: ".9rem", textAlign: "left" }}>
-                            {err}
-                        </div>
-                    )}
-
-                    <Button type="submit" disabled={loading} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        {loading ? (t("newsletter.loading") || "Invio…") : t("newsletter.subscribe")} <FaPaperPlane />
-                    </Button>
-                </Form>
-            </Content>
-        </Section>
-    );
+        <CTAGrid>
+          <Card
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            aria-labelledby="cta-whatsapp-title"
+          >
+            <IconBubble
+              aria-hidden="true"
+              animate={{ y: [0, -4, 0] }}
+              transition={{
+                duration: 2.4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <FaWhatsapp size={24} color="#25D366" />
+            </IconBubble>
+            <h3 id="cta-whatsapp-title" style={{ marginTop: 0 }}>
+              {t("cta.whatsapp.title") || "Community WhatsApp"}
+            </h3>
+            <p style={{ opacity: 0.9 }}>
+              {t("cta.whatsapp.subtitle") ||
+                "Annunci, aggiornamenti e backstage in tempo reale."}
+            </p>
+            <ButtonRow>
+              <CTAButton
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={"Unisciti ora"}
+                whileHover={{ scale: 1.04, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                🔥 Unisciti ora
+              </CTAButton>
+            </ButtonRow>
+          </Card>
+        </CTAGrid>
+      </Content>
+    </Section>
+  );
 };
 
 export default NewsletterSection;

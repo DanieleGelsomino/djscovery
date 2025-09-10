@@ -16,6 +16,20 @@
     "subtitle": "Snapshots from our evenings: tap an image to enlarge.",
     "empty": "No images available."
   },
+  "cta": {
+    "title": "Join the community",
+    "subtitle": "Follow us on WhatsApp and listen to our Spotify playlist.",
+    "whatsapp": {
+      "title": "WhatsApp Community",
+      "subtitle": "Announcements, updates and backstage in real time.",
+      "button": "Join on WhatsApp"
+    },
+    "spotify": {
+      "title": "Spotify Playlist",
+      "subtitle": "Our selections to discover new tracks.",
+      "button": "Open on Spotify"
+    }
+  },
   "newsletter": {
     "title": "Newsletter",
     "subtitle": "Stay updated on exclusive events",
@@ -27,6 +41,11 @@
     "success": "Thank you for subscribing!",
     "error": "Subscription failed",
     "consent_text": "I consent to data processing according to the <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a> and <a href=\"/tos\" target=\"_blank\" rel=\"noopener noreferrer\">Terms of Service</a>."
+  },
+  "thanks": {
+    "title": "Thank you!",
+    "subtitle": "Your subscription has been confirmed. See you in the newsletter!",
+    "back_home": "Back to Home"
   },
   "youtube": {
     "title": "Latest Videos",

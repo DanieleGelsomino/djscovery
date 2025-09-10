@@ -4,6 +4,7 @@ import { listImagesInFolder } from "../lib/driveGallery";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
+import { SliderSkeleton } from "./Skeletons";
 
 const widths = [480, 768, 1024, 1600];
 
@@ -120,7 +121,7 @@ const HomeGallerySlider = ({
     }, [imgs, caption]);
 
     // 3) Ora i return condizionali possono stare qui sotto
-    if (loading) return <div>Carico gallery…</div>;
+    if (loading) return <SliderSkeleton count={3} />;
     if (err) return <div className="text-danger">{err}</div>;
     if (!imgs.length) return <div>Nessuna immagine disponibile.</div>;
 

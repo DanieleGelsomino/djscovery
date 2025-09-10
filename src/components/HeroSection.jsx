@@ -28,7 +28,7 @@ const Background = styled(motion.div)`
 const Overlay = styled(motion.div)`
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.45);
+  background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.65));
 `;
 
 const Content = styled.div`
@@ -37,8 +37,9 @@ const Content = styled.div`
   padding: 0 1rem;
 
   h1 {
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    font-weight: 700;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
 
   p {
@@ -60,12 +61,13 @@ const CTAWrapper = styled(motion.div)`
 `;
 
 const BtnPrimary = styled(motion(Link))`
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  background-color: var(--green);
+  padding: 0.8rem 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(33,191,115,0.95), rgba(33,191,115,0.85));
   color: var(--white);
-  font-weight: bold;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 30px rgba(33,191,115,0.25);
 `;
 
 
@@ -103,8 +105,8 @@ const HeroSection = () => {
         >
           <BtnPrimary
             to="/eventi"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 12px var(--yellow)' }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03, boxShadow: '0 16px 40px rgba(33,191,115,0.35)' }}
+            whileTap={{ scale: 0.98 }}
           >
             {t('hero.cta_events')}
           </BtnPrimary>

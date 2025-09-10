@@ -9,12 +9,14 @@ import GallerySection from './components/GallerySection';
 import ChiSiamoSection from './components/ChiSiamoSection';
 import ContattiSection from './components/ContattiSection';
 import Footer from './components/Footer';
+import SpotifyFloatingWidget from './components/SpotifyFloatingWidget';
 import TicketBookingForm from './components/TicketBookingForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import AdminRoute from './components/AdminRoute';
 import NotFound from "./components/NotFound";
 import PrivacyPolicy from "./components/PrivacyPolicy"; // 👈 aggiunta
+import Thanks from "./components/Thanks";
 
 const Main = styled.main`
     flex: 1;
@@ -40,6 +42,7 @@ const App = () => {
                         <Route path="/contatti" element={<ContattiSection />} />
                         <Route path="/prenota" element={<TicketBookingForm />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/thanks" element={<Thanks />} />
 
 
                         {/* Admin: login (puoi lasciare /admin oppure usare /admin/login) */}
@@ -61,6 +64,7 @@ const App = () => {
                     </Routes>
                 </AnimatePresence>
             </Main>
+            {!isAdminRoute && <SpotifyFloatingWidget />}
             {!isAdminRoute && <Footer />}
         </>
     );

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import { useCart } from './CartContext';
 import Spinner from './Spinner';
+import { CartItemSkeleton } from './Skeletons';
 import { useLanguage } from './LanguageContext';
 
 const Section = styled.section`
@@ -111,7 +112,20 @@ const CartPage = () => {
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  if (loading) return <Spinner />;
+  if (loading) {
+    return (
+      <Section>
+        <div className="container">
+          <CartWrapper>
+            <h2>{t('cart.title')}</h2>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <CartItemSkeleton key={i} />
+            ))}
+          </CartWrapper>
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section>

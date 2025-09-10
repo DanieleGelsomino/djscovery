@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
     Box, Button, Paper, TextField, Typography,
     InputAdornment, IconButton, Dialog, DialogTitle,
-    DialogContent, DialogActions, CircularProgress, GlobalStyles
+    DialogContent, DialogActions, GlobalStyles, CircularProgress
 } from '@mui/material';
 import {
     signInWithEmailAndPassword,

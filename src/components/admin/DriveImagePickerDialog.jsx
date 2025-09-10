@@ -3,15 +3,13 @@ import { Dialog, DialogTitle, DialogContent, Stack, TextField, Button, Grid, Ske
 import ImageIcon from "@mui/icons-material/Image";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
-import { listImagesInFolder, driveCdnSrc, driveApiSrc } from "../../lib/driveGallery";
+import { driveCdnSrc } from "../../lib/driveGallery";
 
 function DriveImagePickerDialog({ open, onClose, onPick }) {
-    const apiKey =
-        (import.meta?.env && import.meta.env.VITE_GOOGLE_API_KEY) ||
-        (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_API_KEY);
     const folderId =
         (import.meta?.env && import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID) ||
         (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_DRIVE_FOLDER_ID);
+    const API_BASE = (import.meta?.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:3000";
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -28,18 +26,16 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
     }, []);
 
     const load = useCallback(async () => {
-        if (!apiKey || !folderId) {
-            setError("Config mancante: API_KEY o FOLDER_ID");
+        if (!folderId) {
+            setError("Config mancante: FOLDER_ID");
             return;
         }
         setError("");
         setLoading(true);
         try {
-            const list = await listImagesInFolder(folderId, {
-                apiKey,
-                includeSharedDrives: true,
-                pageSize: 200,
-            });
+            const res = await fetch(`${API_BASE}/api/drive/list?folderId=${encodeURIComponent(folderId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const list = await res.json();
             setItems(Array.isArray(list) ? list : []);
         } catch (e) {
             console.error(e);
@@ -47,7 +43,7 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
         } finally {
             setLoading(false);
         }
-    }, [apiKey, folderId]);
+    }, [folderId]);
 
     useEffect(() => { if (open) load(); }, [open, load]);
 
@@ -152,7 +148,7 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
             if (isHeic) {
                 try {
                     // prendi l'originale (potrebbe essere HEIC)
-                    const r = await fetch(driveApiSrc(id, apiKey));
+                    const r = await fetch(`${API_BASE}/api/drive/file/${id}`);
                     const blob = await r.blob();
 
                     // import dinamico: caricato SOLO quando serve
@@ -177,8 +173,8 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
             // Fallback generico: original via API (PNG/JPEG ok, HEIC no se browser non supporta)
             img.removeAttribute("srcset");
             img.removeAttribute("sizes");
-            img.src = driveApiSrc(id, apiKey);
-        }, [apiKey, id, isHeic]);
+            img.src = `${API_BASE}/api/drive/file/${id}`;
+        }, [API_BASE, id, isHeic]);
 
         return (
             <Box

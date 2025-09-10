@@ -16,6 +16,20 @@
     "subtitle": "Scatti dalle nostre serate: tocca un’immagine per ingrandire.",
     "empty": "Nessuna immagine disponibile."
   },
+  "cta": {
+    "title": "Unisciti alla community",
+    "subtitle": "Seguici su WhatsApp e ascolta la nostra playlist su Spotify.",
+    "whatsapp": {
+      "title": "Community WhatsApp",
+      "subtitle": "Annunci, aggiornamenti e backstage in tempo reale.",
+      "button": "Unisciti su WhatsApp"
+    },
+    "spotify": {
+      "title": "Playlist Spotify",
+      "subtitle": "Le nostre selezioni per scoprire nuovi brani.",
+      "button": "Apri su Spotify"
+    }
+  },
   "newsletter": {
     "title": "Newsletter",
     "subtitle": "Rimani aggiornato sugli eventi esclusivi",
@@ -27,6 +41,11 @@
     "success": "Grazie per la tua iscrizione!",
     "error": "Errore durante l'iscrizione",
     "consent_text": "Acconsento al trattamento dei dati secondo la <a href=\"/privacy\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy Policy</a> e i <a href=\"/tos\" target=\"_blank\" rel=\"noopener noreferrer\">Termini di Servizio</a>."
+  },
+  "thanks": {
+    "title": "Grazie!",
+    "subtitle": "La tua iscrizione è stata confermata. A presto nella newsletter!",
+    "back_home": "Torna alla Home"
   },
   "youtube": {
     "title": "Ultimi Video",

@@ -5,6 +5,7 @@ import React, {
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import Spinner from "./Spinner";
+import { GalleryTileSkeleton } from "./Skeletons";
 import { useLanguage } from "./LanguageContext";
 import { listImagesInFolder } from "../lib/driveGallery";
 
@@ -227,7 +228,13 @@ const GallerySection = () => {
                     {t("gallery.subtitle") ?? "Scatti dalle nostre serate: tocca un’immagine per ingrandire."}
                 </Subtitle>
 
-                {loading && <Spinner />}
+                {loading && (
+                    <GalleryGrid>
+                        {Array.from({ length: 15 }).map((_, i) => (
+                            <GalleryTileSkeleton key={i} />
+                        ))}
+                    </GalleryGrid>
+                )}
 
                 {!loading && images.length === 0 && (
                     <Empty>{t("gallery.empty") ?? "Nessuna immagine disponibile."}</Empty>

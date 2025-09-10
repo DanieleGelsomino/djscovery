@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { sendBooking } from '../api';
+import { sendBooking, fetchEvents } from '../api';
 import { useLanguage } from './LanguageContext';
 import Spinner from './Spinner';
 import { useToast } from './ToastContext';
+import { FormSkeleton, FormFieldSkeleton } from './Skeletons';
 
 const Wrapper = styled.section`
     text-align: center;
@@ -97,6 +98,11 @@ const FieldWrapper = styled.div`
 `;
 
 const TicketBookingForm = () => {
+    const fmtDate = (iso) => {
+        if (!iso) return '';
+        const [y, m, d] = String(iso).split('-');
+        return y && m && d ? `${d}/${m}/${y}` : iso;
+    };
     const [searchParams] = useSearchParams();
     const eventId = searchParams.get('event');
 
@@ -110,8 +116,30 @@ const TicketBookingForm = () => {
 
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [eventLoading, setEventLoading] = useState(Boolean(eventId));
+    const [eventInfo, setEventInfo] = useState(null);
     const { t } = useLanguage();
     const { showToast } = useToast();
+
+    useEffect(() => {
+        let alive = true;
+        if (!eventId) { setEventLoading(false); return; }
+        (async () => {
+            try {
+                setEventLoading(true);
+                const list = await fetchEvents();
+                if (!alive) return;
+                const ev = Array.isArray(list) ? list.find(e => e.id === eventId) : null;
+                setEventInfo(ev || null);
+            } catch {
+                if (!alive) return;
+                setEventInfo(null);
+            } finally {
+                if (alive) setEventLoading(false);
+            }
+        })();
+        return () => { alive = false; };
+    }, [eventId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -170,6 +198,24 @@ const TicketBookingForm = () => {
         <Wrapper>
             <div className="container">
                 <h2>{t('booking.title')}</h2>
+
+                {/* Event info header: skeleton se carica, dati se presenti */}
+                {eventLoading && (
+                    <div style={{ maxWidth: 600, margin: '0.5rem auto 1rem' }}>
+                        <FormFieldSkeleton lines={1} />
+                    </div>
+                )}
+                {!eventLoading && eventInfo && (
+                    <div style={{ maxWidth: 600, margin: '0.5rem auto 1rem', opacity: .9 }}>
+                        <strong>{eventInfo.name}</strong>
+                        {eventInfo.date || eventInfo.time ? (
+                            <span> • {fmtDate(eventInfo.date) || ''} {eventInfo.time || ''}</span>
+                        ) : null}
+                    </div>
+                )}
+                {eventLoading ? (
+                    <FormSkeleton />
+                ) : (
                 <Form onSubmit={handleSubmit} noValidate>
                     <FieldWrapper>
                         <label htmlFor="nome">{t('booking.name') || 'Nome'}</label>
@@ -254,6 +300,7 @@ const TicketBookingForm = () => {
                     </Button>
                     {loading && <Spinner />}
                 </Form>
+                )}
             </div>
         </Wrapper>
     );

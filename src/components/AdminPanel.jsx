@@ -476,6 +476,8 @@ const AdminPanel = () => {
                 await updateEvent(editingId, payload);
                 showToast("Evento aggiornato", "success");
             } else {
+                // Forza lo stato a "published" alla creazione (nuovo o da duplicato)
+                payload.status = "published";
                 payload.lastDiff = diffObjects({}, payload);
                 await createEvent(payload);
                 showToast("Evento creato", "success");
@@ -559,7 +561,8 @@ const AdminPanel = () => {
             date: "",
             time: "",
             soldOut: false,
-            status: "draft",
+            // Duplichiamo come "published" per coerenza con il salvataggio atteso
+            status: "published",
         });
         if (ev.place) {
             setPlaceSelected({ label: ev.place, place_id: ev.placeId || "", ...(ev.placeCoords || {}) });

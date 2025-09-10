@@ -97,6 +97,8 @@ const toCSV = (rows) => {
 const {
     SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL,
     API_BASE_URL, JWT_SECRET,
+    YOUTUBE_API_KEY,
+    GOOGLE_API_KEY,
 } = process.env;
 
 const mailer = nodemailer.createTransport({
@@ -131,6 +133,274 @@ function bookingEmailHTML({ nome, cognome, eventName, quantity, verifyURL }) {
     </p>
   </div>`;
 }
+
+/* ----------------- Spotify latest playlist (public) ----------------- */
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "";
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || "";
+const SPOTIFY_FALLBACK_PLAYLIST_ID = process.env.SPOTIFY_FALLBACK_PLAYLIST_ID || "1pSy9kzEtp4El0Op5CV8pf"; // fallback sicuro
+const SPOTIFY_CACHE_TTL_MS = Number(process.env.SPOTIFY_CACHE_TTL_MS || 10 * 60 * 1000); // 10m
+let spotifyToken = null; // { access_token, expires_at }
+const latestPlaylistCache = new Map(); // userId -> { data, expiresAt }
+const pinnedPlaylistByUser = new Map(); // userId -> playlistId (pinned)
+
+async function getSpotifyToken() {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (spotifyToken && spotifyToken.expires_at - 30 > nowSec) return spotifyToken.access_token;
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) throw new Error("Spotify credentials missing");
+    const body = new URLSearchParams({ grant_type: "client_credentials" });
+    const res = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: "Basic " + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64"),
+        },
+        body,
+    });
+    if (!res.ok) throw new Error(`Spotify token failed: ${res.status}`);
+    const data = await res.json();
+    spotifyToken = {
+        access_token: data.access_token,
+        expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    };
+    return spotifyToken.access_token;
+}
+
+app.get("/api/spotify/latest-playlist", publicLimiter, async (req, res) => {
+    const userId = (req.query.userId || process.env.SPOTIFY_USER_ID || "").trim();
+    const playlistIdFromQuery = (req.query.playlistId || "").trim();
+    const refresh = String(req.query.refresh || "").toLowerCase() === "true";
+    const pin = String(req.query.pin || "").toLowerCase() === "true";
+
+    // 1) Se viene passato un playlistId diretto, restituisci subito embed (no token richiesto)
+    if (playlistIdFromQuery) {
+        return res.json({
+            id: playlistIdFromQuery,
+            name: "Spotify Playlist",
+            url: `https://open.spotify.com/playlist/${playlistIdFromQuery}`,
+            embedUrl: `https://open.spotify.com/embed/playlist/${playlistIdFromQuery}`,
+            images: [],
+        });
+    }
+
+    // 2) Se mancano le credenziali Spotify, usa fallback e non fallire
+    const credsAvailable = Boolean(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET);
+    if (!credsAvailable) {
+        // Se c'è un pin in memoria per questo utente, usalo anche senza credenziali
+        const pinnedId = userId ? pinnedPlaylistByUser.get(userId) : null;
+        const id = pinnedId || SPOTIFY_FALLBACK_PLAYLIST_ID;
+        return res.json({
+            id,
+            name: "Spotify Playlist",
+            url: `https://open.spotify.com/playlist/${id}`,
+            embedUrl: `https://open.spotify.com/embed/playlist/${id}`,
+            images: [],
+        });
+    }
+
+    // 3) Con credenziali presenti: prova API. Se fallisce, degrada a fallback
+    try {
+        if (!userId) throw new Error("Missing userId");
+        const pinnedId = pinnedPlaylistByUser.get(userId);
+        if (pinnedId && !refresh) {
+            return res.json({
+                id: pinnedId,
+                name: "Spotify Playlist",
+                url: `https://open.spotify.com/playlist/${pinnedId}`,
+                embedUrl: `https://open.spotify.com/embed/playlist/${pinnedId}`,
+                images: [],
+            });
+        }
+
+        const cached = latestPlaylistCache.get(userId);
+        const nowMs = Date.now();
+        if (cached && !refresh && cached.expiresAt > nowMs) {
+            return res.json(cached.data);
+        }
+
+        const token = await getSpotifyToken();
+        // Spotify tende a restituire le playlist ordinate per ultima modifica.
+        const apiRes = await fetch(`https://api.spotify.com/v1/users/${encodeURIComponent(userId)}/playlists?limit=50`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!apiRes.ok) throw new Error(`Spotify API ${apiRes.status}`);
+        const data = await apiRes.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        const top = items[0];
+        if (!top) throw new Error("No playlists found");
+        const url = top.external_urls?.spotify || `https://open.spotify.com/playlist/${top.id}`;
+        const payload = {
+            id: top.id,
+            name: top.name,
+            url,
+            embedUrl: `https://open.spotify.com/embed/playlist/${top.id}`,
+            images: top.images || [],
+        };
+        if (pin) {
+            pinnedPlaylistByUser.set(userId, top.id);
+        }
+        latestPlaylistCache.set(userId, { data: payload, expiresAt: nowMs + SPOTIFY_CACHE_TTL_MS });
+        return res.json(payload);
+    } catch (e) {
+        console.error("/api/spotify/latest-playlist error:", e?.message);
+        return res.json({
+            id: SPOTIFY_FALLBACK_PLAYLIST_ID,
+            name: "Spotify Playlist",
+            url: `https://open.spotify.com/playlist/${SPOTIFY_FALLBACK_PLAYLIST_ID}`,
+            embedUrl: `https://open.spotify.com/embed/playlist/${SPOTIFY_FALLBACK_PLAYLIST_ID}`,
+            images: [],
+        });
+    }
+});
+
+/* ----------------- YouTube latest videos (public) ----------------- */
+app.get("/api/youtube/latest", publicLimiter, async (req, res) => {
+    try {
+        const handle = String(req.query.handle || "").trim();
+        const max = Math.min(10, Math.max(1, Number(req.query.max || 4)));
+        const key = YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
+        if (!key) return res.status(500).json({ error: "missing_api_key" });
+        if (!handle) return res.status(400).json({ error: "missing_handle" });
+
+        // Normalizza: assicurati dell'@ iniziale
+        const h = handle.startsWith("@") ? handle : `@${handle}`;
+
+        // 1) Tentativo con forHandle
+        let channelId = null;
+        try {
+            const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(h)}&key=${encodeURIComponent(key)}`);
+            if (chRes.ok) {
+                const chData = await chRes.json();
+                channelId = chData?.items?.[0]?.id || null;
+            }
+        } catch {}
+
+        // 2) Fallback: cerca il canale per nome/handle
+        if (!channelId) {
+            const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${encodeURIComponent(key)}&part=snippet&type=channel&q=${encodeURIComponent(h)}`);
+            if (searchRes.ok) {
+                const sData = await searchRes.json();
+                channelId = sData?.items?.[0]?.id?.channelId || null;
+            }
+        }
+        if (!channelId) return res.status(404).json({ error: "channel_not_found" });
+
+        const listRes = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${encodeURIComponent(key)}&channelId=${encodeURIComponent(channelId)}&part=snippet,id&order=date&maxResults=${max}`);
+        if (!listRes.ok) return res.status(listRes.status).json({ error: "youtube_search_failed" });
+        const listData = await listRes.json();
+        const ids = (listData.items || []).filter(it => it?.id?.videoId).map(it => it.id.videoId);
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        res.json({ ids });
+    } catch (e) {
+        console.error("❌ /api/youtube/latest:", e?.message);
+        res.status(500).json({ error: "failed" });
+    }
+});
+
+// Fallback senza quota: usa RSS pubblico del canale per ottenere gli ultimi video
+app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
+    try {
+        const channelId = String(req.query.channelId || "").trim();
+        const max = Math.min(10, Math.max(1, Number(req.query.max || 4)));
+        if (!channelId) return res.status(400).json({ error: "missing_channelId" });
+
+        const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
+        const r = await fetch(feedUrl);
+        if (!r.ok) return res.status(r.status).json({ error: "rss_fetch_failed" });
+        const xml = await r.text();
+
+        const ids = [];
+        const re = /<yt:videoId>([^<]+)<\/yt:videoId>/g;
+        let m;
+        while ((m = re.exec(xml)) && ids.length < max) {
+            ids.push(m[1]);
+        }
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        return res.json({ ids });
+    } catch (e) {
+        console.error("❌ /api/youtube/latest-rss:", e?.message);
+        res.status(500).json({ error: "failed" });
+    }
+});
+
+/* ----------------- Google Drive proxy (public read) ----------------- */
+app.get("/api/drive/list", publicLimiter, async (req, res) => {
+    try {
+        const folderId = String(req.query.folderId || "").trim();
+        const key = GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+        if (!key) return res.status(500).json({ error: "missing_api_key" });
+        if (!folderId) return res.status(400).json({ error: "missing_folderId" });
+
+        const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
+        const fetchAll = async (q) => {
+            const acc = [];
+            let pageToken;
+            do {
+                const url = new URL(DRIVE_API);
+                url.searchParams.set("q", q);
+                url.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,modifiedTime,thumbnailLink,shortcutDetails)");
+                url.searchParams.set("pageSize", "100");
+                url.searchParams.set("key", key);
+                url.searchParams.set("supportsAllDrives", "true");
+                url.searchParams.set("includeItemsFromAllDrives", "true");
+                if (pageToken) url.searchParams.set("pageToken", pageToken);
+                const r = await fetch(url.toString());
+                if (!r.ok) return res.status(r.status).json({ error: "drive_list_failed", status: r.status });
+                const j = await r.json();
+                (j.files || []).forEach(f => acc.push(f));
+                pageToken = j.nextPageToken;
+            } while (pageToken);
+            return acc;
+        };
+
+        const qImages = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
+        const qShort  = `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.shortcut'`;
+        const [filesImages, filesShortcuts] = await Promise.all([fetchAll(qImages), fetchAll(qShort)]);
+        const all = [...filesImages, ...filesShortcuts];
+
+        const dedup = new Map();
+        for (const f of all) {
+            const isShortcut = f.mimeType === 'application/vnd.google-apps.shortcut';
+            const id = isShortcut ? (f.shortcutDetails?.targetId) : f.id;
+            const mt = isShortcut ? (f.shortcutDetails?.targetMimeType) : f.mimeType;
+            if (!id || !(mt || '').startsWith('image/')) continue;
+            if (!dedup.has(id)) {
+                dedup.set(id, {
+                    id,
+                    name: f.name,
+                    mimeType: mt,
+                    modifiedTime: f.modifiedTime,
+                    thumbnail: f.thumbnailLink || null,
+                    src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
+                    fallbackSrc: `/api/drive/file/${id}`,
+                });
+            }
+        }
+        res.setHeader('Cache-Control', 'public, max-age=120');
+        res.json(Array.from(dedup.values()));
+    } catch (e) {
+        console.error("❌ /api/drive/list:", e?.message);
+        res.status(500).json({ error: "failed" });
+    }
+});
+
+app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const key = GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+        if (!key) return res.status(500).json({ error: "missing_api_key" });
+        if (!id) return res.status(400).json({ error: "missing_id" });
+        const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&key=${encodeURIComponent(key)}`;
+        const r = await fetch(url);
+        if (!r.ok) return res.status(r.status).end();
+        const ct = r.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', ct);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        r.body.pipe(res);
+    } catch (e) {
+        console.error("❌ /api/drive/file:", e?.message);
+        res.status(500).json({ error: "failed" });
+    }
+});
 
 /* ----------------- Auth & RBAC ----------------- */
 const authenticate = async (req, res, next) => {
