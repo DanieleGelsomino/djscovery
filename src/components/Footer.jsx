@@ -183,6 +183,9 @@ const Social = styled.div`
   gap: 0.6rem;
   flex-wrap: wrap;
   justify-content: flex-start;
+  @media (max-width: 640px) {
+    justify-content: center;
+  }
   a {
     width: 46px;
     height: 46px;
@@ -222,15 +225,21 @@ const Social = styled.div`
 `;
 const Contacts = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
   justify-items: start;
   text-align: left;
+  @media (max-width: 640px) {
+    justify-items: center;
+    text-align: center;
+  }
   a {
     color: var(--white);
     opacity: 0.9;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
     transition: opacity var(--transition-med), color var(--transition-med),
       transform var(--transition-fast);
   }
