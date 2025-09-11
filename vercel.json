@@ -3,7 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "runtime": "nodejs20.x",
     "api/**/*.js": { "runtime": "nodejs20.x" },
     "api/*.js": { "runtime": "nodejs20.x" }
   },
