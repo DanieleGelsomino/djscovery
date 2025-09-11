@@ -7,21 +7,43 @@ const admin = require("firebase-admin");
 
 // Lazy Firestore getter: evita di inizializzare Admin/Firestore per /api/health
 let adminInited = false;
+let cachedDb = null;
 function getDb() {
   if (!adminInited) {
-    try { admin.app(); adminInited = true; } catch {
+    try {
+      admin.app();
+      adminInited = true;
+    } catch {
       const jsonStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
       if (!jsonStr) {
         const err = new Error("missing_service_account");
         err.code = "missing_service_account";
         throw err;
       }
-      const svc = JSON.parse(jsonStr);
+      let svc;
+      try {
+        svc = JSON.parse(jsonStr);
+      } catch (e) {
+        const err = new Error("invalid_service_account_json");
+        err.code = "invalid_service_account_json";
+        throw err;
+      }
       admin.initializeApp({ credential: admin.credential.cert(svc), projectId: svc.project_id });
       adminInited = true;
+      try {
+        const db = admin.firestore();
+        // Prefer REST transport on serverless (faster cold start than gRPC)
+        db.settings({ preferRest: true });
+        cachedDb = db;
+      } catch {}
     }
   }
-  return admin.firestore();
+  if (!cachedDb) {
+    const db = admin.firestore();
+    try { db.settings({ preferRest: true }); } catch {}
+    cachedDb = db;
+  }
+  return cachedDb;
 }
 
 const app = express();
@@ -75,6 +97,15 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/diag", async (_req, res) => {
+  try {
+    const db = getDb();
+    const snap = await db.collection("events").limit(1).get();
+    res.json({ ok: true, projectId: process.env.GOOGLE_CLOUD_PROJECT || null, eventsCountSample: snap.size });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.code || e?.message || String(e) });
+  }
+});
 
 // Events (minimal)
 app.get("/api/events", async (req, res) => {
