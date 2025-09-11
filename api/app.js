@@ -28,9 +28,15 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-// CORS: allow same-origin and preflight
-app.use(cors({ origin: true }));
-app.options("*", cors({ origin: true }));
+// CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
