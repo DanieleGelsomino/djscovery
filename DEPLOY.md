@@ -8,6 +8,7 @@ Di seguito due percorsi:
 
 1) Anteprima veloce (solo frontend, mock) — 5 minuti
 2) Full‑stack (backend su Render, frontend su Netlify/Vercel)
+3) Full‑stack (solo Vercel: frontend + API serverless)
 
 ## 1) Anteprima veloce (mock)
 Perfetto per far vedere UI/UX senza configurare backend.
@@ -49,6 +50,33 @@ Opzione B — rewrite proxy
 - Netlify: modifica `netlify.toml` sostituendo `YOUR-BACKEND-DOMAIN.TLD` con il tuo dominio backend; nessuna `VITE_API_BASE_URL` necessaria.
 - Vercel: modifica `vercel.json` allo stesso modo.
 
+## 3) Full‑stack (solo Vercel: frontend + API serverless)
+
+Questa repo include una cartella `api/` con un'app Express pronta per girare come Funzioni Serverless su Vercel.
+
+1. Collega il repo a Vercel e crea un nuovo progetto.
+2. Build Settings (auto):
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+3. Aggiungi variabili d'ambiente (Project → Settings → Environment Variables):
+   - Obbligatorie per il backend:
+     - `FIREBASE_SERVICE_ACCOUNT_JSON` — incolla il JSON del Service Account Firebase (contenuto, non percorso)
+     - `JWT_SECRET` — stringa segreta per firmare i token delle prenotazioni
+   - Consigliate/Opzionali:
+     - `SMTP_HOST`, `SMTP_PORT` (465 o 587), `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL` — per email di conferma prenotazione
+     - `GOOGLE_API_KEY` (o `YOUTUBE_API_KEY`) — per YouTube/Drive e proxy Drive
+     - `API_BASE_URL` — se vuoi forzare l'URL nelle email; altrimenti viene usato l'host della richiesta
+     - `BREVO_*`, `RECAPTCHA_*` — se abiliti newsletter/recaptcha
+   - Per il frontend (build):
+     - puoi lasciare vuoto `VITE_API_BASE_URL` (il client userà same‑origin), oppure impostarlo per puntare a un altro dominio API
+4. Deploy. Verifica:
+   - `GET /api/health` → `{ ok: true }`
+   - `GET /api/diag` → verifica Firestore (`ok: true`, `projectId` valorizzato)
+
+Note:
+- Il routing SPA è gestito da `vercel.json` che effettua il fallback a `index.html`.
+- Le chiamate client usano `window.location.origin` se `VITE_API_BASE_URL` non è impostata, quindi funzionano sullo stesso dominio Vercel.
+
 ### Firebase client (opzionale)
 Se usi la parte admin autenticata, imposta anche le chiavi `VITE_FIREBASE_*` (vedi `.env.example`).
 
@@ -60,4 +88,3 @@ Se usi la parte admin autenticata, imposta anche le chiavi `VITE_FIREBASE_*` (ve
 - Staging rapido: attiva `VITE_MOCK=true` e deploy solo frontend per feedback immediato.
 - Quando passi a full‑stack, disattiva i mock e verifica CORS + `VITE_API_BASE_URL`/rewrites.
 - Aggiungi il dominio frontend a `CORS_ORIGINS` per sicurezza (se vuoto consente tutti).
-

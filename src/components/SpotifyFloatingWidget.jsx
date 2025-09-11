@@ -156,10 +156,8 @@ const SpotifyFloatingWidget = () => {
   // Prova a recuperare l'ultima playlist pubblica dal backend
   useEffect(() => {
     const API_BASE =
-      import.meta.env.VITE_API_BASE_URL ||
-      (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? 'http://localhost:3000'
-        : 'https://djscovery-two.vercel.app');
+      (import.meta.env.VITE_API_BASE_URL && String(import.meta.env.VITE_API_BASE_URL)) ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
     const SPOTIFY_USER_ID =
       import.meta.env.VITE_SPOTIFY_USER_ID ||
       "31cxctdzgar4zt2trblfp55ebpl4";

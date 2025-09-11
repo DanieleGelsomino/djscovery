@@ -550,10 +550,8 @@ function CheckInBox({ events = [] }) {
                                         startIcon={<LinkIcon />}
                                         onClick={() => {
                                             const base = (
-                                                import.meta.env.VITE_API_BASE_URL ||
-                                                (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-                                                    ? 'http://localhost:3000'
-                                                    : 'https://djscovery-two.vercel.app')
+                                                (import.meta.env.VITE_API_BASE_URL && String(import.meta.env.VITE_API_BASE_URL)) ||
+                                                (typeof window !== 'undefined' ? window.location.origin : '')
                                             ).replace(/\/+$/, "");
                                             window.open(`${base}/api/bookings/verify?token=${encodeURIComponent(result.token)}`,
                                                 "_blank", "noopener,noreferrer");

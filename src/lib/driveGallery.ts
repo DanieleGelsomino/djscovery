@@ -53,10 +53,8 @@ export async function listImagesInFolder(
     // Prefer backend proxy if available (avoids key/referrer issues)
     try {
         const API_BASE =
-            (import.meta as any)?.env?.VITE_API_BASE_URL ||
-            (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-                ? 'http://localhost:3000'
-                : 'https://djscovery-two.vercel.app');
+            ((import.meta as any)?.env?.VITE_API_BASE_URL && String((import.meta as any)?.env?.VITE_API_BASE_URL)) ||
+            (typeof window !== 'undefined' ? window.location.origin : '');
         if (API_BASE && folderId) {
             const url = new URL(`${API_BASE}/api/drive/list`);
             url.searchParams.set('folderId', folderId);
