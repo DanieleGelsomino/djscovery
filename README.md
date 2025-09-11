@@ -30,6 +30,48 @@ npm run server
 
 ---
 
+## Demo veloce (senza credenziali)
+
+Per far provare una demo al cliente senza configurare Firebase/Brevo/Google, è incluso un backend leggero in `server/demo.js` con storage su file JSON.
+
+```bash
+# 1) Avvia API demo (porta 3000)
+npm run demo-server
+
+# 2) In un altro terminale, avvia il frontend (Vite)
+npm run dev
+
+# Frontend: http://localhost:5173
+# API demo:  http://localhost:3000
+```
+
+Note:
+- Gli endpoint esposti coprono le funzionalità pubbliche: eventi, prenotazioni, newsletter, contatti e il fallback della playlist Spotify.
+- I dati sono salvati in `server/demo-data.json` (creato alla prima esecuzione).
+- Non sono richieste variabili d’ambiente: il flusso base funziona out‑of‑the‑box.
+
+---
+
+## Demo con Docker
+
+Esecuzione “1‑click” con Docker Compose (frontend statico su Nginx con proxy `/api` e backend demo persistente):
+
+```bash
+docker compose -f docker-compose.demo.yml up --build
+```
+
+- Frontend: http://localhost:5173  
+- Backend:  http://localhost:3000  
+- Dati persistenti in volume `demo-data` (file `demo-data.json` dentro il container).
+
+Per fermare:
+
+```bash
+docker compose -f docker-compose.demo.yml down
+```
+
+---
+
 ## Testing
 
 ```bash

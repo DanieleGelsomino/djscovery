@@ -1,0 +1,27 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend-demo
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DEMO_DATA_PATH=/data/demo-data.json
+      - SPOTIFY_FALLBACK_PLAYLIST_ID=1pSy9kzEtp4El0Op5CV8pf
+    volumes:
+      - demo-data:/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  demo-data:
+

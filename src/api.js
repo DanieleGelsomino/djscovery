@@ -17,10 +17,12 @@ import { withLoading } from "./loading";
 // ⬇️ Usa mock SOLO se esplicitamente "true"
 const useMock = (import.meta.env.VITE_MOCK || "").toString().toLowerCase() === "true";
 
-// ⬇️ Base URL backend; default a same-origin ('' => /api/*) e solo in SSR usa localhost
+// ⬇️ Base URL backend; in dev (localhost) punta a 3000, altrimenti same-origin (richiede rewrite/proxy)
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
-  (typeof window !== "undefined" ? "" : "http://localhost:3000");
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "");
 
 // Token bearer (Firebase ID token)
 let authToken = null;

@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function validPlace(p) {
+      return (p == null) ||
+             (p.keys().hasAll(['lat','lon']) &&
+              p.lat is number && p.lon is number);
+    }
+
+    function validEvent(e) {
+      return e.name is string
+        && e.status in ['draft','published','archived']
+        && e.startAt is timestamp
+        && (e.price == null || e.price is number && e.price >= 0)
+        && (e.capacity == null || e.capacity is int && e.capacity >= 0)
+        && validPlace(e.placeCoords)
+        && (e.placeId == null || e.placeId is string);
+    }
+
+    // Eventi: lettura pubblica solo se published
+    match /events/{id} {
+      allow read: if resource.data.status == 'published';
+      allow write: if isAdmin() && validEvent(request.resource.data);
+    }
+
+    // Prenotazioni: create aperto (passa dal backend), resto solo admin
+    match /bookings/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

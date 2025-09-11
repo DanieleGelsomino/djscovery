@@ -1,0 +1,22 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy only package files to leverage Docker cache
+COPY package*.json ./
+
+# Install only production deps (express, cors, etc.)
+RUN npm ci --omit=dev
+
+# Copy server code
+COPY server ./server
+
+ENV PORT=3000
+
+# Allow overriding data path via env
+ENV DEMO_DATA_PATH=/data/demo-data.json
+
+EXPOSE 3000
+
+CMD ["node", "server/demo.js"]
+
