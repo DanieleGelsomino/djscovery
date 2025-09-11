@@ -159,7 +159,7 @@ const SpotifyFloatingWidget = () => {
       import.meta.env.VITE_API_BASE_URL ||
       (typeof window !== 'undefined' && window.location.hostname === 'localhost'
         ? 'http://localhost:3000'
-        : '');
+        : 'https://djscovery-two.vercel.app');
     const SPOTIFY_USER_ID =
       import.meta.env.VITE_SPOTIFY_USER_ID ||
       "31cxctdzgar4zt2trblfp55ebpl4";

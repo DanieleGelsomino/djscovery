@@ -22,7 +22,7 @@ const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   (typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:3000"
-    : "");
+    : "https://djscovery-two.vercel.app");
 
 // Token bearer (Firebase ID token)
 let authToken = null;

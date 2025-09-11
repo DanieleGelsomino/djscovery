@@ -9,7 +9,11 @@ function DriveImagePickerDialog({ open, onClose, onPick }) {
     const folderId =
         (import.meta?.env && import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID) ||
         (window.APP_CONFIG && window.APP_CONFIG.GOOGLE_DRIVE_FOLDER_ID);
-    const API_BASE = (import.meta?.env && import.meta.env.VITE_API_BASE_URL) || "http://localhost:3000";
+    const API_BASE =
+        (import.meta?.env && import.meta.env.VITE_API_BASE_URL) ||
+        (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+            ? 'http://localhost:3000'
+            : 'https://djscovery-two.vercel.app');
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
