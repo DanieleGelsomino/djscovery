@@ -10,6 +10,7 @@ import {
   FaEnvelope,
   FaWhatsapp,
   FaSpotify,
+  FaChevronDown,
 } from "react-icons/fa";
 import logoImg from "../assets/img/logo-dj.png";
 import { subscribeNewsletter } from "../api";
@@ -140,12 +141,19 @@ const Col = styled.div`
   align-content: start;
   gap: 0.8rem;
 `;
-const ColTitle = styled.h4`
-  font-size: 1rem;
-  color: var(--yellow);
-  margin: 0;
-  position: relative;
+const ColHeaderBtn = styled.button`
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  user-select: none;
   padding-top: 0.8rem;
+  margin: 0;
+  color: var(--yellow);
+  font-size: 1rem;
+  position: relative;
   &:before {
     content: "";
     position: absolute;
@@ -160,6 +168,23 @@ const ColTitle = styled.h4`
       left: 50%;
       transform: translateX(-50%);
     }
+  }
+`;
+const Chevron = styled(FaChevronDown)`
+  flex: 0 0 auto;
+  transition: transform var(--transition-fast);
+  opacity: 0.9;
+`;
+const Collapsible = styled.div`
+  overflow: hidden;
+  transition: max-height var(--transition-med), opacity var(--transition-med);
+  &.closed {
+    max-height: 0;
+    opacity: 0.0;
+  }
+  &.open {
+    max-height: 400px;
+    opacity: 1;
   }
 `;
 const LinksList = styled.nav`
@@ -370,6 +395,10 @@ const Footer = () => {
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState("idle"); // 'idle' | 'loading' | 'ok' | 'err'
 
+  // Mobile accordion state
+  const [isMobile, setIsMobile] = useState(false);
+  const [openSections, setOpenSections] = useState({ explore: true, contacts: true });
+
   const onSubscribe = async (e) => {
     e.preventDefault();
     if (!nlEmail) return;
@@ -391,6 +420,21 @@ const Footer = () => {
       return () => clearTimeout(id);
     }
   }, [nlStatus]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 640);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    // Default closed on mobile, open on desktop, but allow toggling everywhere
+    setOpenSections({
+      explore: isMobile ? false : true,
+      contacts: isMobile ? false : true,
+    });
+  }, [isMobile]);
 
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -453,30 +497,66 @@ const Footer = () => {
             </Brand>
 
             <Col>
-              <ColTitle>{t("nav.home") || "Esplora"}</ColTitle>
-              <LinksList aria-label="Navigazione footer">
-                <Link to="/eventi">{t("nav.events") || "Eventi"}</Link>
-                <Link to="/gallery">{t("nav.gallery") || "Gallery"}</Link>
-                <Link to="/chi-siamo">{t("nav.about") || "Chi siamo"}</Link>
-                <Link to="/contatti">{t("nav.contacts") || "Contatti"}</Link>
-              </LinksList>
+              <ColHeaderBtn
+                type="button"
+                aria-expanded={openSections.explore}
+                aria-controls="footer-explore"
+                onClick={() =>
+                  setOpenSections((s) => ({ ...s, explore: !s.explore }))
+                }
+              >
+                <span>{t("nav.home") || "Esplora"}</span>
+                <Chevron
+                  style={{ transform: openSections.explore ? "rotate(180deg)" : "rotate(0deg)" }}
+                  aria-hidden
+                />
+              </ColHeaderBtn>
+              <Collapsible
+                id="footer-explore"
+                className={openSections.explore ? "open" : "closed"}
+              >
+                <LinksList aria-label="Navigazione footer">
+                  <Link to="/eventi">{t("nav.events") || "Eventi"}</Link>
+                  <Link to="/gallery">{t("nav.gallery") || "Gallery"}</Link>
+                  <Link to="/chi-siamo">{t("nav.about") || "Chi siamo"}</Link>
+                  <Link to="/contatti">{t("nav.contacts") || "Contatti"}</Link>
+                </LinksList>
+              </Collapsible>
             </Col>
 
             <Col>
-              <ColTitle>{"Contatti"}</ColTitle>
-              <Contacts>
-                <a href={`mailto:${email}`} aria-label="Email">
-                  <FaEnvelope /> {email}
-                </a>
-                <a
-                  href={wa}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="WhatsApp community"
-                >
-                  <FaWhatsapp /> WhatsApp
-                </a>
-              </Contacts>
+              <ColHeaderBtn
+                type="button"
+                aria-expanded={openSections.contacts}
+                aria-controls="footer-contacts"
+                onClick={() =>
+                  setOpenSections((s) => ({ ...s, contacts: !s.contacts }))
+                }
+              >
+                <span>{t("nav.contacts") || "Contatti"}</span>
+                <Chevron
+                  style={{ transform: openSections.contacts ? "rotate(180deg)" : "rotate(0deg)" }}
+                  aria-hidden
+                />
+              </ColHeaderBtn>
+              <Collapsible
+                id="footer-contacts"
+                className={openSections.contacts ? "open" : "closed"}
+              >
+                <Contacts>
+                  <a href={`mailto:${email}`} aria-label="Email">
+                    <FaEnvelope /> {email}
+                  </a>
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp community"
+                  >
+                    <FaWhatsapp /> WhatsApp
+                  </a>
+                </Contacts>
+              </Collapsible>
             </Col>
           </Grid>
         </Container>

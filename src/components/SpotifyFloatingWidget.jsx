@@ -156,7 +156,10 @@ const SpotifyFloatingWidget = () => {
   // Prova a recuperare l'ultima playlist pubblica dal backend
   useEffect(() => {
     const API_BASE =
-      import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' ? '' : 'http://localhost:3000');
+      import.meta.env.VITE_API_BASE_URL ||
+      (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:3000'
+        : '');
     const SPOTIFY_USER_ID =
       import.meta.env.VITE_SPOTIFY_USER_ID ||
       "31cxctdzgar4zt2trblfp55ebpl4";
