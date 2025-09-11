@@ -4,6 +4,9 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const admin = require("firebase-admin");
+const jwt = require("jsonwebtoken");
+const QRCode = require("qrcode");
+const nodemailer = require("nodemailer");
 
 // Lazy Firestore getter: evita di inizializzare Admin/Firestore per /api/health
 let adminInited = false;
@@ -333,3 +336,217 @@ app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
 });
 
 module.exports = app;
+
+/* ===================== EMAIL / QR / VERIFY / CHECK-IN ===================== */
+
+// Mail transporter (configure via Vercel env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL)
+function buildTransport() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || "465", 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+  const secure = port === 465; // TLS on 465
+  return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+}
+
+function apiBaseUrl(req) {
+  return (
+    (process.env.API_BASE_URL && process.env.API_BASE_URL.replace(/\/+$/, "")) ||
+    `https://${req.headers["x-forwarded-host"] || req.headers.host}`
+  );
+}
+
+function signBookingToken(payload) {
+  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
+  return jwt.sign(payload, secret, { expiresIn: "180d" });
+}
+
+function verifyBookingToken(token) {
+  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
+  return jwt.verify(token, secret);
+}
+
+// Enhance existing booking endpoint: send confirmation mail with QR
+// We redefine handler to keep previous logic and append email+token
+app.post("/api/bookings", publicLimiter, async (req, res) => {
+  try {
+    const { eventId, quantity = 1, nome, cognome, email, telefono } = req.body || {};
+    if (!eventId || !email) return res.status(400).json({ error: "missing_fields" });
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+
+    const result = await db.runTransaction(async (t) => {
+      const evRef = db.collection("events").doc(String(eventId));
+      const evSnap = await t.get(evRef);
+      if (!evSnap.exists) throw new Error("event_not_found");
+      const ev = evSnap.data();
+      if (ev.status !== "published") throw new Error("event_not_published");
+      const cap = Number(ev.capacity || 0) || 0;
+      const current = Number(ev.bookingsCount || 0) || 0;
+      if (ev.soldOut) throw new Error("sold_out");
+      if (cap > 0 && current + qty > cap) throw new Error("capacity_exceeded");
+
+      const bkRef = db.collection("bookings").doc();
+      const payload = {
+        eventId: String(eventId),
+        quantity: qty,
+        nome,
+        cognome,
+        email,
+        telefono,
+        createdAt: now(),
+        status: "pending",
+      };
+      t.set(bkRef, payload);
+
+      const newCount = current + qty;
+      const newSoldOut = cap > 0 && newCount >= cap;
+      t.update(evRef, { bookingsCount: newCount, soldOut: newSoldOut ? true : !!ev.soldOut, updatedAt: now() });
+      return { id: bkRef.id, event: { id: evRef.id, ...ev }, newCount, newSoldOut };
+    });
+
+    // create token and send mail
+    const token = signBookingToken({ bid: result.id, eid: eventId, qty });
+    const verifyURL = `${apiBaseUrl(req)}/api/bookings/verify?token=${encodeURIComponent(token)}`;
+    let sent = false;
+    try {
+      const mailer = buildTransport();
+      if (mailer) {
+        const qrDataURL = await QRCode.toDataURL(verifyURL, { errorCorrectionLevel: "M" });
+        const qrBase64 = qrDataURL.split(",")[1];
+        await mailer.sendMail({
+          from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+          to: email,
+          subject: `Conferma Prenotazione — ${result.event?.name || "Evento"}`,
+          html: `<div style="font-family:sans-serif">Ciao ${nome || ""} ${cognome || ""},<br/>prenotazione registrata per <b>${result.event?.name || "Evento"}</b>.<br/>Biglietti: <b>${qty}</b><br/><a href="${verifyURL}">Apri verifica</a><br/><br/><img src="cid:qrimage" width="180" height="180"/></div>`,
+          attachments: [
+            {
+              filename: "qrcode.png",
+              content: Buffer.from(qrBase64, "base64"),
+              cid: "qrimage",
+              contentType: "image/png",
+            },
+          ],
+        });
+        sent = true;
+      }
+    } catch (e) {
+      // do not fail booking if email fails
+    }
+
+    await db.collection("bookings").doc(result.id).set(
+      {
+        token,
+        status: sent ? "sent" : "pending_email",
+        emailSentAt: sent ? now() : null,
+        lastUpdateAt: now(),
+      },
+      { merge: true }
+    );
+
+    res.json({ id: result.id, bookingsCount: result.newCount, soldOut: result.newSoldOut });
+  } catch (e) {
+    const code = e?.message;
+    if (code === "event_not_found") return res.status(404).json({ error: code });
+    if (code === "event_not_published") return res.status(409).json({ error: code });
+    if (code === "capacity_exceeded" || code === "sold_out") return res.status(409).json({ error: code });
+    res.status(500).json({ error: "Failed to save booking" });
+  }
+});
+
+// Verify booking by token
+app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
+  try {
+    const token = String(req.query.token || "");
+    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    const decoded = verifyBookingToken(token);
+    const { bid, eid } = decoded || {};
+    const ref = db.collection("bookings").doc(String(bid));
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ ok: false, error: "not_found" });
+    const b = snap.data() || {};
+    // token mismatch protection if stored
+    if (b.token && b.token !== token) return res.status(400).json({ ok: false, error: "token_mismatch" });
+    const quantity = Number(b.quantity || 1);
+    const checkedInCount = Number(b.checkedInCount || 0);
+    const remaining = Math.max(quantity - checkedInCount, 0);
+    return res.json({ ok: true, bookingId: bid, eventId: eid, quantity, checkedInCount, remaining, nome: b.nome, cognome: b.cognome, email: b.email, telefono: b.telefono, status: b.status });
+  } catch (e) {
+    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    return res.status(400).json({ ok: false, error: "invalid" });
+  }
+});
+
+// Check-in by token (increment)
+app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
+  try {
+    const { token, count = 1 } = req.body || {};
+    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    const n = Math.max(1, parseInt(count, 10) || 1);
+    const decoded = verifyBookingToken(String(token));
+    const { bid } = decoded || {};
+    const result = await db.runTransaction(async (t) => {
+      const ref = db.collection("bookings").doc(String(bid));
+      const snap = await t.get(ref);
+      if (!snap.exists) throw new Error("not_found");
+      const b = snap.data();
+      if (b.token && b.token !== token) throw new Error("token_mismatch");
+      const quantity = Number(b.quantity || 1);
+      const checkedInCount = Number(b.checkedInCount || 0);
+      const remaining = Math.max(quantity - checkedInCount, 0);
+      if (remaining <= 0) throw new Error("already_fully_checked_in");
+      if (n > remaining) {
+        const err = new Error("exceeds_quantity");
+        err.remaining = remaining;
+        throw err;
+      }
+      const newCount = checkedInCount + n;
+      t.update(ref, { checkedInCount: newCount, lastCheckInAt: now() });
+      return { quantity, newCount };
+    });
+    const remaining = Math.max(result.quantity - result.newCount, 0);
+    res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+  } catch (e) {
+    const code = e?.message;
+    if (code === "not_found") return res.status(404).json({ ok: false, error: code });
+    if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
+    if (code === "already_fully_checked_in") return res.status(409).json({ ok: false, error: code });
+    if (code === "exceeds_quantity") return res.status(409).json({ ok: false, error: code, remaining: e?.remaining ?? 0 });
+    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    return res.status(400).json({ ok: false, error: "invalid" });
+  }
+});
+
+// Undo last check-in (decrement)
+app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
+  try {
+    const { token, count = 1 } = req.body || {};
+    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    const n = Math.max(1, parseInt(count, 10) || 1);
+    const decoded = verifyBookingToken(String(token));
+    const { bid } = decoded || {};
+    const result = await db.runTransaction(async (t) => {
+      const ref = db.collection("bookings").doc(String(bid));
+      const snap = await t.get(ref);
+      if (!snap.exists) throw new Error("not_found");
+      const b = snap.data();
+      if (b.token && b.token !== token) throw new Error("token_mismatch");
+      const checkedInCount = Number(b.checkedInCount || 0);
+      if (checkedInCount <= 0) throw new Error("nothing_to_undo");
+      const dec = Math.min(n, checkedInCount);
+      const newCount = checkedInCount - dec;
+      t.update(ref, { checkedInCount: newCount, lastUndoAt: now() });
+      const quantity = Number(b.quantity || 1);
+      return { quantity, newCount };
+    });
+    const remaining = Math.max(result.quantity - result.newCount, 0);
+    res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+  } catch (e) {
+    const code = e?.message;
+    if (code === "not_found") return res.status(404).json({ ok: false, error: code });
+    if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
+    if (code === "nothing_to_undo") return res.status(409).json({ ok: false, error: code });
+    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    return res.status(400).json({ ok: false, error: "invalid" });
+  }
+});
