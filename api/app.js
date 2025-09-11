@@ -42,8 +42,27 @@ app.use(
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
 // Rate limit
-const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 400 });
-const publicLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
+const clientIp = (req) =>
+  (req.headers["x-forwarded-for"]?.split(",")[0].trim()) ||
+  req.headers["x-real-ip"] ||
+  req.socket?.remoteAddress ||
+  req.ip ||
+  "unknown";
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 400,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: clientIp,
+});
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: clientIp,
+});
 app.use(globalLimiter);
 
 app.use(express.json({ limit: "1mb" }));
