@@ -48,10 +48,9 @@ const HomeGallerySlider = ({
         let alive = true;
         (async () => {
             try {
-                if (!FOLDER_ID || !API_KEY)
-                    throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID o VITE_GOOGLE_API_KEY");
+                if (!FOLDER_ID) throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID");
                 const items = await listImagesInFolder(FOLDER_ID, {
-                    apiKey: API_KEY,
+                    apiKey: API_KEY || "",
                     includeSharedDrives,
                     pageSize: 120,
                 });

@@ -371,6 +371,7 @@ function verifyBookingToken(token) {
 // We redefine handler to keep previous logic and append email+token
 app.post("/api/bookings", publicLimiter, async (req, res) => {
   try {
+    const db = getDb();
     const { eventId, quantity = 1, nome, cognome, email, telefono } = req.body || {};
     if (!eventId || !email) return res.status(400).json({ error: "missing_fields" });
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
@@ -457,6 +458,7 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
 // Verify booking by token
 app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
   try {
+    const db = getDb();
     const token = String(req.query.token || "");
     if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
     const decoded = verifyBookingToken(token);
@@ -480,6 +482,7 @@ app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
 // Check-in by token (increment)
 app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
   try {
+    const db = getDb();
     const { token, count = 1 } = req.body || {};
     if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
     const n = Math.max(1, parseInt(count, 10) || 1);
@@ -520,6 +523,7 @@ app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
 // Undo last check-in (decrement)
 app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
   try {
+    const db = getDb();
     const { token, count = 1 } = req.body || {};
     if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
     const n = Math.max(1, parseInt(count, 10) || 1);
