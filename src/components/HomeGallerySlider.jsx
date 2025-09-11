@@ -48,7 +48,13 @@ const HomeGallerySlider = ({
         let alive = true;
         (async () => {
             try {
-                if (!FOLDER_ID) throw new Error("Manca VITE_GOOGLE_DRIVE_FOLDER_ID");
+                if (!FOLDER_ID) {
+                    if (alive) {
+                        setErr("Configurazione mancante: VITE_GOOGLE_DRIVE_FOLDER_ID");
+                        setLoading(false);
+                    }
+                    return;
+                }
                 const items = await listImagesInFolder(FOLDER_ID, {
                     apiKey: API_KEY || "",
                     includeSharedDrives,
