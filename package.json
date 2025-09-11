@@ -8,9 +8,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "demo-server": "node server/demo.js",
-    "demo:docker": "docker compose -f docker-compose.demo.yml up --build",
-    "demo:docker:down": "docker compose -f docker-compose.demo.yml down",
     "grant:admin": "node tools/set-admin-claim.js",
     "revoke:admin": "node tools/unset-admin-claim.js",
     "test": "vitest"
