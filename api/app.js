@@ -97,6 +97,7 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// Minimal diagnostics for Firestore connectivity
 app.get("/api/diag", async (_req, res) => {
   try {
     const db = getDb();
@@ -212,5 +213,130 @@ app.post("/api/contact", publicLimiter, async (_req, res) => res.json({ ok: true
 app.get("/api/youtube/latest", publicLimiter, async (_req, res) => res.json({ items: [] }));
 app.get("/api/youtube/latest-rss", publicLimiter, async (_req, res) => res.json({ items: [] }));
 app.get("/api/spotify/latest-playlist", publicLimiter, async (_req, res) => res.json({ tracks: [] }));
+
+/* ===== YouTube helpers ===== */
+const fetchWithTimeout = async (url, opts = {}, ms = 8000) => {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { ...opts, signal: ctrl.signal });
+    return r;
+  } finally {
+    clearTimeout(id);
+  }
+};
+
+// GET /api/youtube/latest?handle=@name&max=4
+app.get("/api/youtube/latest", publicLimiter, async (req, res) => {
+  try {
+    const handle = String(req.query.handle || "");
+    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
+    const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
+    if (!apiKey || !handle) return res.json({ ids: [] });
+
+    // Resolve channelId by handle
+    const chRes = await fetchWithTimeout(
+      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`
+    );
+    if (!chRes.ok) return res.json({ ids: [] });
+    const chJson = await chRes.json();
+    const channelId = chJson?.items?.[0]?.id;
+    if (!channelId) return res.json({ ids: [] });
+
+    const listRes = await fetchWithTimeout(
+      `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${max}`
+    );
+    if (!listRes.ok) return res.json({ ids: [] });
+    const listJson = await listRes.json();
+    const ids = (listJson?.items || [])
+      .filter((it) => it?.id?.videoId)
+      .map((it) => it.id.videoId);
+    res.json({ ids });
+  } catch (e) {
+    res.json({ ids: [] });
+  }
+});
+
+// GET /api/youtube/latest-rss?channelId=UC...&max=4
+app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
+  try {
+    const channelId = String(req.query.channelId || "");
+    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
+    if (!channelId) return res.json({ ids: [] });
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
+    const r = await fetchWithTimeout(rssUrl, {}, 8000);
+    if (!r.ok) return res.json({ ids: [] });
+    const text = await r.text();
+    // Extract <yt:videoId>VIDEO</yt:videoId>
+    const ids = Array.from(text.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g))
+      .map((m) => m[1])
+      .slice(0, max);
+    res.json({ ids });
+  } catch (e) {
+    res.json({ ids: [] });
+  }
+});
+
+/* ===== Google Drive endpoints (for Admin picker) ===== */
+const getGoogleApiKey = () => process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+
+// List images in a Drive folder (supports shared drives)
+app.get("/api/drive/list", publicLimiter, async (req, res) => {
+  try {
+    const folderId = String(req.query.folderId || "");
+    const apiKey = getGoogleApiKey();
+    if (!folderId || !apiKey) return res.json([]);
+    const base = "https://www.googleapis.com/drive/v3/files";
+    const params = new URLSearchParams({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: "files(id,name,mimeType,modifiedTime,thumbnailLink)",
+      includeItemsFromAllDrives: "true",
+      supportsAllDrives: "true",
+      pageSize: "200",
+      key: apiKey,
+    });
+    const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 10000);
+    if (!r.ok) return res.json([]);
+    const j = await r.json();
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const images = files
+      .filter((f) => String(f?.mimeType || "").startsWith("image/") || f?.mimeType === "application/vnd.google-apps.shortcut")
+      .map((f) => {
+        const id = f.id;
+        return {
+          id,
+          name: f.name,
+          mimeType: f.mimeType,
+          modifiedTime: f.modifiedTime,
+          thumbnail: f.thumbnailLink || null,
+          src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
+          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(apiKey)}`,
+        };
+      });
+    res.json(images);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// Proxy a Drive file (useful for HEIC fallback)
+app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
+  try {
+    const id = String(req.params.id || "");
+    const apiKey = getGoogleApiKey();
+    if (!id || !apiKey) return res.status(400).send("missing");
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&key=${encodeURIComponent(apiKey)}`;
+    const r = await fetchWithTimeout(url, {}, 15000);
+    if (!r.ok) return res.status(r.status).send("error");
+    // Pipe headers and body
+    for (const [k, v] of r.headers) {
+      if (k.toLowerCase().startsWith("content-")) res.setHeader(k, v);
+    }
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+  } catch (e) {
+    res.status(500).send("error");
+  }
+});
 
 module.exports = app;

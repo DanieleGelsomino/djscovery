@@ -70,7 +70,11 @@ const YouTubeSection = () => {
   useEffect(() => {
     const apiKey = "AIzaSyAyG0exdTU2vkRqDLdwRiu0PEKznNkfOTo"; // fallback client
     const handle = "@djscoverytv";
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+    const API_BASE =
+      import.meta.env.VITE_API_BASE_URL ||
+      (typeof window !== "undefined" && window.location.hostname === "localhost"
+        ? "http://localhost:3000"
+        : "");
 
     const load = async () => {
       try {
