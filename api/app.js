@@ -5,24 +5,24 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const admin = require("firebase-admin");
 
-// Initialize Firebase Admin using JSON provided via env
-function initAdmin() {
-  try {
-    admin.app();
-  } catch {
-    const jsonStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    if (jsonStr) {
+// Lazy Firestore getter: evita di inizializzare Admin/Firestore per /api/health
+let adminInited = false;
+function getDb() {
+  if (!adminInited) {
+    try { admin.app(); adminInited = true; } catch {
+      const jsonStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+      if (!jsonStr) {
+        const err = new Error("missing_service_account");
+        err.code = "missing_service_account";
+        throw err;
+      }
       const svc = JSON.parse(jsonStr);
       admin.initializeApp({ credential: admin.credential.cert(svc), projectId: svc.project_id });
-    } else {
-      // As a fallback try default credentials (won't usually exist on Vercel)
-      admin.initializeApp();
+      adminInited = true;
     }
   }
+  return admin.firestore();
 }
-initAdmin();
-
-const db = admin.firestore();
 
 const app = express();
 app.disable("x-powered-by");
@@ -55,6 +55,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/events", async (req, res) => {
   const { status } = req.query || {};
   try {
+    const db = getDb();
     let ref = db.collection("events");
     if (status && ["draft", "published", "archived"].includes(String(status))) {
       ref = ref.where("status", "==", String(status));
@@ -72,7 +73,10 @@ app.get("/api/events", async (req, res) => {
       throw e;
     }
   } catch (err) {
-    console.error("/api/events error:", err?.message || err);
+    const msg = err?.message || err;
+    const code = err?.code || "internal";
+    if (code === "missing_service_account") return res.status(500).json({ error: code });
+    console.error("/api/events error:", msg);
     res.status(500).json({ error: "Failed to load events" });
   }
 });
@@ -80,12 +84,14 @@ app.get("/api/events", async (req, res) => {
 // Bookings (minimal)
 app.get("/api/bookings", async (req, res) => {
   try {
+    const db = getDb();
     const { eventId } = req.query || {};
     let ref = db.collection("bookings").orderBy("createdAt", "desc");
     if (eventId) ref = ref.where("eventId", "==", String(eventId));
     const snap = await ref.get();
     res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   } catch (e) {
+    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
     console.error("/api/bookings error:", e?.message || e);
     res.status(500).json({ error: "Failed to load bookings" });
   }
@@ -93,6 +99,7 @@ app.get("/api/bookings", async (req, res) => {
 
 app.post("/api/bookings", publicLimiter, async (req, res) => {
   try {
+    const db = getDb();
     const { eventId, quantity = 1, nome, cognome, email, telefono } = req.body || {};
     if (!eventId) return res.status(400).json({ error: "missing_eventId" });
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
@@ -119,6 +126,7 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
     res.json({ id: result.id, bookingsCount: result.newCount, soldOut: result.newSoldOut });
   } catch (e) {
     const code = e?.message;
+    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
     if (code === "event_not_found") return res.status(404).json({ error: code });
     if (code === "event_not_published") return res.status(409).json({ error: code });
     if (code === "capacity_exceeded" || code === "sold_out") return res.status(409).json({ error: code });
@@ -130,9 +138,11 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
 // Gallery (Firestore-backed)
 app.get("/api/gallery", async (_req, res) => {
   try {
+    const db = getDb();
     const snap = await db.collection("gallery").orderBy("createdAt", "desc").get();
     res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   } catch (e) {
+    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
     console.error("/api/gallery error:", e?.message || e);
     res.status(500).json({ error: "Failed to load gallery" });
   }
@@ -148,4 +158,3 @@ app.get("/api/youtube/latest-rss", publicLimiter, async (_req, res) => res.json(
 app.get("/api/spotify/latest-playlist", publicLimiter, async (_req, res) => res.json({ tracks: [] }));
 
 module.exports = app;
-
