@@ -329,7 +329,7 @@ app.get("/api/events", async (req, res) => {
       return res.status(500).json({ error: code });
     console.error("/api/events error:", msg);
     // fallback empty list to avoid client hangs
-    res.json([]);
+    return res.json([]);
   }
 });
 
@@ -440,10 +440,24 @@ app.get("/api/bookings", async (req, res) => {
   try {
     const db = getDb();
     const { eventId } = req.query || {};
-    let ref = db.collection("bookings").orderBy("createdAt", "desc");
+    let ref = db.collection("bookings");
     if (eventId) ref = ref.where("eventId", "==", String(eventId));
-    const snap = await ref.get();
-    res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    try {
+      const snap = await ref.orderBy("createdAt", "desc").get();
+      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      if (String(e?.message || "").toLowerCase().includes("index")) {
+        const snap = await ref.get();
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => {
+          const ca = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const cb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return cb - ca;
+        });
+        return res.json(data);
+      }
+      throw e;
+    }
   } catch (e) {
     if (e?.code === "missing_service_account")
       return res.status(500).json({ error: e.code });

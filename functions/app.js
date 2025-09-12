@@ -48,12 +48,12 @@ app.get("/api/events", async (req, res) => {
   try {
     let ref = db.collection("events");
     if (status && ["draft","published","archived"].includes(String(status))) {
-      ref = ref.where("status","==", status);
+      ref = ref.where("status", "==", String(status));
     }
     // Try with composite, fallback to single order
     try {
       const snap = await ref.orderBy("date").orderBy("time").get();
-      return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
     } catch (e) {
       const msg = String(e?.message || "").toLowerCase();
       if (msg.includes("index")) {
@@ -62,11 +62,13 @@ app.get("/api/events", async (req, res) => {
         data.sort((a,b) => `${a.date||""}T${a.time||"00:00"}`.localeCompare(`${b.date||""}T${b.time||"00:00"}`));
         return res.json(data);
       }
-      throw e;
+      // be resilient: return empty list instead of 500
+      return res.json([]);
     }
   } catch (err) {
     console.error("/api/events error:", err?.message || err);
-    res.status(500).json({ error: "Failed to load events" });
+    // fallback empty list to avoid client hangs
+    return res.json([]);
   }
 });
 
@@ -74,10 +76,24 @@ app.get("/api/events", async (req, res) => {
 app.get("/api/bookings", async (req, res) => {
   try {
     const { eventId } = req.query || {};
-    let ref = db.collection("bookings").orderBy("createdAt", "desc");
-    if (eventId) ref = ref.where("eventId","==", String(eventId));
-    const snap = await ref.get();
-    res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    let ref = db.collection("bookings");
+    if (eventId) ref = ref.where("eventId", "==", String(eventId));
+    try {
+      const snap = await ref.orderBy("createdAt", "desc").get();
+      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      if (String(e?.message || "").toLowerCase().includes("index")) {
+        const snap = await ref.get();
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => {
+          const ca = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const cb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return cb - ca;
+        });
+        return res.json(data);
+      }
+      throw e;
+    }
   } catch (e) {
     console.error("/api/bookings error:", e?.message || e);
     res.status(500).json({ error: "Failed to load bookings" });
