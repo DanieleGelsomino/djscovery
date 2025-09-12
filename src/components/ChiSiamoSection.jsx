@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
+import heroImg from "../assets/img/hero.png";
 
 const Section = styled(motion.section)`
   padding: 2rem 0;
@@ -51,7 +52,7 @@ const ChiSiamoSection = () => {
             whileInView={{ x: 0, opacity: 1 }}
             viewport={{ once: true }}
           >
-            <img src="/src/assets/img/gallery-1.png" alt="Chi siamo" />
+            <img src={heroImg} alt="Chi siamo" />
           </ImageWrapper>
         </Content>
       </div>
