@@ -76,9 +76,15 @@ function getDb() {
         const projectId = process.env.FIREBASE_PROJECT_ID || (svc && svc.project_id) || undefined;
         if (svc) {
           admin.initializeApp({ credential: admin.credential.cert(svc), ...(projectId ? { projectId } : {}) });
+        } else if (pathEnv) {
+          // If a path env was provided (FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS)
+          // but we couldn't parse it earlier, throw explicit error.
+          throw new Error("invalid_service_account_file");
         } else {
-          // Fallback to application default credentials (if available in env)
-          admin.initializeApp();
+          // No service account provided: fail fast with clear error to avoid long timeouts in serverless
+          const err = new Error("missing_service_account");
+          err.code = "missing_service_account";
+          throw err;
         }
         adminInited = true;
         try {
@@ -88,8 +94,8 @@ function getDb() {
           cachedDb = db;
         } catch {}
       } catch (e) {
-        // If initialization failed because no credentials, surface a helpful error
-        if (e?.code === "invalid_service_account_json" || e?.code === "invalid_service_account_file" || e?.code === "invalid_service_account_base64") {
+        // Bubble up known errors
+        if (e?.code === "invalid_service_account_json" || e?.code === "invalid_service_account_file" || e?.code === "invalid_service_account_base64" || e?.code === "missing_service_account") {
           throw e;
         }
         const err = new Error("missing_service_account");
@@ -397,43 +403,7 @@ app.get("/api/bookings", async (req, res) => {
   }
 });
 
-app.post("/api/bookings", publicLimiter, async (req, res) => {
-  try {
-    const db = getDb();
-    const { eventId, quantity = 1, nome, cognome, email, telefono } = req.body || {};
-    if (!eventId) return res.status(400).json({ error: "missing_eventId" });
-    const qty = Math.max(1, parseInt(quantity, 10) || 1);
-
-    const result = await db.runTransaction(async (t) => {
-      const evRef = db.collection("events").doc(String(eventId));
-      const evSnap = await t.get(evRef);
-      if (!evSnap.exists) throw new Error("event_not_found");
-      const ev = evSnap.data();
-      if (ev.status !== "published") throw new Error("event_not_published");
-      const cap = Number(ev.capacity || 0) || 0;
-      const current = Number(ev.bookingsCount || 0) || 0;
-      if (ev.soldOut) throw new Error("sold_out");
-      if (cap > 0 && current + qty > cap) throw new Error("capacity_exceeded");
-
-      const bkRef = db.collection("bookings").doc();
-      t.set(bkRef, { eventId: String(eventId), quantity: qty, nome, cognome, email, telefono, createdAt: now(), status: "sent" });
-
-      const newCount = current + qty;
-      const newSoldOut = cap > 0 && newCount >= cap;
-      t.update(evRef, { bookingsCount: newCount, soldOut: newSoldOut ? true : !!ev.soldOut, updatedAt: now() });
-      return { id: bkRef.id, newCount, newSoldOut };
-    });
-    res.json({ id: result.id, bookingsCount: result.newCount, soldOut: result.newSoldOut });
-  } catch (e) {
-    const code = e?.message;
-    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
-    if (code === "event_not_found") return res.status(404).json({ error: code });
-    if (code === "event_not_published") return res.status(409).json({ error: code });
-    if (code === "capacity_exceeded" || code === "sold_out") return res.status(409).json({ error: code });
-    console.error("/api/bookings POST:", e?.message || e);
-    res.status(500).json({ error: "Failed to save booking" });
-  }
-});
+// removed duplicate minimal POST /api/bookings - enhanced handler defined later with email/token
 
 // Update booking (admin)
 app.put("/api/bookings/:id", requireAdmin, async (req, res) => {
