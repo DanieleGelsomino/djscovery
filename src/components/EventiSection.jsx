@@ -12,11 +12,12 @@ const EventiSection = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const { data: events = [], isLoading } = useQuery({
+  const { data: eventsRaw, isLoading } = useQuery({
     queryKey: ["events", { status: "published" }],
     queryFn: () => fetchEvents({ status: "published" }),
   });
 
+  const events = Array.isArray(eventsRaw) ? eventsRaw : [];
   if (isLoading) return <Spinner aria-label={t("events.loading")} />;
   if (!events.length) return <ComingSoon />;
 
