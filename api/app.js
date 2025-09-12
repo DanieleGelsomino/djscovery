@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const admin = require("firebase-admin");
+const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const QRCode = require("qrcode");
 const nodemailer = require("nodemailer");
@@ -17,29 +18,84 @@ function getDb() {
       admin.app();
       adminInited = true;
     } catch {
-      const jsonStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-      if (!jsonStr) {
+      // Try several ways to obtain the service account JSON:
+      // 1) FIREBASE_SERVICE_ACCOUNT_JSON (raw JSON string)
+      // 2) FIREBASE_SERVICE_ACCOUNT_B64 (base64-encoded JSON)
+      // 3) FIREBASE_SERVICE_ACCOUNT (path to file)
+      // 4) GOOGLE_APPLICATION_CREDENTIALS (path to file)
+      let svc = null;
+      const tryParse = (raw) => {
+        try {
+          return JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || null;
+      const rawB64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64 || null;
+      const pathEnv = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS || null;
+
+      if (rawJson) {
+        svc = tryParse(rawJson);
+        if (!svc) {
+          const err = new Error("invalid_service_account_json");
+          err.code = "invalid_service_account_json";
+          throw err;
+        }
+      } else if (rawB64) {
+        const decoded = Buffer.from(rawB64, "base64").toString("utf8");
+        svc = tryParse(decoded);
+        if (!svc) {
+          const err = new Error("invalid_service_account_base64");
+          err.code = "invalid_service_account_base64";
+          throw err;
+        }
+      } else if (pathEnv) {
+        try {
+          if (fs.existsSync(pathEnv)) {
+            const fileRaw = fs.readFileSync(pathEnv, "utf8");
+            svc = tryParse(fileRaw);
+            if (!svc) {
+              const err = new Error("invalid_service_account_file");
+              err.code = "invalid_service_account_file";
+              throw err;
+            }
+          } else {
+            // path not available; fallthrough to applicationDefault
+            svc = null;
+          }
+        } catch (e) {
+          const err = new Error("invalid_service_account_file");
+          err.code = "invalid_service_account_file";
+          throw err;
+        }
+      }
+
+      try {
+        const projectId = process.env.FIREBASE_PROJECT_ID || (svc && svc.project_id) || undefined;
+        if (svc) {
+          admin.initializeApp({ credential: admin.credential.cert(svc), ...(projectId ? { projectId } : {}) });
+        } else {
+          // Fallback to application default credentials (if available in env)
+          admin.initializeApp();
+        }
+        adminInited = true;
+        try {
+          const db = admin.firestore();
+          // Prefer REST transport on serverless (faster cold start than gRPC)
+          db.settings({ preferRest: true });
+          cachedDb = db;
+        } catch {}
+      } catch (e) {
+        // If initialization failed because no credentials, surface a helpful error
+        if (e?.code === "invalid_service_account_json" || e?.code === "invalid_service_account_file" || e?.code === "invalid_service_account_base64") {
+          throw e;
+        }
         const err = new Error("missing_service_account");
         err.code = "missing_service_account";
         throw err;
       }
-      let svc;
-      try {
-        svc = JSON.parse(jsonStr);
-      } catch (e) {
-        const err = new Error("invalid_service_account_json");
-        err.code = "invalid_service_account_json";
-        throw err;
-      }
-      const projectId = process.env.FIREBASE_PROJECT_ID || svc.project_id;
-      admin.initializeApp({ credential: admin.credential.cert(svc), projectId });
-      adminInited = true;
-      try {
-        const db = admin.firestore();
-        // Prefer REST transport on serverless (faster cold start than gRPC)
-        db.settings({ preferRest: true });
-        cachedDb = db;
-      } catch {}
     }
   }
   if (!cachedDb) {
