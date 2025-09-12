@@ -2,6 +2,7 @@
 const serverless = require("serverless-http");
 const app = require("./app");
 
-// Use basePath so diagnostics reach Express endpoints correctly
-module.exports = serverless(app, { basePath: "/api" });
+
+// Directly expose the Express diagnostics without altering paths
+module.exports = serverless(app);
 

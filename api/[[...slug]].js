@@ -2,5 +2,6 @@
 const serverless = require("serverless-http");
 const app = require("./app");
 
-// Ensure Express routes retain their original /api prefix
-module.exports = serverless(app, { basePath: "/api" });
+
+// Directly export the Express app without stripping the /api prefix
+module.exports = serverless(app);

@@ -2,6 +2,8 @@
 const serverless = require("serverless-http");
 const app = require("../app");
 
-// Maintain original /api prefix for nested event routes
-module.exports = serverless(app, { basePath: "/api" });
+
+// Forward to the Express app without stripping the /api prefix
+module.exports = serverless(app);
+
 
