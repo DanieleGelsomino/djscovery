@@ -2,6 +2,8 @@
 const serverless = require("serverless-http");
 const app = require("../app");
 
+
 // Forward to the Express app without stripping the /api prefix
 module.exports = serverless(app);
+
 
