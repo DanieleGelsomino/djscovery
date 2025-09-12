@@ -132,6 +132,14 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
+// Simple request logger to diagnose invocations in serverless env
+app.use((req, res, next) => {
+  try {
+    console.log(`[api] ${req.method} ${req.originalUrl} - ip=${req.ip}`);
+  } catch (e) {}
+  next();
+});
+
 // CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
 app.use(
   cors({
@@ -807,6 +815,18 @@ app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
 });
 
 module.exports = app;
+
+// Global error handler: return JSON for unexpected errors (avoids HTML responses)
+// Note: placed after module.exports so it is defined but will be included when file is loaded
+app.use((err, req, res, _next) => {
+  try {
+    console.error("[api][error]", err && (err.stack || err.message || err));
+  } catch (e) {}
+  if (res.headersSent) return;
+  res
+    .status(500)
+    .json({ ok: false, error: String(err?.message || err || "internal") });
+});
 
 /* ===================== EMAIL / QR / VERIFY / CHECK-IN ===================== */
 

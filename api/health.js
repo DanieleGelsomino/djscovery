@@ -13,14 +13,12 @@ module.exports = (req, res) => {
     process.env.FIREBASE_PROJECT_ID ||
     process.env.VITE_FIREBASE_PROJECT_ID ||
     null;
-  res
-    .status(200)
-    .json({
-      ok: true,
-      hasGoogleKey,
-      hasServiceAccountJson,
-      hasServiceAccountB64,
-      hasServiceAccountPath,
-      projectId,
-    });
+  res.status(200).json({
+    ok: true,
+    hasGoogleKey,
+    hasServiceAccountJson,
+    hasServiceAccountB64,
+    hasServiceAccountPath,
+    projectId,
+  });
 };
