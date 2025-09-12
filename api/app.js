@@ -31,7 +31,8 @@ function getDb() {
         err.code = "invalid_service_account_json";
         throw err;
       }
-      admin.initializeApp({ credential: admin.credential.cert(svc), projectId: svc.project_id });
+      const projectId = process.env.FIREBASE_PROJECT_ID || svc.project_id;
+      admin.initializeApp({ credential: admin.credential.cert(svc), projectId });
       adminInited = true;
       try {
         const db = admin.firestore();
@@ -150,8 +151,15 @@ app.get("/api/self-test", async (req, res) => {
 app.get("/api/diag", async (_req, res) => {
   try {
     const db = getDb();
-    const snap = await db.collection("events").limit(1).get();
-    res.json({ ok: true, projectId: process.env.GOOGLE_CLOUD_PROJECT || null, eventsCountSample: snap.size });
+    const appInfo = admin.app().options || {};
+    const evSnap = await db.collection("events").limit(1).get();
+    const bkSnap = await db.collection("bookings").limit(1).get();
+    res.json({
+      ok: true,
+      projectId: appInfo.projectId || process.env.FIREBASE_PROJECT_ID || null,
+      eventsSample: evSnap.size,
+      bookingsSample: bkSnap.size,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e?.code || e?.message || String(e) });
   }
@@ -539,6 +547,48 @@ app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
 /* ===== Google Drive endpoints (for Admin picker) ===== */
 const getGoogleApiKey = () => process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
 
+async function getServiceAccountToken() {
+  try {
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (!raw) return null;
+    const svc = JSON.parse(raw);
+    const clientEmail = svc.client_email;
+    const privateKey = svc.private_key;
+    const tokenUri = svc.token_uri || "https://oauth2.googleapis.com/token";
+    if (!clientEmail || !privateKey) return null;
+
+    const iat = Math.floor(Date.now() / 1000);
+    const payload = {
+      iss: clientEmail,
+      sub: clientEmail,
+      aud: tokenUri,
+      scope: "https://www.googleapis.com/auth/drive.readonly",
+      iat,
+      exp: iat + 3600,
+    };
+    const header = { alg: "RS256", typ: "JWT" };
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const h = b64(header);
+    const p = b64(payload);
+    const data = `${h}.${p}`;
+    const signer = require("crypto").createSign("RSA-SHA256");
+    signer.update(data);
+    const sig = signer.sign(privateKey).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const assertion = `${data}.${sig}`;
+
+    const body = new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    });
+    const r = await fetch(tokenUri, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 // List images in a Drive folder (supports shared drives)
 app.get("/api/drive/list", publicLimiter, async (req, res) => {
   try {
@@ -582,11 +632,40 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
 app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
   try {
     const id = String(req.params.id || "");
+    if (!id) return res.status(400).send("missing");
     const apiKey = getGoogleApiKey();
-    if (!id || !apiKey) return res.status(400).send("missing");
-    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&key=${encodeURIComponent(apiKey)}`;
-    const r = await fetchWithTimeout(url, {}, 15000);
-    if (!r.ok) return res.status(r.status).send("error");
+    const sa = await getServiceAccountToken();
+
+    // Prefer Service Account if available (works for private files shared with SA)
+    const baseUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`;
+    let r = null;
+    if (sa) {
+      r = await fetchWithTimeout(baseUrl, { headers: { Authorization: `Bearer ${sa}` } }, 15000);
+    } else if (apiKey) {
+      r = await fetchWithTimeout(`${baseUrl}&key=${encodeURIComponent(apiKey)}`, {}, 15000);
+    } else {
+      return res.status(500).send("no_credentials");
+    }
+
+    if (!r.ok) {
+      // Fallback: if first try failed, try the other method once
+      if (sa && apiKey) {
+        const r2 = await fetchWithTimeout(`${baseUrl}&key=${encodeURIComponent(apiKey)}`, {}, 15000);
+        if (!r2.ok) return res.status(r2.status).send("error");
+        r = r2;
+      } else if (!sa) {
+        const sa2 = await getServiceAccountToken();
+        if (sa2) {
+          const r3 = await fetchWithTimeout(baseUrl, { headers: { Authorization: `Bearer ${sa2}` } }, 15000);
+          if (!r3.ok) return res.status(r3.status).send("error");
+          r = r3;
+        } else {
+          return res.status(r.status).send("error");
+        }
+      } else {
+        return res.status(r.status).send("error");
+      }
+    }
     // Pipe headers and body
     for (const [k, v] of r.headers) {
       if (k.toLowerCase().startsWith("content-")) res.setHeader(k, v);

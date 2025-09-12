@@ -141,7 +141,8 @@ module.exports = async function handler(req, res) {
           modifiedTime: f.modifiedTime,
           thumbnail: f.thumbnailLink || null,
           src: cdnSrc(id, 1280),
-          fallbackSrc: apiSrc(id, apiKey),
+          // Use server proxy to avoid API key referrer issues and support private files via SA
+          fallbackSrc: `/api/drive/file/${id}`,
         };
       })
       .filter(Boolean);
