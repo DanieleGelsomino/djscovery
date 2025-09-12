@@ -187,6 +187,7 @@ const AdminPanel = () => {
     const [confirm, setConfirm] = useState({ open: false, id: null, type: "" });
 
     const isAdmin = localStorage.getItem("isAdmin") === "true";
+    const hasToken = Boolean(localStorage.getItem("adminToken"));
 
     const {
         data: bookingsData = [],
@@ -194,7 +195,7 @@ const AdminPanel = () => {
     } = useQuery({
         queryKey: ["bookings"],
         queryFn: fetchBookings,
-        enabled: isAdmin,
+        enabled: true, // render anche se ricarichi direttamente il pannello
         onError: (err) => {
             if (err?.response?.status === 401) {
                 setAuthToken(null);
@@ -210,7 +211,7 @@ const AdminPanel = () => {
     } = useQuery({
         queryKey: ["events"],
         queryFn: fetchEvents,
-        enabled: isAdmin,
+        enabled: true,
         onError: (err) => {
             if (err?.response?.status === 401) {
                 setAuthToken(null);

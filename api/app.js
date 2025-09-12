@@ -205,14 +205,31 @@ app.get("/api/events", async (req, res) => {
         data.sort((a, b) => `${a.date || ""}T${a.time || "00:00"}`.localeCompare(`${b.date || ""}T${b.time || "00:00"}`));
         return res.json(data);
       }
-      throw e;
+      // be resilient: return empty list instead of 500
+      return res.json([]);
     }
   } catch (err) {
     const msg = err?.message || err;
     const code = err?.code || "internal";
     if (code === "missing_service_account") return res.status(500).json({ error: code });
     console.error("/api/events error:", msg);
-    res.status(500).json({ error: "Failed to load events" });
+    // fallback empty list to avoid client hangs
+    res.json([]);
+  }
+});
+
+// Get single event by id (public)
+app.get("/api/events/:id", async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const snap = await db.collection("events").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: "not_found" });
+    return res.json({ id: snap.id, ...snap.data() });
+  } catch (e) {
+    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
+    return res.status(500).json({ error: "failed" });
   }
 });
 
