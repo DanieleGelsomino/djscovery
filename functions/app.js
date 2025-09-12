@@ -74,10 +74,24 @@ app.get("/api/events", async (req, res) => {
 app.get("/api/bookings", async (req, res) => {
   try {
     const { eventId } = req.query || {};
-    let ref = db.collection("bookings").orderBy("createdAt", "desc");
-    if (eventId) ref = ref.where("eventId","==", String(eventId));
-    const snap = await ref.get();
-    res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    let ref = db.collection("bookings");
+    if (eventId) ref = ref.where("eventId", "==", String(eventId));
+    try {
+      const snap = await ref.orderBy("createdAt", "desc").get();
+      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      if (String(e?.message || "").toLowerCase().includes("index")) {
+        const snap = await ref.get();
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => {
+          const ca = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const cb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return cb - ca;
+        });
+        return res.json(data);
+      }
+      throw e;
+    }
   } catch (e) {
     console.error("/api/bookings error:", e?.message || e);
     res.status(500).json({ error: "Failed to load bookings" });
