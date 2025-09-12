@@ -93,6 +93,12 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// Simple auth diagnostic
+app.get("/api/auth/whoami", async (req, res) => {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ ok: false, error: "unauthorized" });
+  res.json({ ok: true, uid: user.uid, email: user.email || null, admin: !!user.admin });
+});
 // Minimal diagnostics for Firestore connectivity
 app.get("/api/diag", async (_req, res) => {
   try {
@@ -103,6 +109,35 @@ app.get("/api/diag", async (_req, res) => {
     res.status(500).json({ ok: false, error: e?.code || e?.message || String(e) });
   }
 });
+
+// ===== Auth helpers (Firebase ID token) =====
+async function getAuthUser(req) {
+  try {
+    const hdr = String(req.headers["authorization"] || req.headers["Authorization"] || "");
+    const m = hdr.match(/^Bearer\s+(.+)$/i);
+    if (!m) return null;
+    const token = m[1];
+    const user = await admin.auth().verifyIdToken(token, true);
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
+async function requireAuth(req, res, next) {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ error: "unauthorized" });
+  req.user = user;
+  next();
+}
+
+async function requireAdmin(req, res, next) {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ error: "unauthorized" });
+  if (!user.admin) return res.status(403).json({ error: "forbidden" });
+  req.user = user;
+  next();
+}
 
 // Events (minimal)
 app.get("/api/events", async (req, res) => {
@@ -131,6 +166,90 @@ app.get("/api/events", async (req, res) => {
     if (code === "missing_service_account") return res.status(500).json({ error: code });
     console.error("/api/events error:", msg);
     res.status(500).json({ error: "Failed to load events" });
+  }
+});
+
+// Create event (admin)
+app.post("/api/events", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const data = req.body || {};
+    const doc = {
+      name: String(data.name || "").trim(),
+      dj: String(data.dj || "").trim(),
+      date: String(data.date || "").trim(),
+      time: String(data.time || "").trim(),
+      price: data.price ?? "",
+      capacity: Number(data.capacity || 0) || 0,
+      description: String(data.description || ""),
+      soldOut: !!data.soldOut,
+      image: String(data.image || ""),
+      place: String(data.place || ""),
+      placeCoords: data.placeCoords || null,
+      placeId: data.placeId || null,
+      status: ["draft", "published", "archived"].includes(String(data.status)) ? String(data.status) : "draft",
+      bookingsCount: Number(data.bookingsCount || 0) || 0,
+      internalNotes: String(data.internalNotes || ""),
+      updatedAt: now(),
+      createdAt: now(),
+    };
+    const ref = await db.collection("events").add(doc);
+    res.json({ id: ref.id, ...doc });
+  } catch (e) {
+    res.status(500).json({ error: "create_failed" });
+  }
+});
+
+// Update event (admin)
+app.put("/api/events/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const data = { ...req.body, updatedAt: now() };
+    await db.collection("events").doc(id).set(data, { merge: true });
+    const snap = await db.collection("events").doc(id).get();
+    res.json({ id, ...(snap.data() || {}) });
+  } catch {
+    res.status(500).json({ error: "update_failed" });
+  }
+});
+
+// Delete single event (admin)
+app.delete("/api/events/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("events").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// Bulk delete events by status (admin)
+app.delete("/api/events", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const status = String(req.query.status || "");
+    let q = db.collection("events");
+    if (status) q = q.where("status", "==", status);
+    const snap = await q.get();
+    const batch = db.bulkWriter ? null : db.batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      if (db.bulkWriter) {
+        await db.collection("events").doc(doc.id).delete();
+      } else {
+        batch.delete(db.collection("events").doc(doc.id));
+      }
+      count++;
+    }
+    if (batch) await batch.commit();
+    res.json({ ok: true, deleted: count });
+  } catch {
+    res.status(500).json({ error: "bulk_delete_failed" });
   }
 });
 
@@ -188,6 +307,59 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
   }
 });
 
+// Update booking (admin)
+app.put("/api/bookings/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const data = { ...req.body, lastUpdateAt: now() };
+    await db.collection("bookings").doc(id).set(data, { merge: true });
+    const snap = await db.collection("bookings").doc(id).get();
+    res.json({ id, ...(snap.data() || {}) });
+  } catch {
+    res.status(500).json({ error: "update_failed" });
+  }
+});
+
+// Delete single booking (admin)
+app.delete("/api/bookings/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("bookings").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// Bulk delete bookings (admin)
+app.delete("/api/bookings", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const eventId = String(req.query.eventId || "");
+    let q = db.collection("bookings");
+    if (eventId) q = q.where("eventId", "==", eventId);
+    const snap = await q.get();
+    const batch = db.bulkWriter ? null : db.batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      if (db.bulkWriter) {
+        await db.collection("bookings").doc(doc.id).delete();
+      } else {
+        batch.delete(db.collection("bookings").doc(doc.id));
+      }
+      count++;
+    }
+    if (batch) await batch.commit();
+    res.json({ ok: true, deleted: count });
+  } catch {
+    res.status(500).json({ error: "bulk_delete_failed" });
+  }
+});
+
 // Gallery (Firestore-backed)
 app.get("/api/gallery", async (_req, res) => {
   try {
@@ -198,6 +370,33 @@ app.get("/api/gallery", async (_req, res) => {
     if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
     console.error("/api/gallery error:", e?.message || e);
     res.status(500).json({ error: "Failed to load gallery" });
+  }
+});
+
+// Add gallery image (admin)
+app.post("/api/gallery", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const { src = "", title = "" } = req.body || {};
+    if (!src) return res.status(400).json({ error: "missing_src" });
+    const doc = { src: String(src), title: String(title || ""), createdAt: now() };
+    const ref = await db.collection("gallery").add(doc);
+    res.json({ id: ref.id, ...doc });
+  } catch {
+    res.status(500).json({ error: "create_failed" });
+  }
+});
+
+// Delete gallery image (admin)
+app.delete("/api/gallery/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("gallery").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
   }
 });
 

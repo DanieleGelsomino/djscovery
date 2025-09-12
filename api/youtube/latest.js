@@ -40,12 +40,12 @@ module.exports = async function handler(req, res) {
         channelId = sData?.items?.[0]?.id?.channelId || null;
       }
     }
-    if (!channelId) return res.status(404).json({ error: "channel_not_found" });
+    if (!channelId) return res.json({ ids: [] });
 
     const listRes = await fetch(
       `https://www.googleapis.com/youtube/v3/search?key=${encodeURIComponent(key)}&channelId=${encodeURIComponent(channelId)}&part=snippet,id&order=date&maxResults=${max}`
     );
-    if (!listRes.ok) return res.status(listRes.status).json({ error: "youtube_search_failed" });
+    if (!listRes.ok) return res.json({ ids: [] });
     const listData = await listRes.json();
     const ids = (listData.items || [])
       .filter((it) => it?.id?.videoId)
@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
     return res.json({ ids });
   } catch (e) {
     console.error("/api/youtube/latest:", e?.message || e);
-    return res.status(500).json({ error: "failed" });
+    return res.json({ ids: [] });
   }
 };
 // (runtime defaulted by project)

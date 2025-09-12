@@ -90,7 +90,8 @@ module.exports = async function handler(req, res) {
     return res.json(deduped);
   } catch (e) {
     console.error("/api/drive/list error:", e?.message || e);
-    return res.status(500).json({ error: "failed" });
+    // Non rompere la UI: ritorna lista vuota
+    return res.json([]);
   }
 };
 // (runtime defaulted by project)
