@@ -37,7 +37,11 @@ const AdminLogin = () => {
 
     // Se l'utente è loggato, verifica che sia admin prima di farlo entrare
     useEffect(() => {
-        if (!auth) return;
+        if (!auth) {
+            setChecking(false);
+            setError('Configurazione Firebase mancante. Imposta le variabili VITE_FIREBASE_* su Vercel.');
+            return;
+        }
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setChecking(false);
             setError('');

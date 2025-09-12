@@ -9,6 +9,10 @@ const AdminRoute = ({ children }) => {
     const [state, setState] = useState({ checking: true, allowed: false });
 
     useEffect(() => {
+        if (!auth) {
+            setState({ checking: false, allowed: false });
+            return () => {};
+        }
         const unsub = onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 setState({ checking: false, allowed: false });
