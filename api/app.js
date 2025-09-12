@@ -34,7 +34,10 @@ function getDb() {
 
       const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || null;
       const rawB64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64 || null;
-      const pathEnv = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS || null;
+      const pathEnv =
+        process.env.FIREBASE_SERVICE_ACCOUNT ||
+        process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+        null;
 
       if (rawJson) {
         svc = tryParse(rawJson);
@@ -73,9 +76,15 @@ function getDb() {
       }
 
       try {
-        const projectId = process.env.FIREBASE_PROJECT_ID || (svc && svc.project_id) || undefined;
+        const projectId =
+          process.env.FIREBASE_PROJECT_ID ||
+          (svc && svc.project_id) ||
+          undefined;
         if (svc) {
-          admin.initializeApp({ credential: admin.credential.cert(svc), ...(projectId ? { projectId } : {}) });
+          admin.initializeApp({
+            credential: admin.credential.cert(svc),
+            ...(projectId ? { projectId } : {}),
+          });
         } else if (pathEnv) {
           // If a path env was provided (FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS)
           // but we couldn't parse it earlier, throw explicit error.
@@ -95,7 +104,12 @@ function getDb() {
         } catch {}
       } catch (e) {
         // Bubble up known errors
-        if (e?.code === "invalid_service_account_json" || e?.code === "invalid_service_account_file" || e?.code === "invalid_service_account_base64" || e?.code === "missing_service_account") {
+        if (
+          e?.code === "invalid_service_account_json" ||
+          e?.code === "invalid_service_account_file" ||
+          e?.code === "invalid_service_account_base64" ||
+          e?.code === "missing_service_account"
+        ) {
           throw e;
         }
         const err = new Error("missing_service_account");
@@ -106,7 +120,9 @@ function getDb() {
   }
   if (!cachedDb) {
     const db = admin.firestore();
-    try { db.settings({ preferRest: true }); } catch {}
+    try {
+      db.settings({ preferRest: true });
+    } catch {}
     cachedDb = db;
   }
   return cachedDb;
@@ -160,7 +176,12 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/auth/whoami", async (req, res) => {
   const user = await getAuthUser(req);
   if (!user) return res.status(401).json({ ok: false, error: "unauthorized" });
-  res.json({ ok: true, uid: user.uid, email: user.email || null, admin: !!user.admin });
+  res.json({
+    ok: true,
+    uid: user.uid,
+    email: user.email || null,
+    admin: !!user.admin,
+  });
 });
 
 // Consolidated self-test endpoint
@@ -179,7 +200,10 @@ app.get("/api/self-test", async (req, res) => {
     const snap = await db.collection("events").limit(1).get();
     out.tests.firestore = { ok: true, eventsCountSample: snap.size };
   } catch (e) {
-    out.tests.firestore = { ok: false, error: e?.code || e?.message || String(e) };
+    out.tests.firestore = {
+      ok: false,
+      error: e?.code || e?.message || String(e),
+    };
   }
   // Drive (if folder id provided via query)
   try {
@@ -223,14 +247,18 @@ app.get("/api/diag", async (_req, res) => {
       bookingsSample: bkSnap.size,
     });
   } catch (e) {
-    res.status(500).json({ ok: false, error: e?.code || e?.message || String(e) });
+    res
+      .status(500)
+      .json({ ok: false, error: e?.code || e?.message || String(e) });
   }
 });
 
 // ===== Auth helpers (Firebase ID token) =====
 async function getAuthUser(req) {
   try {
-    const hdr = String(req.headers["authorization"] || req.headers["Authorization"] || "");
+    const hdr = String(
+      req.headers["authorization"] || req.headers["Authorization"] || ""
+    );
     const m = hdr.match(/^Bearer\s+(.+)$/i);
     if (!m) return null;
     const token = m[1];
@@ -269,10 +297,18 @@ app.get("/api/events", async (req, res) => {
       const snap = await ref.orderBy("date").orderBy("time").get();
       return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
-      if (String(e?.message || "").toLowerCase().includes("index")) {
+      if (
+        String(e?.message || "")
+          .toLowerCase()
+          .includes("index")
+      ) {
         const snap = await ref.orderBy("date").get();
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        data.sort((a, b) => `${a.date || ""}T${a.time || "00:00"}`.localeCompare(`${b.date || ""}T${b.time || "00:00"}`));
+        data.sort((a, b) =>
+          `${a.date || ""}T${a.time || "00:00"}`.localeCompare(
+            `${b.date || ""}T${b.time || "00:00"}`
+          )
+        );
         return res.json(data);
       }
       // be resilient: return empty list instead of 500
@@ -281,7 +317,8 @@ app.get("/api/events", async (req, res) => {
   } catch (err) {
     const msg = err?.message || err;
     const code = err?.code || "internal";
-    if (code === "missing_service_account") return res.status(500).json({ error: code });
+    if (code === "missing_service_account")
+      return res.status(500).json({ error: code });
     console.error("/api/events error:", msg);
     // fallback empty list to avoid client hangs
     res.json([]);
@@ -298,7 +335,8 @@ app.get("/api/events/:id", async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: "not_found" });
     return res.json({ id: snap.id, ...snap.data() });
   } catch (e) {
-    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
     return res.status(500).json({ error: "failed" });
   }
 });
@@ -321,7 +359,9 @@ app.post("/api/events", requireAdmin, async (req, res) => {
       place: String(data.place || ""),
       placeCoords: data.placeCoords || null,
       placeId: data.placeId || null,
-      status: ["draft", "published", "archived"].includes(String(data.status)) ? String(data.status) : "draft",
+      status: ["draft", "published", "archived"].includes(String(data.status))
+        ? String(data.status)
+        : "draft",
       bookingsCount: Number(data.bookingsCount || 0) || 0,
       internalNotes: String(data.internalNotes || ""),
       updatedAt: now(),
@@ -397,7 +437,8 @@ app.get("/api/bookings", async (req, res) => {
     const snap = await ref.get();
     res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   } catch (e) {
-    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
     console.error("/api/bookings error:", e?.message || e);
     res.status(500).json({ error: "Failed to load bookings" });
   }
@@ -462,10 +503,14 @@ app.delete("/api/bookings", requireAdmin, async (req, res) => {
 app.get("/api/gallery", async (_req, res) => {
   try {
     const db = getDb();
-    const snap = await db.collection("gallery").orderBy("createdAt", "desc").get();
+    const snap = await db
+      .collection("gallery")
+      .orderBy("createdAt", "desc")
+      .get();
     res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   } catch (e) {
-    if (e?.code === "missing_service_account") return res.status(500).json({ error: e.code });
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
     console.error("/api/gallery error:", e?.message || e);
     res.status(500).json({ error: "Failed to load gallery" });
   }
@@ -477,7 +522,11 @@ app.post("/api/gallery", requireAdmin, async (req, res) => {
     const db = getDb();
     const { src = "", title = "" } = req.body || {};
     if (!src) return res.status(400).json({ error: "missing_src" });
-    const doc = { src: String(src), title: String(title || ""), createdAt: now() };
+    const doc = {
+      src: String(src),
+      title: String(title || ""),
+      createdAt: now(),
+    };
     const ref = await db.collection("gallery").add(doc);
     res.json({ id: ref.id, ...doc });
   } catch {
@@ -499,13 +548,23 @@ app.delete("/api/gallery/:id", requireAdmin, async (req, res) => {
 });
 
 // Newsletter + Contact stubs
-app.post("/api/newsletter/subscribe", publicLimiter, async (_req, res) => res.json({ ok: true }));
-app.post("/api/contact", publicLimiter, async (_req, res) => res.json({ ok: true }));
+app.post("/api/newsletter/subscribe", publicLimiter, async (_req, res) =>
+  res.json({ ok: true })
+);
+app.post("/api/contact", publicLimiter, async (_req, res) =>
+  res.json({ ok: true })
+);
 
 // YouTube/Spotify stubs
-app.get("/api/youtube/latest", publicLimiter, async (_req, res) => res.json({ items: [] }));
-app.get("/api/youtube/latest-rss", publicLimiter, async (_req, res) => res.json({ items: [] }));
-app.get("/api/spotify/latest-playlist", publicLimiter, async (_req, res) => res.json({ tracks: [] }));
+app.get("/api/youtube/latest", publicLimiter, async (_req, res) =>
+  res.json({ items: [] })
+);
+app.get("/api/youtube/latest-rss", publicLimiter, async (_req, res) =>
+  res.json({ items: [] })
+);
+app.get("/api/spotify/latest-playlist", publicLimiter, async (_req, res) =>
+  res.json({ tracks: [] })
+);
 
 /* ===== YouTube helpers ===== */
 const fetchWithTimeout = async (url, opts = {}, ms = 8000) => {
@@ -524,12 +583,15 @@ app.get("/api/youtube/latest", publicLimiter, async (req, res) => {
   try {
     const handle = String(req.query.handle || "");
     const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
-    const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
+    const apiKey =
+      process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
     if (!apiKey || !handle) return res.json({ ids: [] });
 
     // Resolve channelId by handle
     const chRes = await fetchWithTimeout(
-      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`
+      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(
+        handle
+      )}&key=${apiKey}`
     );
     if (!chRes.ok) return res.json({ ids: [] });
     const chJson = await chRes.json();
@@ -556,7 +618,9 @@ app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
     const channelId = String(req.query.channelId || "");
     const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
     if (!channelId) return res.json({ ids: [] });
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(
+      channelId
+    )}`;
     const r = await fetchWithTimeout(rssUrl, {}, 8000);
     if (!r.ok) return res.json({ ids: [] });
     const text = await r.text();
@@ -571,7 +635,8 @@ app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
 });
 
 /* ===== Google Drive endpoints (for Admin picker) ===== */
-const getGoogleApiKey = () => process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+const getGoogleApiKey = () =>
+  process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
 
 async function getServiceAccountToken() {
   try {
@@ -593,20 +658,34 @@ async function getServiceAccountToken() {
       exp: iat + 3600,
     };
     const header = { alg: "RS256", typ: "JWT" };
-    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const b64 = (o) =>
+      Buffer.from(JSON.stringify(o))
+        .toString("base64")
+        .replace(/=/g, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
     const h = b64(header);
     const p = b64(payload);
     const data = `${h}.${p}`;
     const signer = require("crypto").createSign("RSA-SHA256");
     signer.update(data);
-    const sig = signer.sign(privateKey).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const sig = signer
+      .sign(privateKey)
+      .toString("base64")
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
     const assertion = `${data}.${sig}`;
 
     const body = new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion,
     });
-    const r = await fetch(tokenUri, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+    const r = await fetch(tokenUri, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
     if (!r.ok) return null;
     const j = await r.json();
     return j.access_token || null;
@@ -635,7 +714,11 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
     const j = await r.json();
     const files = Array.isArray(j?.files) ? j.files : [];
     const images = files
-      .filter((f) => String(f?.mimeType || "").startsWith("image/") || f?.mimeType === "application/vnd.google-apps.shortcut")
+      .filter(
+        (f) =>
+          String(f?.mimeType || "").startsWith("image/") ||
+          f?.mimeType === "application/vnd.google-apps.shortcut"
+      )
       .map((f) => {
         const id = f.id;
         return {
@@ -645,7 +728,9 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
           modifiedTime: f.modifiedTime,
           thumbnail: f.thumbnailLink || null,
           src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
-          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(apiKey)}`,
+          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(
+            apiKey
+          )}`,
         };
       });
     res.json(images);
@@ -663,12 +748,22 @@ app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
     const sa = await getServiceAccountToken();
 
     // Prefer Service Account if available (works for private files shared with SA)
-    const baseUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`;
+    const baseUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(
+      id
+    )}?alt=media`;
     let r = null;
     if (sa) {
-      r = await fetchWithTimeout(baseUrl, { headers: { Authorization: `Bearer ${sa}` } }, 15000);
+      r = await fetchWithTimeout(
+        baseUrl,
+        { headers: { Authorization: `Bearer ${sa}` } },
+        15000
+      );
     } else if (apiKey) {
-      r = await fetchWithTimeout(`${baseUrl}&key=${encodeURIComponent(apiKey)}`, {}, 15000);
+      r = await fetchWithTimeout(
+        `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
+        {},
+        15000
+      );
     } else {
       return res.status(500).send("no_credentials");
     }
@@ -676,13 +771,21 @@ app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
     if (!r.ok) {
       // Fallback: if first try failed, try the other method once
       if (sa && apiKey) {
-        const r2 = await fetchWithTimeout(`${baseUrl}&key=${encodeURIComponent(apiKey)}`, {}, 15000);
+        const r2 = await fetchWithTimeout(
+          `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
+          {},
+          15000
+        );
         if (!r2.ok) return res.status(r2.status).send("error");
         r = r2;
       } else if (!sa) {
         const sa2 = await getServiceAccountToken();
         if (sa2) {
-          const r3 = await fetchWithTimeout(baseUrl, { headers: { Authorization: `Bearer ${sa2}` } }, 15000);
+          const r3 = await fetchWithTimeout(
+            baseUrl,
+            { headers: { Authorization: `Bearer ${sa2}` } },
+            15000
+          );
           if (!r3.ok) return res.status(r3.status).send("error");
           r = r3;
         } else {
@@ -715,12 +818,18 @@ function buildTransport() {
   const pass = process.env.SMTP_PASS;
   if (!host || !user || !pass) return null;
   const secure = port === 465; // TLS on 465
-  return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
 }
 
 function apiBaseUrl(req) {
   return (
-    (process.env.API_BASE_URL && process.env.API_BASE_URL.replace(/\/+$/, "")) ||
+    (process.env.API_BASE_URL &&
+      process.env.API_BASE_URL.replace(/\/+$/, "")) ||
     `https://${req.headers["x-forwarded-host"] || req.headers.host}`
   );
 }
@@ -740,8 +849,16 @@ function verifyBookingToken(token) {
 app.post("/api/bookings", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
-    const { eventId, quantity = 1, nome, cognome, email, telefono } = req.body || {};
-    if (!eventId || !email) return res.status(400).json({ error: "missing_fields" });
+    const {
+      eventId,
+      quantity = 1,
+      nome,
+      cognome,
+      email,
+      telefono,
+    } = req.body || {};
+    if (!eventId || !email)
+      return res.status(400).json({ error: "missing_fields" });
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
 
     const result = await db.runTransaction(async (t) => {
@@ -770,24 +887,41 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
 
       const newCount = current + qty;
       const newSoldOut = cap > 0 && newCount >= cap;
-      t.update(evRef, { bookingsCount: newCount, soldOut: newSoldOut ? true : !!ev.soldOut, updatedAt: now() });
-      return { id: bkRef.id, event: { id: evRef.id, ...ev }, newCount, newSoldOut };
+      t.update(evRef, {
+        bookingsCount: newCount,
+        soldOut: newSoldOut ? true : !!ev.soldOut,
+        updatedAt: now(),
+      });
+      return {
+        id: bkRef.id,
+        event: { id: evRef.id, ...ev },
+        newCount,
+        newSoldOut,
+      };
     });
 
     // create token and send mail
     const token = signBookingToken({ bid: result.id, eid: eventId, qty });
-    const verifyURL = `${apiBaseUrl(req)}/api/bookings/verify?token=${encodeURIComponent(token)}`;
+    const verifyURL = `${apiBaseUrl(
+      req
+    )}/api/bookings/verify?token=${encodeURIComponent(token)}`;
     let sent = false;
     try {
       const mailer = buildTransport();
       if (mailer) {
-        const qrDataURL = await QRCode.toDataURL(verifyURL, { errorCorrectionLevel: "M" });
+        const qrDataURL = await QRCode.toDataURL(verifyURL, {
+          errorCorrectionLevel: "M",
+        });
         const qrBase64 = qrDataURL.split(",")[1];
         await mailer.sendMail({
           from: process.env.FROM_EMAIL || process.env.SMTP_USER,
           to: email,
           subject: `Conferma Prenotazione — ${result.event?.name || "Evento"}`,
-          html: `<div style="font-family:sans-serif">Ciao ${nome || ""} ${cognome || ""},<br/>prenotazione registrata per <b>${result.event?.name || "Evento"}</b>.<br/>Biglietti: <b>${qty}</b><br/><a href="${verifyURL}">Apri verifica</a><br/><br/><img src="cid:qrimage" width="180" height="180"/></div>`,
+          html: `<div style="font-family:sans-serif">Ciao ${nome || ""} ${
+            cognome || ""
+          },<br/>prenotazione registrata per <b>${
+            result.event?.name || "Evento"
+          }</b>.<br/>Biglietti: <b>${qty}</b><br/><a href="${verifyURL}">Apri verifica</a><br/><br/><img src="cid:qrimage" width="180" height="180"/></div>`,
           attachments: [
             {
               filename: "qrcode.png",
@@ -803,22 +937,32 @@ app.post("/api/bookings", publicLimiter, async (req, res) => {
       // do not fail booking if email fails
     }
 
-    await db.collection("bookings").doc(result.id).set(
-      {
-        token,
-        status: sent ? "sent" : "pending_email",
-        emailSentAt: sent ? now() : null,
-        lastUpdateAt: now(),
-      },
-      { merge: true }
-    );
+    await db
+      .collection("bookings")
+      .doc(result.id)
+      .set(
+        {
+          token,
+          status: sent ? "sent" : "pending_email",
+          emailSentAt: sent ? now() : null,
+          lastUpdateAt: now(),
+        },
+        { merge: true }
+      );
 
-    res.json({ id: result.id, bookingsCount: result.newCount, soldOut: result.newSoldOut });
+    res.json({
+      id: result.id,
+      bookingsCount: result.newCount,
+      soldOut: result.newSoldOut,
+    });
   } catch (e) {
     const code = e?.message;
-    if (code === "event_not_found") return res.status(404).json({ error: code });
-    if (code === "event_not_published") return res.status(409).json({ error: code });
-    if (code === "capacity_exceeded" || code === "sold_out") return res.status(409).json({ error: code });
+    if (code === "event_not_found")
+      return res.status(404).json({ error: code });
+    if (code === "event_not_published")
+      return res.status(409).json({ error: code });
+    if (code === "capacity_exceeded" || code === "sold_out")
+      return res.status(409).json({ error: code });
     res.status(500).json({ error: "Failed to save booking" });
   }
 });
@@ -828,21 +972,37 @@ app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const token = String(req.query.token || "");
-    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    if (!token)
+      return res.status(400).json({ ok: false, error: "missing_token" });
     const decoded = verifyBookingToken(token);
     const { bid, eid } = decoded || {};
     const ref = db.collection("bookings").doc(String(bid));
     const snap = await ref.get();
-    if (!snap.exists) return res.status(404).json({ ok: false, error: "not_found" });
+    if (!snap.exists)
+      return res.status(404).json({ ok: false, error: "not_found" });
     const b = snap.data() || {};
     // token mismatch protection if stored
-    if (b.token && b.token !== token) return res.status(400).json({ ok: false, error: "token_mismatch" });
+    if (b.token && b.token !== token)
+      return res.status(400).json({ ok: false, error: "token_mismatch" });
     const quantity = Number(b.quantity || 1);
     const checkedInCount = Number(b.checkedInCount || 0);
     const remaining = Math.max(quantity - checkedInCount, 0);
-    return res.json({ ok: true, bookingId: bid, eventId: eid, quantity, checkedInCount, remaining, nome: b.nome, cognome: b.cognome, email: b.email, telefono: b.telefono, status: b.status });
+    return res.json({
+      ok: true,
+      bookingId: bid,
+      eventId: eid,
+      quantity,
+      checkedInCount,
+      remaining,
+      nome: b.nome,
+      cognome: b.cognome,
+      email: b.email,
+      telefono: b.telefono,
+      status: b.status,
+    });
   } catch (e) {
-    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    if (e?.name === "TokenExpiredError")
+      return res.status(401).json({ ok: false, error: "expired" });
     return res.status(400).json({ ok: false, error: "invalid" });
   }
 });
@@ -852,7 +1012,8 @@ app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
-    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    if (!token)
+      return res.status(400).json({ ok: false, error: "missing_token" });
     const n = Math.max(1, parseInt(count, 10) || 1);
     const decoded = verifyBookingToken(String(token));
     const { bid } = decoded || {};
@@ -876,14 +1037,26 @@ app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
       return { quantity, newCount };
     });
     const remaining = Math.max(result.quantity - result.newCount, 0);
-    res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+    res.json({
+      ok: true,
+      quantity: result.quantity,
+      checkedInCount: result.newCount,
+      remaining,
+    });
   } catch (e) {
     const code = e?.message;
-    if (code === "not_found") return res.status(404).json({ ok: false, error: code });
-    if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
-    if (code === "already_fully_checked_in") return res.status(409).json({ ok: false, error: code });
-    if (code === "exceeds_quantity") return res.status(409).json({ ok: false, error: code, remaining: e?.remaining ?? 0 });
-    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    if (code === "not_found")
+      return res.status(404).json({ ok: false, error: code });
+    if (code === "token_mismatch")
+      return res.status(400).json({ ok: false, error: code });
+    if (code === "already_fully_checked_in")
+      return res.status(409).json({ ok: false, error: code });
+    if (code === "exceeds_quantity")
+      return res
+        .status(409)
+        .json({ ok: false, error: code, remaining: e?.remaining ?? 0 });
+    if (e?.name === "TokenExpiredError")
+      return res.status(401).json({ ok: false, error: "expired" });
     return res.status(400).json({ ok: false, error: "invalid" });
   }
 });
@@ -893,7 +1066,8 @@ app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
-    if (!token) return res.status(400).json({ ok: false, error: "missing_token" });
+    if (!token)
+      return res.status(400).json({ ok: false, error: "missing_token" });
     const n = Math.max(1, parseInt(count, 10) || 1);
     const decoded = verifyBookingToken(String(token));
     const { bid } = decoded || {};
@@ -912,13 +1086,22 @@ app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
       return { quantity, newCount };
     });
     const remaining = Math.max(result.quantity - result.newCount, 0);
-    res.json({ ok: true, quantity: result.quantity, checkedInCount: result.newCount, remaining });
+    res.json({
+      ok: true,
+      quantity: result.quantity,
+      checkedInCount: result.newCount,
+      remaining,
+    });
   } catch (e) {
     const code = e?.message;
-    if (code === "not_found") return res.status(404).json({ ok: false, error: code });
-    if (code === "token_mismatch") return res.status(400).json({ ok: false, error: code });
-    if (code === "nothing_to_undo") return res.status(409).json({ ok: false, error: code });
-    if (e?.name === "TokenExpiredError") return res.status(401).json({ ok: false, error: "expired" });
+    if (code === "not_found")
+      return res.status(404).json({ ok: false, error: code });
+    if (code === "token_mismatch")
+      return res.status(400).json({ ok: false, error: code });
+    if (code === "nothing_to_undo")
+      return res.status(409).json({ ok: false, error: code });
+    if (e?.name === "TokenExpiredError")
+      return res.status(401).json({ ok: false, error: "expired" });
     return res.status(400).json({ ok: false, error: "invalid" });
   }
 });
