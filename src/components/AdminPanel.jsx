@@ -224,11 +224,11 @@ const AdminPanel = () => {
     const [events, setEvents] = useState([]);
 
     useEffect(() => {
-        setBookings(bookingsData);
+        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
     }, [bookingsData]);
 
     useEffect(() => {
-        setEvents(eventsData);
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
     }, [eventsData]);
 
     // pagination

@@ -22,6 +22,7 @@ module.exports = async function handler(req, res) {
   const includeSharedDrives = String(req.query.includeSharedDrives || "true").toLowerCase() !== "false";
   // Use only server-side keys to avoid browser referrer restrictions
   const apiKey = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+  const debug = String(req.query.debug || "").toLowerCase() === "1" || String(req.query.debug || "").toLowerCase() === "true";
 
   if (!folderId) return res.status(400).json({ error: "missing_folderId" });
 
@@ -32,6 +33,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const diag = { calls: [] };
     const fetchAll = async (q) => {
       const acc = [];
       let pageToken;
@@ -49,8 +51,15 @@ module.exports = async function handler(req, res) {
           url.searchParams.set("supportsAllDrives", "true");
           url.searchParams.set("includeItemsFromAllDrives", "true");
         }
-        const r = await fetch(url.toString());
-        if (!r.ok) throw new Error(`Drive list error ${r.status}: ${await r.text()}`);
+        const u = url.toString();
+        const r = await fetch(u);
+        if (!r.ok) {
+          const text = await r.text().catch(() => "");
+          diag.calls.push({ url: u.replace(/key=[^&]+/, "key=***"), status: r.status, ok: false, text });
+          throw new Error(`Drive list error ${r.status}: ${text}`);
+        } else {
+          diag.calls.push({ url: u.replace(/key=[^&]+/, "key=***"), status: r.status, ok: true });
+        }
         const j = await r.json();
         (j.files || []).forEach((f) => acc.push(f));
         pageToken = j.nextPageToken;
@@ -87,10 +96,12 @@ module.exports = async function handler(req, res) {
     const deduped = items.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
 
     res.setHeader("Cache-Control", "public, max-age=300");
+    if (debug) return res.json({ items: deduped, diag });
     return res.json(deduped);
   } catch (e) {
     console.error("/api/drive/list error:", e?.message || e);
     // Non rompere la UI: ritorna lista vuota
+    if (debug) return res.json({ items: [], diag: { error: e?.message || String(e) } });
     return res.json([]);
   }
 };

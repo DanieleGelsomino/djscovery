@@ -81,7 +81,8 @@ export const fetchEvents = async (opts = {}) => {
             url.searchParams.set("status", status);
         }
         const res = await fetch(url.toString());
-        return handleResponse(res);
+        const data = await handleResponse(res);
+        return Array.isArray(data) ? data : [];
     });
 };
 
@@ -127,7 +128,8 @@ export const fetchBookings = async () => {
     if (useMock) return mockFetchBookings();
     return withLoading(async () => {
         const res = await fetch(`${API_BASE}/api/bookings`);
-        return handleResponse(res);
+        const data = await handleResponse(res);
+        return Array.isArray(data) ? data : [];
     });
 };
 
