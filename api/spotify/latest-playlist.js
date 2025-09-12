@@ -82,6 +82,4 @@ module.exports = async function handler(req, res) {
     });
   }
 };
-
-// Explicit runtime for Vercel
-module.exports.config = { runtime: "nodejs20.x" };
+// (runtime defaulted by project)
