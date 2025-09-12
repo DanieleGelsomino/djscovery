@@ -70,7 +70,8 @@ export async function listImagesInFolder(
         // fall back to client-side Drive API
     }
 
-    if (!apiKey) throw new Error("Google API key mancante");
+    // Se non abbiamo una chiave lato client, non lanciare: torna lista vuota
+    if (!apiKey) return [];
 
     const key = cacheKey(folderId, { apiKey, pageSize, includeSharedDrives });
     const cached = listCache.get(key);
