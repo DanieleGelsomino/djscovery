@@ -48,12 +48,12 @@ app.get("/api/events", async (req, res) => {
   try {
     let ref = db.collection("events");
     if (status && ["draft","published","archived"].includes(String(status))) {
-      ref = ref.where("status","==", status);
+      ref = ref.where("status", "==", String(status));
     }
     // Try with composite, fallback to single order
     try {
       const snap = await ref.orderBy("date").orderBy("time").get();
-      return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
     } catch (e) {
       const msg = String(e?.message || "").toLowerCase();
       if (msg.includes("index")) {
@@ -62,11 +62,13 @@ app.get("/api/events", async (req, res) => {
         data.sort((a,b) => `${a.date||""}T${a.time||"00:00"}`.localeCompare(`${b.date||""}T${b.time||"00:00"}`));
         return res.json(data);
       }
-      throw e;
+      // be resilient: return empty list instead of 500
+      return res.json([]);
     }
   } catch (err) {
     console.error("/api/events error:", err?.message || err);
-    res.status(500).json({ error: "Failed to load events" });
+    // fallback empty list to avoid client hangs
+    return res.json([]);
   }
 });
 

@@ -329,7 +329,7 @@ app.get("/api/events", async (req, res) => {
       return res.status(500).json({ error: code });
     console.error("/api/events error:", msg);
     // fallback empty list to avoid client hangs
-    res.json([]);
+    return res.json([]);
   }
 });
 
