@@ -2,4 +2,5 @@
 const serverless = require("serverless-http");
 const app = require("./app");
 
-module.exports = serverless(app);
+// Preserve /api prefix when routing through catch-all functions
+module.exports = serverless(app, { basePath: "/api" });
