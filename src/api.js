@@ -20,9 +20,11 @@ const useMock = (import.meta.env.VITE_MOCK || "").toString().toLowerCase() === "
 // ⬇️ Base URL backend; in dev (localhost) punta a 3000, altrimenti same-origin (richiede rewrite/proxy)
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL && String(import.meta.env.VITE_API_BASE_URL)) ||
-  (typeof window !== "undefined"
-    ? window.location.origin
-    : "");
+  (import.meta.env.DEV
+    ? "http://localhost:3000"
+    : typeof window !== "undefined"
+      ? window.location.origin
+      : "");
 
 // Token bearer (Firebase ID token)
 let authToken = null;
