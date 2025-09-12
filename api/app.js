@@ -99,6 +99,53 @@ app.get("/api/auth/whoami", async (req, res) => {
   if (!user) return res.status(401).json({ ok: false, error: "unauthorized" });
   res.json({ ok: true, uid: user.uid, email: user.email || null, admin: !!user.admin });
 });
+
+// Consolidated self-test endpoint
+app.get("/api/self-test", async (req, res) => {
+  const out = { ok: true, tests: {} };
+  // Google APIs
+  try {
+    const key = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+    out.tests.googleKey = { ok: !!key };
+  } catch (e) {
+    out.tests.googleKey = { ok: false, error: e?.message || String(e) };
+  }
+  // Firestore
+  try {
+    const db = getDb();
+    const snap = await db.collection("events").limit(1).get();
+    out.tests.firestore = { ok: true, eventsCountSample: snap.size };
+  } catch (e) {
+    out.tests.firestore = { ok: false, error: e?.code || e?.message || String(e) };
+  }
+  // Drive (if folder id provided via query)
+  try {
+    const folderId = String(req.query.folderId || "");
+    if (folderId) {
+      const base = "https://www.googleapis.com/drive/v3/files";
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,
+        fields: "files(id)",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+        pageSize: "1",
+        key: process.env.GOOGLE_API_KEY || "",
+      });
+      const r = await fetch(`${base}?${params.toString()}`);
+      out.tests.drive = { ok: r.ok, status: r.status };
+    }
+  } catch (e) {
+    out.tests.drive = { ok: false, error: e?.message || String(e) };
+  }
+  // SMTP
+  try {
+    const mailer = buildTransport();
+    out.tests.smtp = { ok: !!mailer };
+  } catch (e) {
+    out.tests.smtp = { ok: false, error: e?.message || String(e) };
+  }
+  res.json(out);
+});
 // Minimal diagnostics for Firestore connectivity
 app.get("/api/diag", async (_req, res) => {
   try {
