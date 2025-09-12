@@ -20,7 +20,8 @@ module.exports = async function handler(req, res) {
   const folderId = String(req.query.folderId || "").trim();
   const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize || "100", 10) || 100));
   const includeSharedDrives = String(req.query.includeSharedDrives || "true").toLowerCase() !== "false";
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || process.env.VITE_GOOGLE_API_KEY || "";
+  // Use only server-side keys to avoid browser referrer restrictions
+  const apiKey = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
 
   if (!folderId) return res.status(400).json({ error: "missing_folderId" });
 

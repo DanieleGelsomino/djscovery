@@ -10,13 +10,10 @@ module.exports = async function handler(req, res) {
   try {
     const handle = String(req.query.handle || "").trim();
     const max = Math.min(10, Math.max(1, parseInt(req.query.max || "4", 10) || 4));
-    const key =
-      process.env.YOUTUBE_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.VITE_GOOGLE_API_KEY ||
-      "";
+    // Use only server-side keys to avoid browser referrer restrictions
+    const key = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
 
-    if (!key) return res.status(500).json({ error: "missing_api_key" });
+    if (!key) return res.status(200).json({ ids: [] });
     if (!handle) return res.status(400).json({ error: "missing_handle" });
 
     const h = handle.startsWith("@") ? handle : `@${handle}`;
