@@ -4,6 +4,7 @@
 
 This project exposes an Express-based serverless API under `/api`.
 
+
 - `GET /api/events` – list events stored in Firestore.
 - `GET /api/bookings` – list bookings stored in Firestore. Supports `eventId` query parameter to filter by event.
 
