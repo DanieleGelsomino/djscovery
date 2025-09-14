@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const QRCode = require("qrcode");
 const nodemailer = require("nodemailer");
 
-// ---------- Firestore lazy init ----------
+// Lazy Firestore getter: evita di inizializzare Admin/Firestore per /api/health
 let adminInited = false;
 let cachedDb = null;
 function getDb() {
@@ -18,11 +18,16 @@ function getDb() {
       admin.app();
       adminInited = true;
     } catch {
+      // Try several ways to obtain the service account JSON:
+      // 1) FIREBASE_SERVICE_ACCOUNT_JSON (raw JSON string)
+      // 2) FIREBASE_SERVICE_ACCOUNT_B64 (base64-encoded JSON)
+      // 3) FIREBASE_SERVICE_ACCOUNT (path to file)
+      // 4) GOOGLE_APPLICATION_CREDENTIALS (path to file)
       let svc = null;
       const tryParse = (raw) => {
         try {
           return JSON.parse(raw);
-        } catch {
+        } catch (e) {
           return null;
         }
       };
@@ -38,7 +43,7 @@ function getDb() {
         svc = tryParse(rawJson);
         if (!svc) {
           const err = new Error("invalid_service_account_json");
-          err.code = err.message;
+          err.code = "invalid_service_account_json";
           throw err;
         }
       } else if (rawB64) {
@@ -46,7 +51,7 @@ function getDb() {
         svc = tryParse(decoded);
         if (!svc) {
           const err = new Error("invalid_service_account_base64");
-          err.code = err.message;
+          err.code = "invalid_service_account_base64";
           throw err;
         }
       } else if (pathEnv) {
@@ -56,15 +61,16 @@ function getDb() {
             svc = tryParse(fileRaw);
             if (!svc) {
               const err = new Error("invalid_service_account_file");
-              err.code = err.message;
+              err.code = "invalid_service_account_file";
               throw err;
             }
           } else {
+            // path not available; fallthrough to applicationDefault
             svc = null;
           }
-        } catch {
+        } catch (e) {
           const err = new Error("invalid_service_account_file");
-          err.code = err.message;
+          err.code = "invalid_service_account_file";
           throw err;
         }
       }
@@ -74,26 +80,30 @@ function getDb() {
           process.env.FIREBASE_PROJECT_ID ||
           (svc && svc.project_id) ||
           undefined;
-
         if (svc) {
           admin.initializeApp({
             credential: admin.credential.cert(svc),
             ...(projectId ? { projectId } : {}),
           });
         } else if (pathEnv) {
+          // If a path env was provided (FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS)
+          // but we couldn't parse it earlier, throw explicit error.
           throw new Error("invalid_service_account_file");
         } else {
+          // No service account provided: fail fast with clear error to avoid long timeouts in serverless
           const err = new Error("missing_service_account");
-          err.code = err.message;
+          err.code = "missing_service_account";
           throw err;
         }
         adminInited = true;
         try {
           const db = admin.firestore();
+          // Prefer REST transport on serverless (faster cold start than gRPC)
           db.settings({ preferRest: true });
           cachedDb = db;
         } catch {}
       } catch (e) {
+        // Bubble up known errors
         if (
           e?.code === "invalid_service_account_json" ||
           e?.code === "invalid_service_account_file" ||
@@ -103,7 +113,7 @@ function getDb() {
           throw e;
         }
         const err = new Error("missing_service_account");
-        err.code = err.message;
+        err.code = "missing_service_account";
         throw err;
       }
     }
@@ -122,15 +132,15 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-// Logger minimale
-app.use((req, _res, next) => {
+// Simple request logger to diagnose invocations in serverless env
+app.use((req, res, next) => {
   try {
     console.log(`[api] ${req.method} ${req.originalUrl} - ip=${req.ip}`);
-  } catch {}
+  } catch (e) {}
   next();
 });
 
-// ---------- CORS + Preflight ----------
+// CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
 app.use(
   cors({
     origin: true,
@@ -139,42 +149,119 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-// risposte ai preflight
-app.options("*", cors());
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
 
-// ---------- Hardening ----------
+// Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// ---------- Rate limit (fix: keyGenerator e skip OPTIONS) ----------
+// Rate limit
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 400,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
-  skip: (req) => req.method === "OPTIONS",
+  keyGenerator: rateLimit.ipKeyGenerator,
 });
 const publicLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
-  skip: (req) => req.method === "OPTIONS",
+  keyGenerator: rateLimit.ipKeyGenerator,
 });
 app.use(globalLimiter);
 
-// ---------- Parsers ----------
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 const now = () => new Date();
 
-// ---------- Helpers comuni ----------
+// Health endpoints
+app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
+app.get("/health", (_req, res) => res.json({ ok: true }));
+app.get("/healthz", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// Simple auth diagnostic
+app.get("/api/auth/whoami", async (req, res) => {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ ok: false, error: "unauthorized" });
+  res.json({
+    ok: true,
+    uid: user.uid,
+    email: user.email || null,
+    admin: !!user.admin,
+  });
+});
+
+// Consolidated self-test endpoint
+app.get("/api/self-test", async (req, res) => {
+  const out = { ok: true, tests: {} };
+  // Google APIs
+  try {
+    const key = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
+    out.tests.googleKey = { ok: !!key };
+  } catch (e) {
+    out.tests.googleKey = { ok: false, error: e?.message || String(e) };
+  }
+  // Firestore
+  try {
+    const db = getDb();
+    const snap = await db.collection("events").limit(1).get();
+    out.tests.firestore = { ok: true, eventsCountSample: snap.size };
+  } catch (e) {
+    out.tests.firestore = {
+      ok: false,
+      error: e?.code || e?.message || String(e),
+    };
+  }
+  // Drive (if folder id provided via query)
+  try {
+    const folderId = String(req.query.folderId || "");
+    if (folderId) {
+      const base = "https://www.googleapis.com/drive/v3/files";
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,
+        fields: "files(id)",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+        pageSize: "1",
+        key: process.env.GOOGLE_API_KEY || "",
+      });
+      const r = await fetch(`${base}?${params.toString()}`);
+      out.tests.drive = { ok: r.ok, status: r.status };
+    }
+  } catch (e) {
+    out.tests.drive = { ok: false, error: e?.message || String(e) };
+  }
+  // SMTP
+  try {
+    const mailer = buildTransport();
+    out.tests.smtp = { ok: !!mailer };
+  } catch (e) {
+    out.tests.smtp = { ok: false, error: e?.message || String(e) };
+  }
+  res.json(out);
+});
+// Minimal diagnostics for Firestore connectivity
+app.get("/api/diag", async (_req, res) => {
+  try {
+    const db = getDb();
+    const appInfo = admin.app().options || {};
+    const evSnap = await db.collection("events").limit(1).get();
+    const bkSnap = await db.collection("bookings").limit(1).get();
+    res.json({
+      ok: true,
+      projectId: appInfo.projectId || process.env.FIREBASE_PROJECT_ID || null,
+      eventsSample: evSnap.size,
+      bookingsSample: bkSnap.size,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: e?.code || e?.message || String(e) });
+  }
+});
+
+// ===== Auth helpers (Firebase ID token) =====
 async function getAuthUser(req) {
   try {
     const hdr = String(
@@ -189,12 +276,14 @@ async function getAuthUser(req) {
     return null;
   }
 }
+
 async function requireAuth(req, res, next) {
   const user = await getAuthUser(req);
   if (!user) return res.status(401).json({ error: "unauthorized" });
   req.user = user;
   next();
 }
+
 async function requireAdmin(req, res, next) {
   const user = await getAuthUser(req);
   if (!user) return res.status(401).json({ error: "unauthorized" });
@@ -203,45 +292,375 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-// Email / QR / token helpers
-function buildTransport() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || "465", 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
-  const secure = port === 465;
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-  });
-}
-function apiBaseUrl(req) {
-  return (
-    (process.env.API_BASE_URL &&
-      process.env.API_BASE_URL.replace(/\/+$/, "")) ||
-    `https://${req.headers["x-forwarded-host"] || req.headers.host}`
-  );
-}
-function signBookingToken(payload) {
-  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
-  return jwt.sign(payload, secret, { expiresIn: "180d" });
-}
-function verifyBookingToken(token) {
-  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
-  return jwt.verify(token, secret);
-}
+// Events (minimal)
+app.get("/api/events", async (req, res) => {
+  const { status } = req.query || {};
+  try {
+    const db = getDb();
+    let ref = db.collection("events");
+    if (status && ["draft", "published", "archived"].includes(String(status))) {
+      ref = ref.where("status", "==", String(status));
+    }
+    try {
+      const snap = await ref.orderBy("date").orderBy("time").get();
+      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      if (
+        String(e?.message || "")
+          .toLowerCase()
+          .includes("index")
+      ) {
+        const snap = await ref.orderBy("date").get();
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) =>
+          `${a.date || ""}T${a.time || "00:00"}`.localeCompare(
+            `${b.date || ""}T${b.time || "00:00"}`
+          )
+        );
+        return res.json(data);
+      }
+      // be resilient: return empty list instead of 500
+      return res.json([]);
+    }
+  } catch (err) {
+    const msg = err?.message || err;
+    const code = err?.code || "internal";
+    if (code === "missing_service_account")
+      return res.status(500).json({ error: code });
+    console.error("/api/events error:", msg);
+    // fallback empty list to avoid client hangs
+    return res.json([]);
+  }
+});
+
+// Get single event by id (public)
+app.get("/api/events/:id", async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const snap = await db.collection("events").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: "not_found" });
+    return res.json({ id: snap.id, ...snap.data() });
+  } catch (e) {
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
+    return res.status(500).json({ error: "failed" });
+  }
+});
+
+// Create event (admin)
+app.post("/api/events", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const data = req.body || {};
+    const doc = {
+      name: String(data.name || "").trim(),
+      dj: String(data.dj || "").trim(),
+      date: String(data.date || "").trim(),
+      time: String(data.time || "").trim(),
+      price: data.price ?? "",
+      capacity: Number(data.capacity || 0) || 0,
+      description: String(data.description || ""),
+      soldOut: !!data.soldOut,
+      image: String(data.image || ""),
+      place: String(data.place || ""),
+      placeCoords: data.placeCoords || null,
+      placeId: data.placeId || null,
+      status: ["draft", "published", "archived"].includes(String(data.status))
+        ? String(data.status)
+        : "draft",
+      bookingsCount: Number(data.bookingsCount || 0) || 0,
+      internalNotes: String(data.internalNotes || ""),
+      updatedAt: now(),
+      createdAt: now(),
+    };
+    const ref = await db.collection("events").add(doc);
+    res.json({ id: ref.id, ...doc });
+  } catch (e) {
+    res.status(500).json({ error: "create_failed" });
+  }
+});
+
+// Update event (admin)
+app.put("/api/events/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const data = { ...req.body, updatedAt: now() };
+    await db.collection("events").doc(id).set(data, { merge: true });
+    const snap = await db.collection("events").doc(id).get();
+    res.json({ id, ...(snap.data() || {}) });
+  } catch {
+    res.status(500).json({ error: "update_failed" });
+  }
+});
+
+// Delete single event (admin)
+app.delete("/api/events/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("events").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// Bulk delete events by status (admin)
+app.delete("/api/events", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const status = String(req.query.status || "");
+    let q = db.collection("events");
+    if (status) q = q.where("status", "==", status);
+    const snap = await q.get();
+    const batch = db.bulkWriter ? null : db.batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      if (db.bulkWriter) {
+        await db.collection("events").doc(doc.id).delete();
+      } else {
+        batch.delete(db.collection("events").doc(doc.id));
+      }
+      count++;
+    }
+    if (batch) await batch.commit();
+    res.json({ ok: true, deleted: count });
+  } catch {
+    res.status(500).json({ error: "bulk_delete_failed" });
+  }
+});
+
+// Bookings (minimal)
+app.get("/api/bookings", async (req, res) => {
+  try {
+    const db = getDb();
+    const { eventId } = req.query || {};
+    let ref = db.collection("bookings");
+    if (eventId) ref = ref.where("eventId", "==", String(eventId));
+    try {
+      const snap = await ref.orderBy("createdAt", "desc").get();
+      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      if (
+        String(e?.message || "")
+          .toLowerCase()
+          .includes("index")
+      ) {
+        const snap = await ref.get();
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => {
+          const ca = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const cb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return cb - ca;
+        });
+        return res.json(data);
+      }
+      throw e;
+    }
+  } catch (e) {
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
+    console.error("/api/bookings error:", e?.message || e);
+    res.status(500).json({ error: "Failed to load bookings" });
+  }
+});
+
+// removed duplicate minimal POST /api/bookings - enhanced handler defined later with email/token
+
+// Update booking (admin)
+app.put("/api/bookings/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const data = { ...req.body, lastUpdateAt: now() };
+    await db.collection("bookings").doc(id).set(data, { merge: true });
+    const snap = await db.collection("bookings").doc(id).get();
+    res.json({ id, ...(snap.data() || {}) });
+  } catch {
+    res.status(500).json({ error: "update_failed" });
+  }
+});
+
+// Delete single booking (admin)
+app.delete("/api/bookings/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("bookings").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// Bulk delete bookings (admin)
+app.delete("/api/bookings", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const eventId = String(req.query.eventId || "");
+    let q = db.collection("bookings");
+    if (eventId) q = q.where("eventId", "==", eventId);
+    const snap = await q.get();
+    const batch = db.bulkWriter ? null : db.batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      if (db.bulkWriter) {
+        await db.collection("bookings").doc(doc.id).delete();
+      } else {
+        batch.delete(db.collection("bookings").doc(doc.id));
+      }
+      count++;
+    }
+    if (batch) await batch.commit();
+    res.json({ ok: true, deleted: count });
+  } catch {
+    res.status(500).json({ error: "bulk_delete_failed" });
+  }
+});
+
+// Gallery (Firestore-backed)
+app.get("/api/gallery", async (_req, res) => {
+  try {
+    const db = getDb();
+    const snap = await db
+      .collection("gallery")
+      .orderBy("createdAt", "desc")
+      .get();
+    res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  } catch (e) {
+    if (e?.code === "missing_service_account")
+      return res.status(500).json({ error: e.code });
+    console.error("/api/gallery error:", e?.message || e);
+    res.status(500).json({ error: "Failed to load gallery" });
+  }
+});
+
+// Add gallery image (admin)
+app.post("/api/gallery", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const { src = "", title = "" } = req.body || {};
+    if (!src) return res.status(400).json({ error: "missing_src" });
+    const doc = {
+      src: String(src),
+      title: String(title || ""),
+      createdAt: now(),
+    };
+    const ref = await db.collection("gallery").add(doc);
+    res.json({ id: ref.id, ...doc });
+  } catch {
+    res.status(500).json({ error: "create_failed" });
+  }
+});
+
+// Delete gallery image (admin)
+app.delete("/api/gallery/:id", requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    await db.collection("gallery").doc(id).delete();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// Newsletter + Contact stubs
+app.post("/api/newsletter/subscribe", publicLimiter, async (_req, res) =>
+  res.json({ ok: true })
+);
+app.post("/api/contact", publicLimiter, async (_req, res) =>
+  res.json({ ok: true })
+);
+
+// YouTube/Spotify stubs
+app.get("/api/youtube/latest", publicLimiter, async (_req, res) =>
+  res.json({ items: [] })
+);
+app.get("/api/youtube/latest-rss", publicLimiter, async (_req, res) =>
+  res.json({ items: [] })
+);
+app.get("/api/spotify/latest-playlist", publicLimiter, async (_req, res) =>
+  res.json({ tracks: [] })
+);
+
+/* ===== YouTube helpers ===== */
 const fetchWithTimeout = async (url, opts = {}, ms = 8000) => {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
   try {
-    return await fetch(url, { ...opts, signal: ctrl.signal });
+    const r = await fetch(url, { ...opts, signal: ctrl.signal });
+    return r;
   } finally {
     clearTimeout(id);
   }
 };
+
+// GET /api/youtube/latest?handle=@name&max=4
+app.get("/api/youtube/latest", publicLimiter, async (req, res) => {
+  try {
+    const handle = String(req.query.handle || "");
+    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
+    const apiKey =
+      process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
+    if (!apiKey || !handle) return res.json({ ids: [] });
+
+    // Resolve channelId by handle
+    const chRes = await fetchWithTimeout(
+      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(
+        handle
+      )}&key=${apiKey}`
+    );
+    if (!chRes.ok) return res.json({ ids: [] });
+    const chJson = await chRes.json();
+    const channelId = chJson?.items?.[0]?.id;
+    if (!channelId) return res.json({ ids: [] });
+
+    const listRes = await fetchWithTimeout(
+      `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${max}`
+    );
+    if (!listRes.ok) return res.json({ ids: [] });
+    const listJson = await listRes.json();
+    const ids = (listJson?.items || [])
+      .filter((it) => it?.id?.videoId)
+      .map((it) => it.id.videoId);
+    res.json({ ids });
+  } catch (e) {
+    res.json({ ids: [] });
+  }
+});
+
+// GET /api/youtube/latest-rss?channelId=UC...&max=4
+app.get("/api/youtube/latest-rss", publicLimiter, async (req, res) => {
+  try {
+    const channelId = String(req.query.channelId || "");
+    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
+    if (!channelId) return res.json({ ids: [] });
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(
+      channelId
+    )}`;
+    const r = await fetchWithTimeout(rssUrl, {}, 8000);
+    if (!r.ok) return res.json({ ids: [] });
+    const text = await r.text();
+    // Extract <yt:videoId>VIDEO</yt:videoId>
+    const ids = Array.from(text.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g))
+      .map((m) => m[1])
+      .slice(0, max);
+    res.json({ ids });
+  } catch (e) {
+    res.json({ ids: [] });
+  }
+});
+
+/* ===== Google Drive endpoints (for Admin picker) ===== */
 const getGoogleApiKey = () =>
   process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
 
@@ -301,306 +720,171 @@ async function getServiceAccountToken() {
   }
 }
 
-// ---------- Router API (senza prefisso) ----------
-const api = express.Router();
-
-// Health (router) + root
-app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
-api.get("/health", (_req, res) => res.json({ ok: true }));
-api.get("/healthz", (_req, res) => res.json({ ok: true }));
-
-// Auth diag
-api.get("/auth/whoami", async (req, res) => {
-  const user = await getAuthUser(req);
-  if (!user) return res.status(401).json({ ok: false, error: "unauthorized" });
-  res.json({
-    ok: true,
-    uid: user.uid,
-    email: user.email || null,
-    admin: !!user.admin,
-  });
-});
-
-// Self-test
-api.get("/self-test", async (req, res) => {
-  const out = { ok: true, tests: {} };
-  try {
-    const key = process.env.GOOGLE_API_KEY || process.env.YOUTUBE_API_KEY || "";
-    out.tests.googleKey = { ok: !!key };
-  } catch (e) {
-    out.tests.googleKey = { ok: false, error: e?.message || String(e) };
-  }
-  try {
-    const db = getDb();
-    const snap = await db.collection("events").limit(1).get();
-    out.tests.firestore = { ok: true, eventsCountSample: snap.size };
-  } catch (e) {
-    out.tests.firestore = {
-      ok: false,
-      error: e?.code || e?.message || String(e),
-    };
-  }
+// List images in a Drive folder (supports shared drives)
+app.get("/api/drive/list", publicLimiter, async (req, res) => {
   try {
     const folderId = String(req.query.folderId || "");
-    if (folderId) {
-      const base = "https://www.googleapis.com/drive/v3/files";
-      const params = new URLSearchParams({
-        q: `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,
-        fields: "files(id)",
-        includeItemsFromAllDrives: "true",
-        supportsAllDrives: "true",
-        pageSize: "1",
-        key: process.env.GOOGLE_API_KEY || "",
-      });
-      const r = await fetch(`${base}?${params.toString()}`);
-      out.tests.drive = { ok: r.ok, status: r.status };
-    }
-  } catch (e) {
-    out.tests.drive = { ok: false, error: e?.message || String(e) };
-  }
-  try {
-    const mailer = buildTransport();
-    out.tests.smtp = { ok: !!mailer };
-  } catch (e) {
-    out.tests.smtp = { ok: false, error: e?.message || String(e) };
-  }
-  res.json(out);
-});
-
-// Diag Firestore
-api.get("/diag", async (_req, res) => {
-  try {
-    const db = getDb();
-    const appInfo = admin.app().options || {};
-    const evSnap = await db.collection("events").limit(1).get();
-    const bkSnap = await db.collection("bookings").limit(1).get();
-    res.json({
-      ok: true,
-      projectId: appInfo.projectId || process.env.FIREBASE_PROJECT_ID || null,
-      eventsSample: evSnap.size,
-      bookingsSample: bkSnap.size,
+    const apiKey = getGoogleApiKey();
+    if (!folderId || !apiKey) return res.json([]);
+    const base = "https://www.googleapis.com/drive/v3/files";
+    const params = new URLSearchParams({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: "files(id,name,mimeType,modifiedTime,thumbnailLink)",
+      includeItemsFromAllDrives: "true",
+      supportsAllDrives: "true",
+      pageSize: "200",
+      key: apiKey,
     });
+    const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 10000);
+    if (!r.ok) return res.json([]);
+    const j = await r.json();
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const images = files
+      .filter(
+        (f) =>
+          String(f?.mimeType || "").startsWith("image/") ||
+          f?.mimeType === "application/vnd.google-apps.shortcut"
+      )
+      .map((f) => {
+        const id = f.id;
+        return {
+          id,
+          name: f.name,
+          mimeType: f.mimeType,
+          modifiedTime: f.modifiedTime,
+          thumbnail: f.thumbnailLink || null,
+          src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
+          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(
+            apiKey
+          )}`,
+        };
+      });
+    res.json(images);
   } catch (e) {
-    res
-      .status(500)
-      .json({ ok: false, error: e?.code || e?.message || String(e) });
+    res.json([]);
   }
 });
 
-// -------- Events --------
-api.get("/events", async (req, res) => {
-  const { status } = req.query || {};
+// Proxy a Drive file (useful for HEIC fallback)
+app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
   try {
-    const db = getDb();
-    let ref = db.collection("events");
-    if (status && ["draft", "published", "archived"].includes(String(status))) {
-      ref = ref.where("status", "==", String(status));
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).send("missing");
+    const apiKey = getGoogleApiKey();
+    const sa = await getServiceAccountToken();
+
+    // Prefer Service Account if available (works for private files shared with SA)
+    const baseUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(
+      id
+    )}?alt=media`;
+    let r = null;
+    if (sa) {
+      r = await fetchWithTimeout(
+        baseUrl,
+        { headers: { Authorization: `Bearer ${sa}` } },
+        15000
+      );
+    } else if (apiKey) {
+      r = await fetchWithTimeout(
+        `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
+        {},
+        15000
+      );
+    } else {
+      return res.status(500).send("no_credentials");
     }
-    try {
-      const snap = await ref.orderBy("date").orderBy("time").get();
-      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (e) {
-      if (
-        String(e?.message || "")
-          .toLowerCase()
-          .includes("index")
-      ) {
-        const snap = await ref.orderBy("date").get();
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        data.sort((a, b) =>
-          `${a.date || ""}T${a.time || "00:00"}`.localeCompare(
-            `${b.date || ""}T${b.time || "00:00"}`
-          )
+
+    if (!r.ok) {
+      // Fallback: if first try failed, try the other method once
+      if (sa && apiKey) {
+        const r2 = await fetchWithTimeout(
+          `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
+          {},
+          15000
         );
-        return res.json(data);
-      }
-      return res.json([]);
-    }
-  } catch (err) {
-    const code = err?.code || "internal";
-    if (code === "missing_service_account")
-      return res.status(500).json({ error: code });
-    console.error("/events error:", err?.message || err);
-    return res.json([]);
-  }
-});
-api.get("/events/:id", async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    const snap = await db.collection("events").doc(id).get();
-    if (!snap.exists) return res.status(404).json({ error: "not_found" });
-    return res.json({ id: snap.id, ...snap.data() });
-  } catch (e) {
-    if (e?.code === "missing_service_account")
-      return res.status(500).json({ error: e.code });
-    return res.status(500).json({ error: "failed" });
-  }
-});
-api.post("/events", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const data = req.body || {};
-    const doc = {
-      name: String(data.name || "").trim(),
-      dj: String(data.dj || "").trim(),
-      date: String(data.date || "").trim(),
-      time: String(data.time || "").trim(),
-      price: data.price ?? "",
-      capacity: Number(data.capacity || 0) || 0,
-      description: String(data.description || ""),
-      soldOut: !!data.soldOut,
-      image: String(data.image || ""),
-      place: String(data.place || ""),
-      placeCoords: data.placeCoords || null,
-      placeId: data.placeId || null,
-      status: ["draft", "published", "archived"].includes(String(data.status))
-        ? String(data.status)
-        : "draft",
-      bookingsCount: Number(data.bookingsCount || 0) || 0,
-      internalNotes: String(data.internalNotes || ""),
-      updatedAt: now(),
-      createdAt: now(),
-    };
-    const ref = await db.collection("events").add(doc);
-    res.json({ id: ref.id, ...doc });
-  } catch {
-    res.status(500).json({ error: "create_failed" });
-  }
-});
-api.put("/events/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    const data = { ...req.body, updatedAt: now() };
-    await db.collection("events").doc(id).set(data, { merge: true });
-    const snap = await db.collection("events").doc(id).get();
-    res.json({ id, ...(snap.data() || {}) });
-  } catch {
-    res.status(500).json({ error: "update_failed" });
-  }
-});
-api.delete("/events/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    await db.collection("events").doc(id).delete();
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "delete_failed" });
-  }
-});
-api.delete("/events", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const status = String(req.query.status || "");
-    let q = db.collection("events");
-    if (status) q = q.where("status", "==", status);
-    const snap = await q.get();
-    const batch = db.bulkWriter ? null : db.batch();
-    let count = 0;
-    for (const doc of snap.docs) {
-      if (db.bulkWriter) {
-        await db.collection("events").doc(doc.id).delete();
+        if (!r2.ok) return res.status(r2.status).send("error");
+        r = r2;
+      } else if (!sa) {
+        const sa2 = await getServiceAccountToken();
+        if (sa2) {
+          const r3 = await fetchWithTimeout(
+            baseUrl,
+            { headers: { Authorization: `Bearer ${sa2}` } },
+            15000
+          );
+          if (!r3.ok) return res.status(r3.status).send("error");
+          r = r3;
+        } else {
+          return res.status(r.status).send("error");
+        }
       } else {
-        batch.delete(db.collection("events").doc(doc.id));
+        return res.status(r.status).send("error");
       }
-      count++;
     }
-    if (batch) await batch.commit();
-    res.json({ ok: true, deleted: count });
-  } catch {
-    res.status(500).json({ error: "bulk_delete_failed" });
+    // Pipe headers and body
+    for (const [k, v] of r.headers) {
+      if (k.toLowerCase().startsWith("content-")) res.setHeader(k, v);
+    }
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+  } catch (e) {
+    res.status(500).send("error");
   }
 });
 
-// -------- Bookings --------
-api.get("/bookings", async (req, res) => {
+module.exports = app;
+
+// Global error handler: return JSON for unexpected errors (avoids HTML responses)
+// Note: placed after module.exports so it is defined but will be included when file is loaded
+app.use((err, req, res, _next) => {
   try {
-    const db = getDb();
-    const { eventId } = req.query || {};
-    let ref = db.collection("bookings");
-    if (eventId) ref = ref.where("eventId", "==", String(eventId));
-    try {
-      const snap = await ref.orderBy("createdAt", "desc").get();
-      return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (e) {
-      if (
-        String(e?.message || "")
-          .toLowerCase()
-          .includes("index")
-      ) {
-        const snap = await ref.get();
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        data.sort((a, b) => {
-          const ca = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const cb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return cb - ca;
-        });
-        return res.json(data);
-      }
-      throw e;
-    }
-  } catch (e) {
-    if (e?.code === "missing_service_account")
-      return res.status(500).json({ error: e.code });
-    console.error("/bookings error:", e?.message || e);
-    res.status(500).json({ error: "Failed to load bookings" });
-  }
-});
-api.put("/bookings/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    const data = { ...req.body, lastUpdateAt: now() };
-    await db.collection("bookings").doc(id).set(data, { merge: true });
-    const snap = await db.collection("bookings").doc(id).get();
-    res.json({ id, ...(snap.data() || {}) });
-  } catch {
-    res.status(500).json({ error: "update_failed" });
-  }
-});
-api.delete("/bookings/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    await db.collection("bookings").doc(id).delete();
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "delete_failed" });
-  }
-});
-api.delete("/bookings", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const eventId = String(req.query.eventId || "");
-    let q = db.collection("bookings");
-    if (eventId) q = q.where("eventId", "==", eventId);
-    const snap = await q.get();
-    const batch = db.bulkWriter ? null : db.batch();
-    let count = 0;
-    for (const doc of snap.docs) {
-      if (db.bulkWriter) {
-        await db.collection("bookings").doc(doc.id).delete();
-      } else {
-        batch.delete(db.collection("bookings").doc(doc.id));
-      }
-      count++;
-    }
-    if (batch) await batch.commit();
-    res.json({ ok: true, deleted: count });
-  } catch {
-    res.status(500).json({ error: "bulk_delete_failed" });
-  }
+    console.error("[api][error]", err && (err.stack || err.message || err));
+  } catch (e) {}
+  if (res.headersSent) return;
+  res
+    .status(500)
+    .json({ ok: false, error: String(err?.message || err || "internal") });
 });
 
-// POST /bookings (con email + token + QR)
-api.post("/bookings", publicLimiter, async (req, res) => {
+/* ===================== EMAIL / QR / VERIFY / CHECK-IN ===================== */
+
+// Mail transporter (configure via Vercel env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL)
+function buildTransport() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || "465", 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+  const secure = port === 465; // TLS on 465
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+}
+
+function apiBaseUrl(req) {
+  return (
+    (process.env.API_BASE_URL &&
+      process.env.API_BASE_URL.replace(/\/+$/, "")) ||
+    `https://${req.headers["x-forwarded-host"] || req.headers.host}`
+  );
+}
+
+function signBookingToken(payload) {
+  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
+  return jwt.sign(payload, secret, { expiresIn: "180d" });
+}
+
+function verifyBookingToken(token) {
+  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
+  return jwt.verify(token, secret);
+}
+
+// Enhance existing booking endpoint: send confirmation mail with QR
+// We redefine handler to keep previous logic and append email+token
+app.post("/api/bookings", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const {
@@ -654,11 +938,11 @@ api.post("/bookings", publicLimiter, async (req, res) => {
       };
     });
 
+    // create token and send mail
     const token = signBookingToken({ bid: result.id, eid: eventId, qty });
     const verifyURL = `${apiBaseUrl(
       req
     )}/api/bookings/verify?token=${encodeURIComponent(token)}`;
-
     let sent = false;
     try {
       const mailer = buildTransport();
@@ -687,7 +971,9 @@ api.post("/bookings", publicLimiter, async (req, res) => {
         });
         sent = true;
       }
-    } catch {}
+    } catch (e) {
+      // do not fail booking if email fails
+    }
 
     await db
       .collection("bookings")
@@ -719,8 +1005,8 @@ api.post("/bookings", publicLimiter, async (req, res) => {
   }
 });
 
-// Verify booking
-api.get("/bookings/verify", publicLimiter, async (req, res) => {
+// Verify booking by token
+app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const token = String(req.query.token || "");
@@ -733,6 +1019,7 @@ api.get("/bookings/verify", publicLimiter, async (req, res) => {
     if (!snap.exists)
       return res.status(404).json({ ok: false, error: "not_found" });
     const b = snap.data() || {};
+    // token mismatch protection if stored
     if (b.token && b.token !== token)
       return res.status(400).json({ ok: false, error: "token_mismatch" });
     const quantity = Number(b.quantity || 1);
@@ -758,8 +1045,8 @@ api.get("/bookings/verify", publicLimiter, async (req, res) => {
   }
 });
 
-// Check-in / undo
-api.post("/bookings/checkin", publicLimiter, async (req, res) => {
+// Check-in by token (increment)
+app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
@@ -811,7 +1098,9 @@ api.post("/bookings/checkin", publicLimiter, async (req, res) => {
     return res.status(400).json({ ok: false, error: "invalid" });
   }
 });
-api.post("/bookings/checkin/undo", publicLimiter, async (req, res) => {
+
+// Undo last check-in (decrement)
+app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
@@ -854,244 +1143,3 @@ api.post("/bookings/checkin/undo", publicLimiter, async (req, res) => {
     return res.status(400).json({ ok: false, error: "invalid" });
   }
 });
-
-// -------- Gallery --------
-api.get("/gallery", async (_req, res) => {
-  try {
-    const db = getDb();
-    const snap = await db
-      .collection("gallery")
-      .orderBy("createdAt", "desc")
-      .get();
-    res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  } catch (e) {
-    if (e?.code === "missing_service_account")
-      return res.status(500).json({ error: e.code });
-    console.error("/gallery error:", e?.message || e);
-    res.status(500).json({ error: "Failed to load gallery" });
-  }
-});
-api.post("/gallery", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const { src = "", title = "" } = req.body || {};
-    if (!src) return res.status(400).json({ error: "missing_src" });
-    const doc = {
-      src: String(src),
-      title: String(title || ""),
-      createdAt: now(),
-    };
-    const ref = await db.collection("gallery").add(doc);
-    res.json({ id: ref.id, ...doc });
-  } catch {
-    res.status(500).json({ error: "create_failed" });
-  }
-});
-api.delete("/gallery/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    await db.collection("gallery").doc(id).delete();
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "delete_failed" });
-  }
-});
-
-// -------- Newsletter / Contact (stub) --------
-api.post("/newsletter/subscribe", publicLimiter, async (_req, res) =>
-  res.json({ ok: true })
-);
-api.post("/contact", publicLimiter, async (_req, res) =>
-  res.json({ ok: true })
-);
-
-// -------- YouTube / Spotify stubs --------
-api.get("/youtube/latest", publicLimiter, async (_req, res) =>
-  res.json({ items: [] })
-);
-api.get("/youtube/latest-rss", publicLimiter, async (_req, res) =>
-  res.json({ items: [] })
-);
-api.get("/spotify/latest-playlist", publicLimiter, async (_req, res) =>
-  res.json({ tracks: [] })
-);
-
-// YouTube latest by handle (real)
-api.get("/youtube/latest", publicLimiter, async (req, res) => {
-  try {
-    const handle = String(req.query.handle || "");
-    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
-    const apiKey =
-      process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY || "";
-    if (!apiKey || !handle) return res.json({ ids: [] });
-
-    const chRes = await fetchWithTimeout(
-      `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(
-        handle
-      )}&key=${apiKey}`
-    );
-    if (!chRes.ok) return res.json({ ids: [] });
-    const chJson = await chRes.json();
-    const channelId = chJson?.items?.[0]?.id;
-    if (!channelId) return res.json({ ids: [] });
-
-    const listRes = await fetchWithTimeout(
-      `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${max}`
-    );
-    if (!listRes.ok) return res.json({ ids: [] });
-    const listJson = await listRes.json();
-    const ids = (listJson?.items || [])
-      .filter((it) => it?.id?.videoId)
-      .map((it) => it.id.videoId);
-    res.json({ ids });
-  } catch {
-    res.json({ ids: [] });
-  }
-});
-
-// YouTube RSS by channelId (real)
-api.get("/youtube/latest-rss", publicLimiter, async (req, res) => {
-  try {
-    const channelId = String(req.query.channelId || "");
-    const max = Math.max(1, Math.min(10, parseInt(req.query.max, 10) || 4));
-    if (!channelId) return res.json({ ids: [] });
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(
-      channelId
-    )}`;
-    const r = await fetchWithTimeout(rssUrl, {}, 8000);
-    if (!r.ok) return res.json({ ids: [] });
-    const text = await r.text();
-    const ids = Array.from(text.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>/g))
-      .map((m) => m[1])
-      .slice(0, max);
-    res.json({ ids });
-  } catch {
-    res.json({ ids: [] });
-  }
-});
-
-// -------- Google Drive --------
-api.get("/drive/list", publicLimiter, async (req, res) => {
-  try {
-    const folderId = String(req.query.folderId || "");
-    const apiKey = getGoogleApiKey();
-    if (!folderId || !apiKey) return res.json([]);
-    const base = "https://www.googleapis.com/drive/v3/files";
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: "files(id,name,mimeType,modifiedTime,thumbnailLink)",
-      includeItemsFromAllDrives: "true",
-      supportsAllDrives: "true",
-      pageSize: "200",
-      key: apiKey,
-    });
-    const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 10000);
-    if (!r.ok) return res.json([]);
-    const j = await r.json();
-    const files = Array.isArray(j?.files) ? j.files : [];
-    const images = files
-      .filter(
-        (f) =>
-          String(f?.mimeType || "").startsWith("image/") ||
-          f?.mimeType === "application/vnd.google-apps.shortcut"
-      )
-      .map((f) => {
-        const id = f.id;
-        return {
-          id,
-          name: f.name,
-          mimeType: f.mimeType,
-          modifiedTime: f.modifiedTime,
-          thumbnail: f.thumbnailLink || null,
-          src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
-          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(
-            apiKey
-          )}`,
-        };
-      });
-    res.json(images);
-  } catch {
-    res.json([]);
-  }
-});
-api.get("/drive/file/:id", publicLimiter, async (req, res) => {
-  try {
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).send("missing");
-    const apiKey = getGoogleApiKey();
-    const sa = await getServiceAccountToken();
-
-    const baseUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(
-      id
-    )}?alt=media`;
-    let r = null;
-    if (sa) {
-      r = await fetchWithTimeout(
-        baseUrl,
-        { headers: { Authorization: `Bearer ${sa}` } },
-        15000
-      );
-    } else if (apiKey) {
-      r = await fetchWithTimeout(
-        `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
-        {},
-        15000
-      );
-    } else {
-      return res.status(500).send("no_credentials");
-    }
-
-    if (!r.ok) {
-      if (sa && apiKey) {
-        const r2 = await fetchWithTimeout(
-          `${baseUrl}&key=${encodeURIComponent(apiKey)}`,
-          {},
-          15000
-        );
-        if (!r2.ok) return res.status(r2.status).send("error");
-        r = r2;
-      } else if (!sa) {
-        const sa2 = await getServiceAccountToken();
-        if (sa2) {
-          const r3 = await fetchWithTimeout(
-            baseUrl,
-            { headers: { Authorization: `Bearer ${sa2}` } },
-            15000
-          );
-          if (!r3.ok) return res.status(r3.status).send("error");
-          r = r3;
-        } else {
-          return res.status(r.status).send("error");
-        }
-      } else {
-        return res.status(r.status).send("error");
-      }
-    }
-    for (const [k, v] of r.headers) {
-      if (k.toLowerCase().startsWith("content-")) res.setHeader(k, v);
-    }
-    const buf = Buffer.from(await r.arrayBuffer());
-    res.send(buf);
-  } catch {
-    res.status(500).send("error");
-  }
-});
-
-// ---------- Monta il router su /api e su / (compat Vercel) ----------
-app.use("/api", api);
-app.use("/", api);
-
-// ---------- Global error handler ----------
-app.use((err, req, res, _next) => {
-  try {
-    console.error("[api][error]", err && (err.stack || err.message || err));
-  } catch {}
-  if (res.headersSent) return;
-  res
-    .status(500)
-    .json({ ok: false, error: String(err?.message || err || "internal") });
-});
-
-module.exports = app;
