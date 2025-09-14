@@ -145,11 +145,8 @@ const corsOptions = {
   origin: true,
   credentials: true,
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
-
-// Explicitly enable preflight for all routes
 app.options("*", cors(corsOptions));
 // Explicitly handle preflight requests for all routes
 app.use((req, res, next) => {
