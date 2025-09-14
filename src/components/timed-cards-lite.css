@@ -73,7 +73,7 @@
 @media (max-width: 768px){
   .tc-root{ height:100svh; --picker-h: 180px; }
   .tc-card{ background-position:center 40%; }
-  .tc-details{ left:16px; top:100px; width:calc(100% - 32px); z-index:90; padding-bottom: calc(var(--picker-h) + 200px); pointer-events: none; }
+  .tc-details{ left:16px; top:50px; width:calc(100% - 32px); z-index:90; padding-bottom: calc(var(--picker-h) + 200px); pointer-events: none; }
   .tc-details .title-1, .tc-details .title-2{ font-size:42px; line-height:1.08; }
   .tc-details .desc{ max-width:100%; font-size:14px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .tc-details .tc-meta{ flex-wrap:wrap; gap:8px; }
@@ -90,7 +90,10 @@
     background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.18));
     border-radius:16px; border:1px solid rgba(255,255,255,0.12);
     backdrop-filter: blur(6px);
-    overflow: hidden; /* mostra vetro anche sopra/sotto e clip dei thumb */
+    overflow-x: auto; /* abilita scroll orizzontale */
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* momentum scrolling su iOS */
+    touch-action: pan-x; /* esplicita gesto orizzontale */
     box-shadow: 0 10px 26px rgba(0,0,0,.35);
   }
   .tc-thumb{ width:calc(var(--picker-h) - 24px); height:calc(var(--picker-h) - 24px); border-radius:14px; margin-top:0; }
