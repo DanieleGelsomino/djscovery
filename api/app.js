@@ -148,6 +148,9 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
+
+// Explicitly enable preflight for all routes
+app.options("*", cors(corsOptions));
 // Explicitly handle preflight requests for all routes
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
@@ -155,7 +158,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
 
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
