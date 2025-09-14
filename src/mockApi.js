@@ -185,6 +185,21 @@ export const mockDeleteEvent = async (id) => {
   return { success: true };
 };
 
+export const mockDeleteAllEvents = async (status = null) => {
+  loadMock();
+  let deleted = 0;
+  if (status) {
+    const toKeep = mockEvents.filter((e) => (e.status || "") !== status);
+    deleted = mockEvents.length - toKeep.length;
+    mockEvents = toKeep;
+  } else {
+    deleted = mockEvents.length;
+    mockEvents = [];
+  }
+  save();
+  return { success: true, deleted };
+};
+
 export const mockSendBooking = async (data) => {
   loadMock();
   const newBooking = { id: uuid(), ...data };
@@ -203,6 +218,35 @@ export const mockSendBooking = async (data) => {
   }
   save();
   return newBooking;
+};
+
+export const mockUpdateBooking = async (id, data) => {
+  loadMock();
+  mockBookings = mockBookings.map((b) => (b.id === id ? { ...b, ...data } : b));
+  save();
+  return { success: true };
+};
+
+export const mockDeleteBooking = async (id) => {
+  loadMock();
+  mockBookings = mockBookings.filter((b) => b.id !== id);
+  save();
+  return { success: true };
+};
+
+export const mockDeleteAllBookings = async (eventId = null) => {
+  loadMock();
+  let deleted = 0;
+  if (eventId) {
+    const toKeep = mockBookings.filter((b) => b.eventId !== eventId);
+    deleted = mockBookings.length - toKeep.length;
+    mockBookings = toKeep;
+  } else {
+    deleted = mockBookings.length;
+    mockBookings = [];
+  }
+  save();
+  return { success: true, deleted };
 };
 
 export const mockFetchGallery = async () => {
