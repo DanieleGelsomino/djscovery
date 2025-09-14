@@ -146,7 +146,7 @@ app.use(
     origin: true,
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-password"],
   })
 );
 
@@ -285,11 +285,26 @@ async function requireAuth(req, res, next) {
 }
 
 async function requireAdmin(req, res, next) {
+  // 1) Try Firebase ID token
   const user = await getAuthUser(req);
+  if (user?.admin) {
+    req.user = user;
+    return next();
+  }
+
+  // 2) Fallback: x-admin-password header (for emergency/CLI)
+  try {
+    const pass = String(req.headers["x-admin-password"] || "");
+    const expected = process.env.ADMIN_PASSWORD || "";
+    if (expected && pass && pass === expected) {
+      req.user = { uid: "pwd-admin", admin: true };
+      return next();
+    }
+  } catch {}
+
+  // 3) Respond with proper auth error
   if (!user) return res.status(401).json({ error: "unauthorized" });
-  if (!user.admin) return res.status(403).json({ error: "forbidden" });
-  req.user = user;
-  next();
+  return res.status(403).json({ error: "forbidden" });
 }
 
 // Events (minimal)
