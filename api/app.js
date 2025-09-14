@@ -741,40 +741,62 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
     const folderId = String(req.query.folderId || "");
     const apiKey = getGoogleApiKey();
     if (!folderId || !apiKey) return res.json([]);
+
     const base = "https://www.googleapis.com/drive/v3/files";
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: "files(id,name,mimeType,modifiedTime,thumbnailLink)",
+    const common = {
+      fields: "nextPageToken,files(id,name,mimeType,modifiedTime,thumbnailLink,shortcutDetails)",
       includeItemsFromAllDrives: "true",
       supportsAllDrives: "true",
       pageSize: "200",
       key: apiKey,
-    });
-    const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 10000);
-    if (!r.ok) return res.json([]);
-    const j = await r.json();
-    const files = Array.isArray(j?.files) ? j.files : [];
+    };
+
+    async function fetchAll(q) {
+      const out = [];
+      let pageToken;
+      do {
+        const params = new URLSearchParams({ ...common, q });
+        if (pageToken) params.set("pageToken", pageToken);
+        const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 15000);
+        if (!r.ok) return out;
+        const j = await r.json();
+        (j.files || []).forEach((f) => out.push(f));
+        pageToken = j.nextPageToken;
+      } while (pageToken);
+      return out;
+    }
+
+    const qImages = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
+    const qShort  = `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.shortcut'`;
+
+    const [filesImages, filesShortcuts] = await Promise.all([
+      fetchAll(qImages),
+      fetchAll(qShort),
+    ]);
+    const files = [...filesImages, ...filesShortcuts];
+
     const images = files
-      .filter(
-        (f) =>
-          String(f?.mimeType || "").startsWith("image/") ||
-          f?.mimeType === "application/vnd.google-apps.shortcut"
-      )
       .map((f) => {
-        const id = f.id;
+        const isShortcut = f.mimeType === "application/vnd.google-apps.shortcut";
+        const id = isShortcut ? f?.shortcutDetails?.targetId : f.id;
+        const mt = isShortcut ? f?.shortcutDetails?.targetMimeType : f.mimeType;
+        if (!id || !(String(mt || "").startsWith("image/"))) return null;
         return {
           id,
           name: f.name,
-          mimeType: f.mimeType,
+          mimeType: mt,
           modifiedTime: f.modifiedTime,
           thumbnail: f.thumbnailLink || null,
           src: `https://lh3.googleusercontent.com/d/${id}=w1280`,
-          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(
-            apiKey
-          )}`,
+          fallbackSrc: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(apiKey)}`,
         };
-      });
-    res.json(images);
+      })
+      .filter(Boolean);
+
+    // de-dup per id
+    const seen = new Set();
+    const deduped = images.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
+    res.json(deduped);
   } catch (e) {
     res.json([]);
   }
