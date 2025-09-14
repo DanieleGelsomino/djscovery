@@ -12,6 +12,14 @@ const nodemailer = require("nodemailer");
 // Lazy Firestore getter: evita di inizializzare Admin/Firestore per /api/health
 let adminInited = false;
 let cachedDb = null;
+
+// >>> NEW: inizializza Admin anche quando serve l'auth (verifyIdToken)
+function ensureAdminInit() {
+  if (adminInited) return;
+  // riusa la logica di getDb (inizializza admin e cachedDb oppure lancia)
+  getDb();
+}
+
 function getDb() {
   if (!adminInited) {
     try {
@@ -86,11 +94,10 @@ function getDb() {
             ...(projectId ? { projectId } : {}),
           });
         } else if (pathEnv) {
-          // If a path env was provided (FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS)
-          // but we couldn't parse it earlier, throw explicit error.
+          // If a path env was provided but we couldn't parse it earlier, throw explicit error.
           throw new Error("invalid_service_account_file");
         } else {
-          // No service account provided: fail fast with clear error to avoid long timeouts in serverless
+          // No service account provided: fail fast
           const err = new Error("missing_service_account");
           err.code = "missing_service_account";
           throw err;
@@ -140,7 +147,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
+// CORS: allow same-origin and common methods/headers
 app.use(
   cors({
     origin: true,
@@ -150,23 +157,32 @@ app.use(
   })
 );
 
+// Preflight handler (evita 405/500 sugli OPTIONS)
+app.options("*", cors());
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// Rate limit
+// Rate limit  >>> FIX: niente rateLimit.ipKeyGenerator, salta OPTIONS
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 400,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: rateLimit.ipKeyGenerator,
+  keyGenerator: (req) => req.ip,
+  skip: (req) => req.method === "OPTIONS",
 });
 const publicLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: rateLimit.ipKeyGenerator,
+  keyGenerator: (req) => req.ip,
+  skip: (req) => req.method === "OPTIONS",
 });
 app.use(globalLimiter);
 
@@ -180,6 +196,41 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// ===== Auth helpers (Firebase ID token) =====
+async function getAuthUser(req) {
+  try {
+    // >>> IMPORTANTISSIMO: assicurati che Admin sia inizializzato anche quando non è stato chiamato getDb()
+    ensureAdminInit();
+
+    const hdr = String(
+      req.headers["authorization"] || req.headers["Authorization"] || ""
+    );
+    const m = hdr.match(/^Bearer\s+(.+)$/i);
+    if (!m) return null;
+    const token = m[1];
+    const user = await admin.auth().verifyIdToken(token, true);
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
+async function requireAuth(req, res, next) {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ error: "unauthorized" });
+  req.user = user;
+  next();
+}
+
+async function requireAdmin(req, res, next) {
+  const user = await getAuthUser(req);
+  if (!user) return res.status(401).json({ error: "unauthorized" });
+  if (!user.admin) return res.status(403).json({ error: "forbidden" });
+  req.user = user;
+  next();
+}
+
 // Simple auth diagnostic
 app.get("/api/auth/whoami", async (req, res) => {
   const user = await getAuthUser(req);
@@ -260,37 +311,6 @@ app.get("/api/diag", async (_req, res) => {
       .json({ ok: false, error: e?.code || e?.message || String(e) });
   }
 });
-
-// ===== Auth helpers (Firebase ID token) =====
-async function getAuthUser(req) {
-  try {
-    const hdr = String(
-      req.headers["authorization"] || req.headers["Authorization"] || ""
-    );
-    const m = hdr.match(/^Bearer\s+(.+)$/i);
-    if (!m) return null;
-    const token = m[1];
-    const user = await admin.auth().verifyIdToken(token, true);
-    return user || null;
-  } catch {
-    return null;
-  }
-}
-
-async function requireAuth(req, res, next) {
-  const user = await getAuthUser(req);
-  if (!user) return res.status(401).json({ error: "unauthorized" });
-  req.user = user;
-  next();
-}
-
-async function requireAdmin(req, res, next) {
-  const user = await getAuthUser(req);
-  if (!user) return res.status(401).json({ error: "unauthorized" });
-  if (!user.admin) return res.status(403).json({ error: "forbidden" });
-  req.user = user;
-  next();
-}
 
 // Events (minimal)
 app.get("/api/events", async (req, res) => {
@@ -435,7 +455,7 @@ app.delete("/api/events", requireAdmin, async (req, res) => {
   }
 });
 
-// Bookings (minimal)
+// Bookings (minimal GET)
 app.get("/api/bookings", async (req, res) => {
   try {
     const db = getDb();
@@ -469,8 +489,6 @@ app.get("/api/bookings", async (req, res) => {
     res.status(500).json({ error: "Failed to load bookings" });
   }
 });
-
-// removed duplicate minimal POST /api/bookings - enhanced handler defined later with email/token
 
 // Update booking (admin)
 app.put("/api/bookings/:id", requireAdmin, async (req, res) => {
@@ -525,54 +543,6 @@ app.delete("/api/bookings", requireAdmin, async (req, res) => {
   }
 });
 
-// Gallery (Firestore-backed)
-app.get("/api/gallery", async (_req, res) => {
-  try {
-    const db = getDb();
-    const snap = await db
-      .collection("gallery")
-      .orderBy("createdAt", "desc")
-      .get();
-    res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  } catch (e) {
-    if (e?.code === "missing_service_account")
-      return res.status(500).json({ error: e.code });
-    console.error("/api/gallery error:", e?.message || e);
-    res.status(500).json({ error: "Failed to load gallery" });
-  }
-});
-
-// Add gallery image (admin)
-app.post("/api/gallery", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const { src = "", title = "" } = req.body || {};
-    if (!src) return res.status(400).json({ error: "missing_src" });
-    const doc = {
-      src: String(src),
-      title: String(title || ""),
-      createdAt: now(),
-    };
-    const ref = await db.collection("gallery").add(doc);
-    res.json({ id: ref.id, ...doc });
-  } catch {
-    res.status(500).json({ error: "create_failed" });
-  }
-});
-
-// Delete gallery image (admin)
-app.delete("/api/gallery/:id", requireAdmin, async (req, res) => {
-  try {
-    const db = getDb();
-    const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "missing_id" });
-    await db.collection("gallery").doc(id).delete();
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "delete_failed" });
-  }
-});
-
 // Newsletter + Contact stubs
 app.post("/api/newsletter/subscribe", publicLimiter, async (_req, res) =>
   res.json({ ok: true })
@@ -581,7 +551,7 @@ app.post("/api/contact", publicLimiter, async (_req, res) =>
   res.json({ ok: true })
 );
 
-// YouTube/Spotify stubs
+// YouTube/Spotify stubs (NB: hai due definizioni di latest nel file originale; tienine una sola)
 app.get("/api/youtube/latest", publicLimiter, async (_req, res) =>
   res.json({ items: [] })
 );
@@ -835,7 +805,6 @@ app.get("/api/drive/file/:id", publicLimiter, async (req, res) => {
 module.exports = app;
 
 // Global error handler: return JSON for unexpected errors (avoids HTML responses)
-// Note: placed after module.exports so it is defined but will be included when file is loaded
 app.use((err, req, res, _next) => {
   try {
     console.error("[api][error]", err && (err.stack || err.message || err));
