@@ -1826,7 +1826,12 @@ const AdminPanel = () => {
                             {isMobile ? (
                                 <Box sx={{ overflowX: "hidden" }}>
                                     {filteredSortedBookings.slice(0, bkMobileVis).map((b) => (
-                                        <MobileBookingCard key={b.id} b={b} />
+                    <MobileBookingCard
+                      key={b.id}
+                      b={b}
+                      onEdit={() => openBookingEdit(b)}
+                      onDelete={() => setConfirm({ open: true, id: b.id, type: "booking" })}
+                    />
                                     ))}
                                     <Box ref={bkSentinelRef} sx={{ height: 1 }} />
                                 </Box>
