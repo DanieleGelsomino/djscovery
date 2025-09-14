@@ -518,6 +518,7 @@ const Footer = () => {
                 <LinksList aria-label="Navigazione footer">
                   <Link to="/eventi">{t("nav.events") || "Eventi"}</Link>
                   <Link to="/gallery">{t("nav.gallery") || "Gallery"}</Link>
+                  <Link to="/tappe">{t("nav.tappe") || "Tappe"}</Link>
                   <Link to="/chi-siamo">{t("nav.about") || "Chi siamo"}</Link>
                   <Link to="/contatti">{t("nav.contacts") || "Contatti"}</Link>
                 </LinksList>

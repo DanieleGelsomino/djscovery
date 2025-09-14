@@ -3,8 +3,13 @@
     "home": "Home",
     "events": "Eventi",
     "gallery": "Galleria",
+    "tappe": "Tappe",
     "about": "Chi Siamo",
     "contacts": "Contatti"
+  },
+  "tappe": {
+    "title": "Tappe",
+    "subtitle": "Consulta la mappa aggiornata con tutte le tappe e i segnaposti già presenti. Clicca su un punto per vedere dettagli e indicazioni."
   },
   "hero": {
     "title": "Music & Travel",

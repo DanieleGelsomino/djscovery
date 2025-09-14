@@ -3,8 +3,13 @@
     "home": "Home",
     "events": "Events",
     "gallery": "Gallery",
+    "tappe": "Stops",
     "about": "About Us",
     "contacts": "Contacts"
+  },
+  "tappe": {
+    "title": "Stops",
+    "subtitle": "Browse the updated map with all our stops and existing markers. Click a point to see details and directions."
   },
   "hero": {
     "title": "Music & Travel",
