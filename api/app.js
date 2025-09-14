@@ -150,6 +150,15 @@ app.use(
   })
 );
 
+// Risposte ai preflight su qualsiasi path
+app.options("*", cors());
+
+// (opzionale ma utile per alcune CDN/proxy)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
