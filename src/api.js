@@ -6,6 +6,10 @@ import {
     mockCreateEvent,
     mockUpdateEvent,
     mockDeleteEvent,
+    mockUpdateBooking,
+    mockDeleteBooking,
+    mockDeleteAllBookings,
+    mockDeleteAllEvents,
     mockFetchGallery,
     mockUploadGalleryImage,
     mockDeleteGalleryImage,
@@ -201,6 +205,7 @@ export const undoCheckIn = async (token, count = 1) => {
 
 // BOOKINGS admin
 export const updateBooking = async (id, data) => {
+    if (useMock) return mockUpdateBooking(id, data);
     const res = await fetch(`${API_BASE}/api/bookings/${id}`, {
         method: "PUT",
         headers: authHeaders({ "Content-Type": "application/json" }),
@@ -210,6 +215,7 @@ export const updateBooking = async (id, data) => {
 };
 
 export const deleteBooking = async (id) => {
+    if (useMock) return mockDeleteBooking(id);
     const res = await fetch(`${API_BASE}/api/bookings/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
@@ -218,6 +224,7 @@ export const deleteBooking = async (id) => {
 };
 
 export const deleteAllBookings = async (eventId=null) => {
+    if (useMock) return mockDeleteAllBookings(eventId);
     const url = new URL(`${API_BASE}/api/bookings`);
     if (eventId) url.searchParams.set("eventId", eventId);
     const res = await fetch(url.toString(), {
@@ -229,6 +236,7 @@ export const deleteAllBookings = async (eventId=null) => {
 
 // EVENTS bulk
 export const deleteAllEvents = async (status=null) => {
+    if (useMock) return mockDeleteAllEvents(status);
     const url = new URL(`${API_BASE}/api/events`);
     if (status) url.searchParams.set("status", status);
     const res = await fetch(url.toString(), {
