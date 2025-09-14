@@ -1,12 +1,15 @@
-// api/[[...slug]].js  (usa optional catch-all)
+// api/[[...slug]].js
 const app = require("./app");
 
 module.exports = (req, res) => {
-  // Vercel monta questa function su /api, quindi req.url arriva come "/events", "/bookings", ...
-  // Le tue route invece sono "/api/events", "/api/bookings", ...
   if (!req.url.startsWith("/api")) {
-    // Gestisce sia "/api" (root) che sottopercorsi
     req.url = "/api" + (req.url === "/" ? "" : req.url);
   }
-  return app(req, res);
+  try {
+    return app(req, res);
+  } catch (e) {
+    console.error("[catch-all] handler error:", e);
+    res.statusCode = 500;
+    return res.end("handler_error");
+  }
 };
