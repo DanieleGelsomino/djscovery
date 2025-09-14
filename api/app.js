@@ -147,9 +147,12 @@ const corsOptions = {
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
 app.use(cors(corsOptions));
-// Handle preflight requests gracefully
+app.options("*", cors(corsOptions));
+// Explicitly handle preflight requests for all routes
 app.use((req, res, next) => {
-  if (req.method === "OPTIONS") return res.sendStatus(204);
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
   next();
 });
 
