@@ -150,29 +150,6 @@ app.use(
   })
 );
 
-// Ensure preflight requests are handled for all routes
-app.options("*", cors());
-
-// Be explicit with CORS headers on every response (helps with some providers)
-app.use((req, res, next) => {
-  try {
-    const origin = req.headers.origin || "*";
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-  } catch {}
-  // Fast exit for generic OPTIONS (not matched by a specific route)
-  if (req.method === "OPTIONS") return res.status(204).end();
-  next();
-});
-
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
