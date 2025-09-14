@@ -150,11 +150,9 @@ app.use(
   })
 );
 
-// Risposte ai preflight su qualsiasi path
-app.options("*", cors());
-
-// (opzionale ma utile per alcune CDN/proxy)
+app.options("*", cors()); // risponde ai preflight
 app.use((req, res, next) => {
+  // opzionale: 204 immediato
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
