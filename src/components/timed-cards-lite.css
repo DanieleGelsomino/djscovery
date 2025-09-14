@@ -71,9 +71,9 @@
   .tc-thumb{ flex:0 0 220px; }
 }
 @media (max-width: 768px){
-  .tc-root{ height:100svh; --picker-h: 180px; }
+  .tc-root{ height:100svh; --picker-h: 140px; }
   .tc-card{ background-position:center 40%; }
-  .tc-details{ left:16px; top:110px; width:calc(100% - 32px); z-index:90; padding-bottom: calc(var(--picker-h) + 160px); }
+  .tc-details{ left:16px; top:100px; width:calc(100% - 32px); z-index:90; padding-bottom: calc(var(--picker-h) + 200px); }
   .tc-details .title-1, .tc-details .title-2{ font-size:42px; line-height:1.08; }
   .tc-details .desc{ max-width:100%; font-size:14px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .tc-details .tc-meta{ flex-wrap:wrap; gap:8px; }

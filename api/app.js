@@ -739,8 +739,10 @@ async function getServiceAccountToken() {
 app.get("/api/drive/list", publicLimiter, async (req, res) => {
   try {
     const folderId = String(req.query.folderId || "");
+    if (!folderId) return res.json([]);
+
     const apiKey = getGoogleApiKey();
-    if (!folderId || !apiKey) return res.json([]);
+    const saToken = await getServiceAccountToken();
 
     const base = "https://www.googleapis.com/drive/v3/files";
     const common = {
@@ -748,7 +750,6 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
       includeItemsFromAllDrives: "true",
       supportsAllDrives: "true",
       pageSize: "200",
-      key: apiKey,
     };
 
     async function fetchAll(q) {
@@ -756,8 +757,13 @@ app.get("/api/drive/list", publicLimiter, async (req, res) => {
       let pageToken;
       do {
         const params = new URLSearchParams({ ...common, q });
+        if (!saToken && apiKey) params.set("key", apiKey);
         if (pageToken) params.set("pageToken", pageToken);
-        const r = await fetchWithTimeout(`${base}?${params.toString()}`, {}, 15000);
+        const r = await fetchWithTimeout(
+          `${base}?${params.toString()}`,
+          saToken ? { headers: { Authorization: `Bearer ${saToken}` } } : {},
+          15000
+        );
         if (!r.ok) return out;
         const j = await r.json();
         (j.files || []).forEach((f) => out.push(f));
