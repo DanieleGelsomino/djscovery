@@ -156,6 +156,7 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
