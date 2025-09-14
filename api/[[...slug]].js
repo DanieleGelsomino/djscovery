@@ -1,12 +1,11 @@
 // api/[[...slug]].js
 const app = require("./app");
 
-// Forza runtime Node anche a livello file (oltre al vercel.json)
-exports.config = { runtime: "nodejs20.x" };
-module.exports.config = { runtime: "nodejs20.x" };
+// Forza il runtime Node per questa Serverless Function
+module.exports.config = { runtime: "nodejs20.x", maxDuration: 30 };
 
 module.exports = (req, res) => {
-  // Vercel passa req.url SENZA /api; le tue route usano /api/...
+  // Vercel passa req.url senza /api; le tue route lo includono
   if (!req.url.startsWith("/api")) {
     req.url = "/api" + (req.url === "/" ? "" : req.url);
   }
@@ -15,6 +14,6 @@ module.exports = (req, res) => {
   } catch (e) {
     console.error("[catch-all] handler error:", e);
     res.statusCode = 500;
-    return res.end("handler_error");
+    res.end("handler_error");
   }
 };
