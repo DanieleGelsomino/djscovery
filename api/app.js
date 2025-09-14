@@ -141,20 +141,14 @@ app.use((req, res, next) => {
 });
 
 // CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
-const corsOptions = {
-  origin: true,
-  credentials: true,
-  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-};
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-// Explicitly handle preflight requests for all routes
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -452,7 +446,11 @@ app.get("/api/bookings", async (req, res) => {
       const snap = await ref.orderBy("createdAt", "desc").get();
       return res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
-      if (String(e?.message || "").toLowerCase().includes("index")) {
+      if (
+        String(e?.message || "")
+          .toLowerCase()
+          .includes("index")
+      ) {
         const snap = await ref.get();
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         data.sort((a, b) => {
