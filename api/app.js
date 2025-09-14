@@ -141,14 +141,15 @@ app.use((req, res, next) => {
 });
 
 // CORS: allow same-origin and common methods/headers (no wildcard path for Express 5)
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+// Explicitly enable preflight for all routes
+app.options("*", cors(corsOptions));
 
 // Basic hardening
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
