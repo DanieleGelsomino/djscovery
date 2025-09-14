@@ -81,7 +81,16 @@
   .tc-details .discover{ padding:10px 16px; font-size:12px; position: relative; z-index: 110; pointer-events: auto; }
 
   /* Picker: in basso, a tutta larghezza, orizzontale scroll */
-  .tc-card-picker{ left:16px; right:16px; transform:none; top:auto; bottom:calc(8px + env(safe-area-inset-bottom)); width:auto; max-width:none; justify-content:flex-start; gap:10px; padding:8px 10px; height: var(--picker-h); z-index: 40; }
+  .tc-card-picker{
+    left:16px; right:16px; transform:none; top:auto;
+    bottom:calc(8px + env(safe-area-inset-bottom));
+    width:auto; max-width:none; justify-content:flex-start;
+    gap:12px; padding:12px; height: var(--picker-h);
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.18));
+    border-radius:16px; border:1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+  }
   .tc-thumb{ width:150px; height:150px; border-radius:14px; margin-top:4px; }
   .tc-thumb-overlay{ padding:10px; }
   .tc-thumb-overlay .t2{ font-size:18px; }
