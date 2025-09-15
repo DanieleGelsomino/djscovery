@@ -797,12 +797,19 @@ const AdminPanel = () => {
 
   /* ---------- CSV Export ---------- */
   const downloadCsv = (rows, filename) => {
+    const normalize = (v) => {
+      if (v === null || v === undefined) return "";
+      if (typeof v?.toDate === 'function') { try { return v.toDate().toISOString(); } catch { return ''; } }
+      if (v instanceof Date) { try { return v.toISOString(); } catch { return ''; } }
+      if (typeof v === 'object') { try { return JSON.stringify(v); } catch { return String(v); } }
+      return String(v);
+    };
     const headers = Object.keys(rows[0] || {});
     const csv = [
       headers.join(","),
       ...rows.map((r) =>
         headers
-          .map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`)
+          .map((h) => `"${normalize(r[h]).replace(/"/g, '""')}"`)
           .join(",")
       ),
     ].join("\n");
@@ -826,8 +833,8 @@ const AdminPanel = () => {
       Capienza: e.capacity || "",
       SoldOut: e.soldOut ? "sì" : "no",
       Prenotazioni: e.bookingsCount ?? "",
-      AggiornatoIl: e.updatedAt || "",
-      AggiornatoDa: e.updatedBy || "",
+      "Aggiornato il": toISO(e.updatedAt || e.updated),
+      "Aggiornato da": e.updatedBy || "",
     }));
     downloadCsv(rows, "eventi.csv");
   };
@@ -840,7 +847,7 @@ const AdminPanel = () => {
       Email: b.email || "",
       Telefono: b.telefono || "",
       Biglietti: b.quantity || 1,
-      CreatoIl: toISO(b.createdAt || b.created),
+      "Creato il": toISO(b.createdAt || b.created),
     }));
     downloadCsv(rows, "prenotazioni.csv");
   };
@@ -1699,6 +1706,10 @@ const AdminPanel = () => {
                             multiline
                             minRows={4}
                             placeholder="Un nominativo per riga, o CSV 'Nome,Cognome,+#'…"
+                            sx={{
+                              '& .MuiOutlinedInput-input': { padding: '10px' },
+                              '& .MuiOutlinedInput-inputMultiline': { padding: '10px 12px' },
+                            }}
                           />
                         </Grid>
                       </Grid>
