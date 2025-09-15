@@ -1,0 +1,248 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import styled from "styled-components";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCookieConsent } from "./CookieConsentContext";
+import { useLanguage } from "./LanguageContext";
+
+const Bar = styled(motion.section)`
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20000;
+  color: #fff;
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+  background: radial-gradient(120% 140% at 10% 10%, rgba(40,40,40,0.95) 0%, rgba(18,18,18,0.95) 60%);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+`;
+
+const Title = styled.h2`
+  margin: 0;
+  font-size: 1rem;
+`;
+
+const Body = styled.div`
+  padding: 0 16px 14px 16px;
+`;
+
+const Row = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const Btn = styled.button`
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform var(--transition-fast, 120ms), background 180ms, border-color 180ms, opacity 180ms;
+  &:hover { transform: translateY(-1px); }
+  &:focus-visible { outline: 2px solid var(--yellow, #ffd166); outline-offset: 2px; }
+`;
+
+const Primary = styled(Btn)`
+  background: linear-gradient(90deg, #ffd166, #f4c65a);
+  color: #1a1a1a;
+  border: 1px solid rgba(0,0,0,0.15);
+`;
+
+const Ghost = styled(Btn)`
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.22);
+`;
+
+const ToggleWrap = styled.label`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+`;
+
+const Toggle = styled.span`
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  display: inline-block;
+  vertical-align: middle;
+  transition: background 180ms;
+  &:after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 180ms;
+  }
+  &.on { background: #21bf73; }
+  &.on:after { transform: translateX(18px); }
+`;
+
+const Switch = ({ label, help, checked, onChange, disabled }) => (
+  <ToggleWrap aria-disabled={disabled} title={help || ''}>
+    <div style={{ display: 'grid' }}>
+      <strong style={{ fontSize: '0.92rem' }}>{label}</strong>
+      {help ? (
+        <span style={{ opacity: 0.8, fontSize: '0.85rem' }}>{help}</span>
+      ) : null}
+    </div>
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+      disabled={disabled}
+      aria-checked={checked}
+    />
+    <Toggle className={checked ? 'on' : ''} aria-hidden />
+  </ToggleWrap>
+);
+
+export default function CookieBanner() {
+  const { accepted, prefs, setPrefs, acceptAll, rejectAll, managerOpen, closeManager } = useCookieConsent();
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [local, setLocal] = useState(prefs);
+  const firstFocusable = useRef(null);
+
+  useEffect(() => {
+    setLocal(prefs);
+  }, [prefs]);
+
+  useEffect(() => {
+    const willOpen = !accepted || managerOpen;
+    setOpen(willOpen);
+    setExpanded(willOpen && managerOpen); // se aperto dal footer, apri direttamente preferenze
+  }, [accepted, managerOpen]);
+
+  const onSave = () => {
+    setPrefs(local);
+    setExpanded(false);
+    closeManager();
+  };
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <Bar
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        role="dialog"
+        aria-label="Informativa e preferenze cookie"
+      >
+        <Header>
+          <Title>{t("cookies.title")}</Title>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Ghost
+              ref={firstFocusable}
+              onClick={() => {
+                rejectAll();
+                setExpanded(false);
+                closeManager();
+              }}
+              aria-label={t("cookies.reject_all") + " (non necessari)"}
+            >
+              {t("cookies.reject_all")}
+            </Ghost>
+            <Primary onClick={() => { acceptAll(); closeManager(); setExpanded(false); }} aria-label={t("cookies.accept_all") + " cookie"}>
+              {t("cookies.accept_all")}
+            </Primary>
+          </div>
+        </Header>
+        <Body>
+          <p style={{ margin: 0, opacity: 0.9 }}>
+            {t("cookies.description")} {" "}
+            <a href="/cookie" style={{ color: '#ffd166' }}>{t("cookies.cookie_policy")}</a>{" • "}
+            <a href="/privacy" style={{ color: '#ffd166' }}>{t("cookies.privacy_policy")}</a>.
+          </p>
+
+          <div style={{ height: 10 }} />
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Btn onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} aria-controls="cookie-prefs">
+              {expanded ? t("cookies.close_prefs") : t("cookies.manage_prefs")}
+            </Btn>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {expanded && (
+              <motion.div
+                id="cookie-prefs"
+                key="prefs"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{ height: 10 }} />
+                <div style={{ display: "grid", gap: 8 }}>
+                  <Switch
+                    label={t("cookies.categories.necessary.label")}
+                    help={t("cookies.categories.necessary.help")}
+                    checked={true}
+                    onChange={() => {}}
+                    disabled
+                  />
+                  <Switch
+                    label={t("cookies.categories.functional.label")}
+                    help={t("cookies.categories.functional.help")}
+                    checked={!!local.functional}
+                    onChange={(v) => setLocal((s) => ({ ...s, functional: v }))}
+                  />
+                  <Switch
+                    label={t("cookies.categories.analytics.label")}
+                    help={t("cookies.categories.analytics.help")}
+                    checked={!!local.analytics}
+                    onChange={(v) => setLocal((s) => ({ ...s, analytics: v }))}
+                  />
+                  <Switch
+                    label={t("cookies.categories.marketing.label")}
+                    help={t("cookies.categories.marketing.help")}
+                    checked={!!local.marketing}
+                    onChange={(v) => setLocal((s) => ({ ...s, marketing: v }))}
+                  />
+                </div>
+                <div style={{ height: 10 }} />
+                <Row>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Primary onClick={onSave}>{t("cookies.save_prefs")}</Primary>
+                    <Ghost onClick={() => { closeManager(); setOpen(false); }}>{t("cookies.close_prefs")}</Ghost>
+                  </div>
+                </Row>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Body>
+      </Bar>
+    </AnimatePresence>
+  );
+}

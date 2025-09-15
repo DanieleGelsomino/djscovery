@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useLanguage } from "./LanguageContext";
 import { VideoGridSkeleton } from "./Skeletons";
+import { useCookieConsent } from "./CookieConsentContext";
 
 const Section = styled.section`
   background: transparent;
@@ -59,6 +60,7 @@ const fallbackIds = [
 
 const YouTubeSection = () => {
   const { t } = useLanguage();
+  const { prefs, openManager } = useCookieConsent();
   const [videos, setVideos] = useState([]);
   const [usePlaylistEmbed, setUsePlaylistEmbed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,7 +137,39 @@ const YouTubeSection = () => {
             Apri playlist su YouTube
           </a>
         </p>
-        {loading ? (
+        {!prefs?.marketing ? (
+          <div style={{
+            display: "grid",
+            placeItems: "center",
+            minHeight: 200,
+            padding: 16,
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.05)",
+          }}>
+            <div style={{ textAlign: "center", maxWidth: 560 }}>
+              <p style={{ opacity: 0.9 }}>
+                Per visualizzare i video abilita i cookie di marketing nelle preferenze.
+              </p>
+              <button
+                type="button"
+                onClick={openManager}
+                style={{
+                  marginTop: 8,
+                  padding: "8px 16px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  background: "transparent",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Gestisci cookie
+              </button>
+            </div>
+          </div>
+        ) : loading ? (
           <VideoGridSkeleton count={4} />
         ) : usePlaylistEmbed ? (
           <VideosGrid>

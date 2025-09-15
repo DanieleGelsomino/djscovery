@@ -86,6 +86,35 @@
     "text": "Lorem ipsum dolor sit amet.",
     "copy": "DJSCOVERY"
   },
+  "cookies": {
+    "title": "Le tue preferenze sui cookie",
+    "description": "Usiamo cookie tecnici e, previo consenso, cookie funzionali, analitici e di marketing. Puoi modificare le preferenze in qualsiasi momento.",
+    "cookie_policy": "Cookie Policy",
+    "privacy_policy": "Privacy Policy",
+    "manage_prefs": "Gestisci preferenze",
+    "close_prefs": "Chiudi preferenze",
+    "accept_all": "Accetta tutti",
+    "reject_all": "Rifiuta tutti",
+    "save_prefs": "Salva preferenze",
+    "categories": {
+      "necessary": {
+        "label": "Necessari",
+        "help": "Sempre attivi: sicurezza, funzionalità base del sito."
+      },
+      "functional": {
+        "label": "Funzionali",
+        "help": "Mappe, player e integrazioni esterne che migliorano l'esperienza."
+      },
+      "analytics": {
+        "label": "Analitici",
+        "help": "Statistiche anonime per capire come viene usato il sito."
+      },
+      "marketing": {
+        "label": "Marketing",
+        "help": "Personalizzazione annunci e misurazione campagne."
+      }
+    }
+  },
   "booking": {
     "title": "Prenota il tuo biglietto",
     "name": "Nome",

@@ -596,6 +596,21 @@ app.post("/api/contact", publicLimiter, async (_req, res) =>
   res.json({ ok: true })
 );
 
+// Cookie consent log (best-effort)
+app.post("/api/consents", publicLimiter, async (req, res) => {
+  try {
+    const db = getDb();
+    const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    const ua = String(req.headers["user-agent"] || "");
+    const prefs = req.body?.prefs || {};
+    await db.collection("consents").add({ prefs, ip, ua, createdAt: now() });
+    res.json({ ok: true });
+  } catch {
+    // do not fail if db missing
+    res.json({ ok: true });
+  }
+});
+
 // YouTube/Spotify stubs
 app.get("/api/youtube/latest", publicLimiter, async (_req, res) =>
   res.json({ items: [] })

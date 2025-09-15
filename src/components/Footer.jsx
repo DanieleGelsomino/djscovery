@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion } from "framer-motion";
 import { useLanguage } from "./LanguageContext";
+import { useCookieConsent } from "./CookieConsentContext";
 import {
   FaInstagram,
   FaFacebook,
@@ -180,7 +181,7 @@ const Collapsible = styled.div`
   transition: max-height var(--transition-med), opacity var(--transition-med);
   &.closed {
     max-height: 0;
-    opacity: 0.0;
+    opacity: 0;
   }
   &.open {
     max-height: 400px;
@@ -365,6 +366,14 @@ const SmallLinks = styled.div`
     background: rgba(255, 255, 255, 0.35);
     display: inline-block;
   }
+  button.linklike {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--yellow);
+    cursor: pointer;
+    font: inherit;
+  }
 `;
 const BackToTop = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -386,6 +395,7 @@ const BackToTop = styled.button`
 /* Component */
 const Footer = () => {
   const { t } = useLanguage();
+  const { openManager } = useCookieConsent(); // <-- QUI (prima del return)
   const year = new Date().getFullYear();
   const email = "hello@djscovery.tv";
   const wa =
@@ -397,7 +407,10 @@ const Footer = () => {
 
   // Mobile accordion state
   const [isMobile, setIsMobile] = useState(false);
-  const [openSections, setOpenSections] = useState({ explore: true, contacts: true });
+  const [openSections, setOpenSections] = useState({
+    explore: true,
+    contacts: true,
+  });
 
   const onSubscribe = async (e) => {
     e.preventDefault();
@@ -507,7 +520,11 @@ const Footer = () => {
               >
                 <span>{t("nav.home") || "Esplora"}</span>
                 <Chevron
-                  style={{ transform: openSections.explore ? "rotate(180deg)" : "rotate(0deg)" }}
+                  style={{
+                    transform: openSections.explore
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                  }}
                   aria-hidden
                 />
               </ColHeaderBtn>
@@ -536,7 +553,11 @@ const Footer = () => {
               >
                 <span>{t("nav.contacts") || "Contatti"}</span>
                 <Chevron
-                  style={{ transform: openSections.contacts ? "rotate(180deg)" : "rotate(0deg)" }}
+                  style={{
+                    transform: openSections.contacts
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                  }}
                   aria-hidden
                 />
               </ColHeaderBtn>
@@ -575,7 +596,18 @@ const Footer = () => {
             <SmallLinks>
               <Link to="/privacy">Privacy</Link>
               <span className="dot" />
-              <Link to="/termini">Termini</Link>
+              <Link to="/cookie">Cookie</Link>
+              <span className="dot" />
+              <Link to="/tos">Termini</Link>
+              <span className="dot" />
+              <button
+                type="button"
+                className="linklike"
+                onClick={openManager}
+                aria-label="Gestisci preferenze cookie"
+              >
+                Gestisci cookie
+              </button>
               <span className="dot" />
               <BackToTop onClick={scrollTop} aria-label="Torna su">
                 ↑ Torna su

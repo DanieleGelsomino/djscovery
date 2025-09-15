@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { FaSpotify, FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCookieConsent } from "./CookieConsentContext";
 
 const float = keyframes`
   0% { transform: translateY(0) }
@@ -144,6 +145,10 @@ function toEmbedUrl(url) {
 }
 
 const SpotifyFloatingWidget = () => {
+  const { prefs, openManager } = useCookieConsent();
+  if (!prefs?.marketing) {
+    return null; // blocca embed fino al consenso marketing
+  }
   // Fallback di test se non configurato in .env
   const rawUrl =
     import.meta.env.VITE_SPOTIFY_PLAYLIST_URL ||

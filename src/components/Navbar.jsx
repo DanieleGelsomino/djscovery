@@ -205,12 +205,15 @@ const Navbar = () => {
         <Toggle
           onClick={() => setOpen(!open)}
           whileTap={{ scale: 0.9 }}
-          aria-label="Toggle menu"
+          aria-label="Apri/chiudi menu di navigazione"
+          aria-controls="main-menu"
+          aria-expanded={open}
         >
           {open ? <FiX /> : <FiMenu />}
         </Toggle>
         <RightSection>
           <Menu
+            id="main-menu"
             scrolled={scrolled}
             initial={{ x: "100%" }}
             animate={

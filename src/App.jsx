@@ -18,6 +18,12 @@ import AdminRoute from './components/AdminRoute';
 import NotFound from "./components/NotFound";
 import PrivacyPolicy from "./components/PrivacyPolicy"; // 👈 aggiunta
 import Thanks from "./components/Thanks";
+import CookieBanner from "./components/CookieBanner";
+import { CookieConsentProvider } from "./components/CookieConsentContext";
+import Terms from "./components/Terms";
+import CookiePolicy from "./components/CookiePolicy";
+import AnalyticsGate from "./components/AnalyticsGate";
+import SkipToContent from "./components/SkipToContent";
 
 const Main = styled.main`
     flex: 1;
@@ -30,9 +36,11 @@ const App = () => {
     const isAdminRoute = location.pathname.startsWith('/admin');
 
     return (
-        <>
+        <CookieConsentProvider>
+            <AnalyticsGate />
+            <SkipToContent />
             {!isAdminRoute && <Navbar />}
-            <Main>
+            <Main id="main-content">
                 <AnimatePresence mode="wait">
                     <Routes location={location} key={location.pathname}>
                         {/* Pubbliche */}
@@ -44,6 +52,8 @@ const App = () => {
                         <Route path="/contatti" element={<ContattiSection />} />
                         <Route path="/prenota" element={<TicketBookingForm />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/tos" element={<Terms />} />
+                        <Route path="/cookie" element={<CookiePolicy />} />
                         <Route path="/thanks" element={<Thanks />} />
 
 
@@ -66,9 +76,10 @@ const App = () => {
                     </Routes>
                 </AnimatePresence>
             </Main>
+            {!isAdminRoute && <CookieBanner />}
             {!isAdminRoute && <SpotifyFloatingWidget />}
             {!isAdminRoute && <Footer />}
-        </>
+        </CookieConsentProvider>
     );
 };
 
