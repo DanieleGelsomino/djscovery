@@ -84,9 +84,21 @@ Rotte principali (vedi `src/App.jsx`):
 - `/contatti` – Form contatti (invia email allo staff via `/api/contact`).
 - `/prenota` – Prenotazione posti (flusso booking in produzione, non modificare).
 - `/privacy` – Privacy Policy.
+- `/cookie` – Cookie Policy.
 - `/thanks` – Pagina di ringraziamento (redirect Brevo DOI).
 
 I testi statici si gestiscono in `src/locales/it.json` e `src/locales/en.json`.
+
+Formati standard visualizzati sul sito e nell'admin:
+- Data: `dd/MM/yyyy`
+- Ora: `HH:mm`
+
+Cookie e embed esterni:
+- Il banner consente “Accetta tutti”, “Rifiuta tutti” e personalizzazione per categorie.
+- YouTube/Spotify/Mappe sono attivati solo con cookie Funzionali abilitati. È possibile riaprire il pannello da Footer → “Gestisci cookie”.
+
+SEO:
+- `sitemap.xml` e `robots.txt` sono generati dinamicamente e puntano alle principali pagine pubbliche.
 
 ---
 
@@ -137,6 +149,7 @@ Questa sezione spiega nel dettaglio cosa può fare un amministratore e come usar
 - Menu laterale (drawer) con sezioni: Eventi, Crea/Modifica Evento, Prenotazioni, Galleria. Su mobile è comprimibile (icona hamburger).
 - Ricerca rapida: premi `/` da tastiera per focalizzare la barra di ricerca nella sezione attiva (Eventi o Prenotazioni).
 - Salva rapido: nella sezione Crea/Modifica Evento premi Ctrl/Cmd + S per salvare.
+- Mobile: layout responsivo, caricamento progressivo delle liste e campi con tap target ampio.
 
 ---
 
@@ -155,7 +168,7 @@ Azioni su evento
 - Elimina: rimuove l’evento. Se ci sono prenotazioni, valuta l’impatto prima di procedere.
 
 Esportazione CSV
-- Dalla lista Eventi: esporta in `eventi.csv` (campi: Id, Nome, DJ, Stato, Data, Ora, Luogo, Capienza, SoldOut, Prenotazioni, AggiornatoIl/Da).
+- Dalla lista Eventi: esporta in `eventi.csv` (campi: Id, Nome, DJ, Stato, Data `dd/MM/yyyy`, Ora `HH:mm`, Luogo, Capienza, SoldOut, Prenotazioni, “Aggiornato il”, “Aggiornato da”).
 
 Auto Sold Out
 - Il pannello ricalcola automaticamente lo stato Sold out in base a capienza e prenotazioni. Se i posti venduti >= capienza, imposta Sold out.
@@ -213,10 +226,16 @@ Elimina prenotazione
 Check-in e QR
 - Email di conferma contiene un QR con link di verifica.
 - Verifica: endpoint pubblico `GET /api/bookings/verify?token=...` ritorna validità, quantità, checked-in e rimanenti.
-- Check-in: strumenti nel pannello (componente `CheckInBox`) incrementano i conteggi; presente anche funzione “Undo” per correggere.
+- Check-in: strumenti nel pannello (componente `CheckInBox`) per incrementare i conteggi; funzioni chiave:
+  - Avvio scansione (camera), lettura QR in tempo reale
+  - Torcia (se supportata) per ambienti scuri
+  - Carica immagine (puoi caricarne in serie: l’input si resetta automaticamente)
+  - Auto check-in: “Alla scansione: registra tutti i rimanenti” (toggle attivo di default); in alternativa auto +1
+  - Undo: annulla l’ultimo check-in
+  - Modal operatore: vista full‑screen con stato grande (VALIDO / GIÀ UTILIZZATO / SCADUTO) e pulsanti rapidi
 
 Esportazione CSV
-- Dalla sezione Prenotazioni puoi esportare `prenotazioni.csv` (Id, Evento, Nome, Cognome, Email, Telefono, Biglietti, CreatoIl).
+- Dalla sezione Prenotazioni puoi esportare `prenotazioni.csv` (Id, Evento, Nome, Cognome, Email, Telefono, Biglietti, “Creato il” `dd/MM/yyyy`).
 - Dal backend: `GET /api/export/bookings.csv?eventId=...` (autenticato con ruolo `admin|editor|staff`).
 
 ---
