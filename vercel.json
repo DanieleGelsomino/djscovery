@@ -3,6 +3,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "routes": [
+    { "src": "/(sitemap\\.xml)$", "dest": "/api/sitemap.xml" },
+    { "src": "/(robots\\.txt)$", "dest": "/api/robots.txt" },
     { "src": "/api/(.*)", "dest": "/api/[...slug].js" },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }

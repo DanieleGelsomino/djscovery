@@ -180,6 +180,49 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "vercel-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// SEO: sitemap.xml and robots.txt
+app.get(["/sitemap.xml", "/api/sitemap.xml", "/api/sitemap"], (req, res) => {
+  try {
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+    const proto = (req.headers["x-forwarded-proto"] || "https").toString();
+    const origin = `${proto}://${host}`.replace(/\/$/, "");
+    const paths = [
+      "/",
+      "/eventi",
+      "/gallery",
+      "/tappe",
+      "/chi-siamo",
+      "/contatti",
+      "/prenota",
+      "/privacy",
+      "/cookie",
+      "/tos",
+      "/thanks",
+    ];
+    const lastmod = new Date().toISOString().slice(0, 10);
+    const urls = paths
+      .map((p) => `  <url>\n    <loc>${origin}${p}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`) 
+      .join("\n");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(xml);
+  } catch {
+    res.status(500).send("<error/>\n");
+  }
+});
+app.get(["/robots.txt", "/api/robots.txt", "/api/robots"], (req, res) => {
+  try {
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+    const proto = (req.headers["x-forwarded-proto"] || "https").toString();
+    const origin = `${proto}://${host}`.replace(/\/$/, "");
+    const body = `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(body);
+  } catch {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send("User-agent: *\nAllow: /\n");
+  }
+});
 // Simple auth diagnostic
 app.get("/api/auth/whoami", async (req, res) => {
   const user = await getAuthUser(req);
