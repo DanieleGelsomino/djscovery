@@ -162,6 +162,35 @@ const toISO = (v) => {
   return d ? d.toISOString() : "";
 };
 
+const toDMY = (v) => {
+  const d = tsToDate(v);
+  if (!d) return "";
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const formatHM = (input) => {
+  if (input == null) return '';
+  const s = String(input);
+  const m = s.match(/^(\d{1,2}):(\d{1,2})/);
+  if (m) {
+    const hh = String(parseInt(m[1], 10)).padStart(2, '0');
+    const mm = String(parseInt(m[2], 10)).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+  } catch {}
+  return '';
+};
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 // ======= GEOAPIFY Autocomplete (OSM) =======
@@ -841,13 +870,13 @@ const AdminPanel = () => {
       Nome: e.name || "",
       DJ: e.dj || "",
       Stato: e.status || "published",
-      Data: e.date || "",
-      Ora: e.time || "",
+      Data: toDMY(e.date),
+      Ora: formatHM(e.time) || "",
       Luogo: e.place || "",
       Capienza: e.capacity || "",
       SoldOut: e.soldOut ? "sì" : "no",
       Prenotazioni: e.bookingsCount ?? "",
-      "Aggiornato il": toISO(e.updatedAt || e.updated),
+      "Aggiornato il": toDMY(e.updatedAt || e.updated),
       "Aggiornato da": e.updatedBy || "",
     }));
     downloadCsv(rows, "eventi.csv");
@@ -861,7 +890,7 @@ const AdminPanel = () => {
       Email: b.email || "",
       Telefono: b.telefono || "",
       Biglietti: b.quantity || 1,
-      "Creato il": toISO(b.createdAt || b.created),
+      "Creato il": toDMY(b.createdAt || b.created),
     }));
     downloadCsv(rows, "prenotazioni.csv");
   };
@@ -1307,7 +1336,7 @@ const AdminPanel = () => {
                             <TableCell>{ev.dj || "—"}</TableCell>
                             <TableCell>{ev.place || "—"}</TableCell>
                             <TableCell>{formatDate(ev.date)}</TableCell>
-                            <TableCell>{ev.time}</TableCell>
+                            <TableCell>{formatHM(ev.time)}</TableCell>
                             <TableCell>{ev.capacity || "-"}</TableCell>
                             <TableCell>
                               <Chip

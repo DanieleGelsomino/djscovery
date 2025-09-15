@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDMY } from "../lib/date";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 
@@ -46,11 +47,7 @@ const Card = styled(motion.div)`
 `;
 
 const PrivacyPolicy = () => {
-    const lastUpdate = new Date().toLocaleDateString("it-IT", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    });
+    const lastUpdate = formatDMY(new Date());
 
     return (
         <Section>

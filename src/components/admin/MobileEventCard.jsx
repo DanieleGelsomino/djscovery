@@ -18,6 +18,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { isPast, formatDate } from "./eventUtils";
+import { formatHM } from "../../lib/date";
 import { useLanguage } from "../LanguageContext";
 
 function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut, onDuplicate, onExportICS, canDelete }) {
@@ -37,7 +38,7 @@ function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut, onDuplicate, o
                 <Typography variant="body2" sx={{ opacity: 0.85 }}>{ev.place || "—"}</Typography>
                 <Stack direction="row" spacing={2} sx={{ mt: 1, opacity: 0.8 }}>
                     <Typography variant="caption">📅 {formatDate(ev.date)}</Typography>
-                    <Typography variant="caption">⏰ {ev.time}</Typography>
+                    <Typography variant="caption">⏰ {formatHM(ev.time)}</Typography>
                     <Typography variant="caption">👥 {ev.capacity || "-"}</Typography>
                 </Stack>
             </CardContent>

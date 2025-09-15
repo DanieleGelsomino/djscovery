@@ -7,6 +7,7 @@ import Spinner from "./Spinner";
 import ComingSoon from "./ComingSoon";
 import TimedCardsLite from "./TimedCardsLite";
 import heroFallback from "../assets/img/hero.png";
+import { formatDMY, formatHM } from "../lib/date";
 
 const EventiSection = () => {
   const navigate = useNavigate();
@@ -23,8 +24,9 @@ const EventiSection = () => {
 
   const slides = events.map((e) => {
     const title1 = e.name || "Evento";
-    const dateFmt = e.date ? (() => { const [y,m,d] = (e.date||"").split("-"); return (y&&m&&d) ? `${d}/${m}/${y}` : (e.date||""); })() : "";
-    const title2 = e.dj || (dateFmt ? `${dateFmt}${e.time ? ` · ${e.time}` : ""}` : "");
+    const dateFmt = formatDMY(e.date);
+    const timeFmt = formatHM(e.time);
+    const title2 = e.dj || (dateFmt ? `${dateFmt}${timeFmt ? ` · ${timeFmt}` : ""}` : "");
     const desc = e.description || (e.place ? `${e.place}` : "");
     const place = e.place || "";
     const image = e.image || heroFallback;

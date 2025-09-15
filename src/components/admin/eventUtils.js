@@ -5,12 +5,9 @@ export const eventDateTime = (ev) => {
   return isNaN(dt.getTime()) ? null : dt;
 };
 
-export const formatDate = (iso) => {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
-};
+import { formatDMY } from "../../lib/date";
+
+export const formatDate = (value) => formatDMY(value);
 
 export const isPast = (ev) => {
   const dt = eventDateTime(ev);

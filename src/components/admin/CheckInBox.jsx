@@ -54,6 +54,7 @@ function CheckInBox({ events = [] }) {
     const { showToast } = useToast();
 
     const todayISO = new Date().toISOString().slice(0,10);
+    const todayDMY = (() => { const d = new Date(); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; })();
     const eventById = useCallback((id) => events.find((e) => e.id === id), [events]);
 
     const formatDate = (iso) => {
@@ -390,7 +391,7 @@ function CheckInBox({ events = [] }) {
                 <FormControl>
                     <Stack direction="row" spacing={1} alignItems="center">
                         <Switch checked={onlyToday} onChange={(_, v) => setOnlyToday(v)} />
-                        <FormHelperText sx={{ color: "inherit" }}>Solo eventi di oggi ({todayISO})</FormHelperText>
+                        <FormHelperText sx={{ color: "inherit" }}>Solo eventi di oggi ({todayDMY})</FormHelperText>
                     </Stack>
                 </FormControl>
                 <FormControl>

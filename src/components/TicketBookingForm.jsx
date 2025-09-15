@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { sendBooking, fetchEvents } from '../api';
 import { useLanguage } from './LanguageContext';
 import Spinner from './Spinner';
+import { formatDMY } from "../lib/date";
 import { useToast } from './ToastContext';
 import { FormSkeleton, FormFieldSkeleton } from './Skeletons';
 
@@ -95,11 +96,6 @@ const FieldWrapper = styled.div`
 `;
 
 const TicketBookingForm = () => {
-    const fmtDate = (iso) => {
-        if (!iso) return '';
-        const [y, m, d] = String(iso).split('-');
-        return y && m && d ? `${d}/${m}/${y}` : iso;
-    };
     const [searchParams] = useSearchParams();
     const eventId = searchParams.get('event');
 
@@ -206,7 +202,7 @@ const TicketBookingForm = () => {
                     <div style={{ maxWidth: 600, margin: '0.5rem auto 1rem', opacity: .9 }}>
                         <strong>{eventInfo.name}</strong>
                         {eventInfo.date || eventInfo.time ? (
-                            <span> • {fmtDate(eventInfo.date) || ''} {eventInfo.time || ''}</span>
+                            <span> • {formatDMY(eventInfo.date) || ''} {eventInfo.time || ''}</span>
                         ) : null}
                     </div>
                 )}
