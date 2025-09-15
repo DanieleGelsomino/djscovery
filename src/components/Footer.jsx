@@ -6,13 +6,13 @@ import { useLanguage } from "./LanguageContext";
 import { useCookieConsent } from "./CookieConsentContext";
 import {
   FaInstagram,
-  FaFacebook,
   FaYoutube,
   FaEnvelope,
   FaWhatsapp,
   FaSpotify,
   FaChevronDown,
 } from "react-icons/fa";
+import { SiTiktok } from "react-icons/si";
 import logoImg from "../assets/img/logo-dj.png";
 import { subscribeNewsletter } from "../api";
 
@@ -244,9 +244,9 @@ const Social = styled.div`
     color: #1db954;
     border-color: #38d56d;
   }
-  a.fb:hover {
-    color: #1877f2;
-    border-color: #4e97ff;
+  a.tt:hover {
+    color: #25f4ee; /* TikTok cyan */
+    border-color: #fe2c55; /* TikTok pink */
   }
 `;
 const Contacts = styled.div`
@@ -369,7 +369,9 @@ const SmallLinks = styled.div`
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.35);
     display: inline-block;
-    @media (max-width: 720px) { display: none; }
+    @media (max-width: 720px) {
+      display: none;
+    }
   }
   button.linklike {
     background: transparent;
@@ -409,7 +411,7 @@ const Footer = () => {
   const { t } = useLanguage();
   const { openManager } = useCookieConsent(); // <-- QUI (prima del return)
   const year = new Date().getFullYear();
-  const email = "hello@djscovery.tv";
+  const email = "djscovery.channel@gmail.com";
   const wa =
     import.meta.env.VITE_WHATSAPP_COMMUNITY_URL ||
     "https://chat.whatsapp.com/your-community";
@@ -490,13 +492,13 @@ const Footer = () => {
                 </motion.a>
                 <motion.a
                   whileHover={{ scale: 1.06 }}
-                  href="https://www.facebook.com"
+                  href="https://www.tiktok.com/@djscovery.tv"
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Facebook"
-                  className="fb"
+                  aria-label="TikTok"
+                  className="tt"
                 >
-                  <FaFacebook />
+                  <SiTiktok />
                 </motion.a>
                 <motion.a
                   whileHover={{ scale: 1.06 }}
@@ -510,7 +512,7 @@ const Footer = () => {
                 </motion.a>
                 <motion.a
                   whileHover={{ scale: 1.06 }}
-                  href="https://open.spotify.com/user"
+                  href="https://open.spotify.com/user/31cxctdzgar4zt2trblfp55ebpl4?si=13e12fbb6994410a&nd=1&dlsi=7ed72ca7c49e4954"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Spotify"
