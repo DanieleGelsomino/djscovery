@@ -62,7 +62,8 @@
     "loading": "Loading events...",
     "none": "No events available",
     "book_now": "Book now",
-    "sold_out": "Sold out"
+    "sold_out": "Sold out",
+    "free": "Free"
   },
   "about": {
     "title": "About Us",
@@ -123,10 +124,15 @@
     "phone": "Phone",
     "book": "Book",
     "required": "All fields are required",
+    "required_field": "Required field",
     "invalid_email": "Invalid email",
+    "invalid_phone": "Invalid phone",
+    "invalid_quantity": "Minimum 1 ticket",
+    "max_quantity": "Max 20 per booking",
     "error": "Error saving data",
     "success": "Booking successful!",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "quantity_placeholder": "E.g. 1"
   },
   "admin": {
     "nav": {

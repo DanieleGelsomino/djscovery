@@ -104,6 +104,9 @@ export const GlobalStyles = createGlobalStyle`
     box-shadow: none !important;
     outline: none !important;
   }
+  .admin-panel *:focus-visible { box-shadow: none !important; }
+  .admin-panel .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { box-shadow: none !important; }
+  /* Admin create-event: input padding applied per-field via sx in AdminPanel.jsx */
 
   .container {
     width: 90%;

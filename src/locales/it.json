@@ -62,7 +62,8 @@
     "loading": "Caricamento eventi...",
     "none": "Nessun evento disponibile",
     "book_now": "Prenota ora",
-      "sold_out": "Sold out"
+      "sold_out": "Sold out",
+      "free": "Gratis"
   },
   "about": {
     "title": "Chi Siamo",
@@ -123,13 +124,15 @@
     "phone": "Telefono",
     "book": "Prenota",
     "required": "Tutti i campi sono obbligatori",
+    "required_field": "Campo obbligatorio",
     "invalid_email": "Email non valida",
     "invalid_phone": "Telefono non valido",
     "invalid_quantity": "Minimo 1 biglietto",
     "max_quantity": "Max 20 a prenotazione",
     "error": "Errore durante il salvataggio",
     "success": "Prenotazione avvenuta con successo!",
-    "quantity": "Quantità"
+    "quantity": "Quantità",
+    "quantity_placeholder": "Es. 1"
   },
   "admin": {
     "nav": {

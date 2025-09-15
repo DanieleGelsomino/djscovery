@@ -8,91 +8,88 @@ import { useToast } from './ToastContext';
 import { FormSkeleton, FormFieldSkeleton } from './Skeletons';
 
 const Wrapper = styled.section`
-    text-align: center;
-    background: linear-gradient(180deg, #111, #000);
+  text-align: center;
+  background: linear-gradient(180deg, #111, #000);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
 `;
 
 const Form = styled.form`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-    background-color: rgba(0, 0, 0, 0.25);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1rem 1rem;
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
 
-    @media (min-width: 768px) {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 1.25rem 1.25rem;
+  }
 
-    button {
-        grid-column: span 2;
-    }
+  button {
+    grid-column: 1 / -1;
+  }
 `;
 
 const Input = styled.input`
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background-color: #111;
-    color: var(--white);
-    transition: border-color 0.2s;
+  width: 100%;
+  padding: 0.78rem 0.9rem;
+  min-height: 46px; /* tap target */
+  font-size: 16px; /* evita zoom iOS */
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  background-color: rgba(0,0,0,0.35);
+  color: var(--white);
+  transition: border-color var(--transition-med), box-shadow var(--transition-med), background var(--transition-med);
+  -webkit-appearance: none;
 
-    &:focus {
-        outline: none;
-        border-color: var(--yellow);
-    }
+  &:focus {
+    outline: none;
+    border-color: var(--yellow);
+    box-shadow: 0 0 0 3px rgba(255,209,102,0.18);
+  }
 
-    &[type="number"]::-webkit-outer-spin-button,
-    &[type="number"]::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    &[type="number"] {
-        -moz-appearance: textfield;
-    }
+  &[type="number"]::-webkit-outer-spin-button,
+  &[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &[type="number"] { -moz-appearance: textfield; }
 `;
 
 const Button = styled.button`
-    width: 100%;
-    padding: 0.75rem;
-    background-color: var(--red);
-    color: var(--white);
-    border: none;
-    border-radius: 4px;
-    transition: transform 0.2s;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  min-height: 48px;
+  background: linear-gradient(90deg, #e53935, #ff6f60);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  transition: transform var(--transition-fast), filter var(--transition-med);
 
-    &:hover {
-        transform: scale(1.05);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+  &:hover { transform: translateY(-1px); filter: brightness(1.03); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
 const FieldWrapper = styled.div`
   display: flex;
   flex-direction: column;
+  min-width: 0; /* evita stretching orizzontale */
 
-  &.full {
-    grid-column: span 2;
-  }
+  &.full { grid-column: 1 / -1; }
 
   label {
     text-align: left;
-    font-size: 0.9rem;
-    color: #bbb;
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.85);
     margin-bottom: 0.35rem;
   }
 
   small {
-    color: #f66;
+    color: #ff8a80;
     margin-top: 0.25rem;
   }
 `;
