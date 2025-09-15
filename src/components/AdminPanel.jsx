@@ -182,7 +182,15 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { showToast } = useToast();
-  const isMobile = useMediaQuery("(max-width:1200px)", { noSsr: true });
+  // Use a simple resize listener instead of MUI useMediaQuery to avoid render loops
+  const [isMobile, setIsMobile] = useState(() => {
+    try { return window.innerWidth <= 1200; } catch { return false; }
+  });
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 1200);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const [section, setSection] = useState("events");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -756,14 +764,18 @@ const AdminPanel = () => {
     setEvMobileVis(12);
   }, [evQuery, evStatus, evSort, statusFilter, events.length]);
 
+  const evLoadLockRef = useRef(false);
   useEffect(() => {
     const el = evSentinelRef.current;
     if (!isMobile || !el) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setEvMobileVis((v) => Math.min(v + 12, filteredSortedEvents.length));
-        }
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        if (evLoadLockRef.current) return;
+        evLoadLockRef.current = true;
+        setEvMobileVis((v) => Math.min(v + 12, filteredSortedEvents.length));
+        setTimeout(() => { evLoadLockRef.current = false; }, 120);
       },
       { rootMargin: "600px 0px" }
     );
@@ -778,16 +790,18 @@ const AdminPanel = () => {
     setBkMobileVis(20);
   }, [bkQuery, bkSort, bkEventFilter, bookings.length]);
 
+  const bkLoadLockRef = useRef(false);
   useEffect(() => {
     const el = bkSentinelRef.current;
     if (!isMobile || !el) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setBkMobileVis((v) =>
-            Math.min(v + 20, filteredSortedBookings.length)
-          );
-        }
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        if (bkLoadLockRef.current) return;
+        bkLoadLockRef.current = true;
+        setBkMobileVis((v) => Math.min(v + 20, filteredSortedBookings.length));
+        setTimeout(() => { bkLoadLockRef.current = false; }, 120);
       },
       { rootMargin: "600px 0px" }
     );
