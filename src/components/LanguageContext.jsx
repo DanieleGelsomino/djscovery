@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import en from '../locales/en.json';
 import it from '../locales/it.json';
 
@@ -10,6 +10,11 @@ export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState('it');
+
+  // Keep <html lang="..."> in sync for screen readers and SEO
+  useEffect(() => {
+    try { document.documentElement.setAttribute('lang', lang || 'it'); } catch {}
+  }, [lang]);
 
   const t = (key) => {
     const keys = key.split('.');
@@ -26,4 +31,3 @@ export const LanguageProvider = ({ children }) => {
     </LanguageContext.Provider>
   );
 };
-

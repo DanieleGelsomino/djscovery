@@ -21,9 +21,11 @@ export const LoadingProvider = ({ children }) => {
   const startLoading = useCallback(() => setCount(c => c + 1), []);
   const stopLoading = useCallback(() => setCount(c => Math.max(0, c - 1)), []);
 
+  // Bind global loading handlers once on mount; start/stop are stable (useCallback)
   useEffect(() => {
     setLoadingHandlers(startLoading, stopLoading);
-  }, [startLoading, stopLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <LoadingContext.Provider value={{ startLoading, stopLoading }}>

@@ -179,8 +179,7 @@ const AdminPanel = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { showToast } = useToast();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
+    const isMobile = useMediaQuery('(max-width:1200px)', { noSsr: true });
 
     const [section, setSection] = useState("events");
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -626,7 +625,11 @@ const AdminPanel = () => {
         }
     }, [events, bookings, showToast, refetchEvents]);
 
+    // Esegui una sola volta al bootstrap per evitare loop di aggiornamento
+    const autoSoldOutRanRef = useRef(false);
     useEffect(() => {
+        if (autoSoldOutRanRef.current) return;
+        autoSoldOutRanRef.current = true;
         recomputeAutoSoldOut();
     }, [recomputeAutoSoldOut]);
 

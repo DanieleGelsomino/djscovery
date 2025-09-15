@@ -356,6 +356,10 @@ const SmallLinks = styled.div`
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: center;
+  @media (max-width: 720px) {
+    width: 100%;
+  }
   a {
     color: var(--yellow);
   }
@@ -365,6 +369,7 @@ const SmallLinks = styled.div`
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.35);
     display: inline-block;
+    @media (max-width: 720px) { display: none; }
   }
   button.linklike {
     background: transparent;
@@ -389,6 +394,13 @@ const BackToTop = styled.button`
     transform: translateY(-2px);
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.28);
+  }
+  @media (max-width: 720px) {
+    flex-basis: 100%;
+    width: 100%;
+    text-align: center;
+    min-height: 44px; /* tap target */
+    margin-top: 6px;
   }
 `;
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
     Box,
     Button,
@@ -19,6 +19,8 @@ import {
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import FlashOnIcon from "@mui/icons-material/FlashOn";
+import FlashOffIcon from "@mui/icons-material/FlashOff";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -37,12 +39,15 @@ function CheckInBox({ events = [] }) {
     const trackRef = useRef(null);
     const wakeLockRef = useRef(null);
 
-    const [support, setSupport] = useState({ camera: false, detector: false });
+    const [support, setSupport] = useState({ camera: false, detector: false, torch: false });
     const [scanning, setScanning] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [lastScan, setLastScan] = useState("");
     const [result, setResult] = useState(null); // { valid, reason, token, ... }
     const [onlyToday, setOnlyToday] = useState(true);
+    const [autoAll, setAutoAll] = useState(() => {
+        try { return localStorage.getItem("checkinAutoAll") !== "false"; } catch { return true; }
+    });
     const [opOpen, setOpOpen] = useState(false); // modal operatore
     const [manual, setManual] = useState("");
 
@@ -60,10 +65,12 @@ function CheckInBox({ events = [] }) {
     // Audio
     const audioCtxRef = useRef(null);
     const [soundOn, setSoundOn] = useState(() => localStorage.getItem("checkinSound") !== "off");
+    const [torchOn, setTorchOn] = useState(false);
 
     // dentro CheckInBox, in alto tra gli hook:
     const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+    const downSmQuery = useMemo(() => theme.breakpoints.down("sm"), [theme]);
+    const isXs = useMediaQuery(downSmQuery, { noSsr: true });
 
 
 // sblocca l’audio su gesto utente (iOS richiede interazione)
@@ -132,10 +139,11 @@ function CheckInBox({ events = [] }) {
 
 
     useEffect(() => {
-        setSupport({
+        setSupport((s) => ({
+            ...s,
             camera: !!navigator.mediaDevices?.getUserMedia,
             detector: "BarcodeDetector" in window,
-        });
+        }));
     }, []);
 
     async function requestWakeLock() { try { wakeLockRef.current = await navigator.wakeLock?.request("screen"); } catch {} }
@@ -156,6 +164,10 @@ function CheckInBox({ events = [] }) {
         return null;
     };
 
+    const [lastAutoCount, setLastAutoCount] = useState(0);
+    const [lastPreRemaining, setLastPreRemaining] = useState(0);
+    const [lastJustCheckedIn, setLastJustCheckedIn] = useState(false);
+
     const doVerify = async (text, opts = { autoCheckIn: true }) => {
         const token = extractToken(text);
         if (!token) { showToast("QR/Link non valido: nessun token trovato", "error"); return; }
@@ -163,26 +175,54 @@ function CheckInBox({ events = [] }) {
         setVerifying(true);
         try {
             const data = await verifyBooking(token);
+            const isValid = (data?.valid !== undefined) ? !!data.valid : !!data?.ok;
             const ev = eventById(data.eventId);
-            const isToday = ev?.date === todayISO;
-            const payload = { ...data, token, isToday };
+            const isToday = (data.eventDate || ev?.date) === todayISO;
+            const payload = { ...data, token, isToday, valid: isValid };
             setResult(payload);
 
             setOpOpen(true); // apri modal operatore
 
-            if (!data.valid) { showToast("Token non valido", "error"); return; }
+            if (!isValid) { showToast("Token non valido", "error"); return; }
             if (onlyToday && !isToday) { showToast("Evento non è oggi — verifica manuale", "warning"); return; }
 
-            // ✅ AUTO CHECK-IN: +1 alla scansione
+            // ✅ AUTO CHECK-IN: +1 o tutti i rimanenti, in base al toggle
             if (opts.autoCheckIn && data.remaining > 0) {
-                await doCheckIn(token, data.remaining, { silent: true });
+                const n = autoAll ? data.remaining : 1;
+                setLastAutoCount(n);
+                // tieni traccia dello stato pre-checkin per i messaggi UI
+                // (così distinguiamo "già utilizzato" da "appena validato")
+                // pre-remaining prima del check-in
+                try { setLastPreRemaining(data.remaining); } catch {}
+                try { setLastJustCheckedIn(false); } catch {}
+                await doCheckIn(token, n, { silent: true });
+                try { setLastJustCheckedIn(true); } catch {}
             } else if (data.remaining <= 0) {
                 showToast("Prenotazione già Sold out", "error");
                 playWarn();
             }
-        } catch {
-            setResult({ valid: false, reason: "network_error" });
-            showToast("Errore di verifica", "error");
+        } catch (e) {
+            const code = e?.response?.data?.error || (e?.response?.status === 401 ? "expired" : null) || "network_error";
+            setResult({ valid: false, reason: code });
+            if (code === "expired") {
+                showToast("Token scaduto", "warning");
+                playWarn();
+            } else if (code === "not_found") {
+                showToast("Prenotazione non trovata", "error");
+                playError();
+            } else if (code === "token_mismatch") {
+                showToast("Token non corrisponde alla prenotazione", "error");
+                playError();
+            } else if (code === "missing_token") {
+                showToast("Token mancante", "error");
+                playError();
+            } else if (code === "invalid") {
+                showToast("Token non valido", "error");
+                playError();
+            } else {
+                showToast("Errore di verifica", "error");
+                playError();
+            }
         } finally {
             setVerifying(false);
         }
@@ -190,6 +230,7 @@ function CheckInBox({ events = [] }) {
 
     const stopScan = () => {
         setScanning(false);
+        setTorchOn(false);
         const stream = videoRef.current?.srcObject;
         if (stream) { stream.getTracks().forEach((t) => t.stop()); videoRef.current.srcObject = null; }
         trackRef.current = null;
@@ -204,11 +245,19 @@ function CheckInBox({ events = [] }) {
         await ensureAudio();
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
+                // risoluzione moderata per prestazioni migliori sui device lenti
                 video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: false,
             });
             if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
             trackRef.current = stream.getVideoTracks()[0];
+
+            // torch capability (solo alcuni device/browser)
+            try {
+                const caps = trackRef.current?.getCapabilities?.();
+                const hasTorch = !!caps?.torch;
+                if (hasTorch) setSupport((s) => ({ ...s, torch: true }));
+            } catch {}
 
             await new Promise((r) => {
                 const v = videoRef.current;
@@ -226,9 +275,13 @@ function CheckInBox({ events = [] }) {
             let detector = null;
             if (support.detector) { try { detector = new window.BarcodeDetector({ formats: ["qr_code"] }); } catch { detector = null; } }
 
-            const loop = async () => {
+            const lastTsRef = { v: 0 };
+            const loop = async (ts) => {
                 if (!videoRef.current || !scanning) return;
                 try {
+                    // throttling ~8fps per risparmiare CPU
+                    if (ts && ts - lastTsRef.v < 120) { requestAnimationFrame(loop); return; }
+                    lastTsRef.v = ts || performance.now();
                     if (detector) {
                         const detections = await detector.detect(videoRef.current);
                         if (detections?.length) { const text = detections[0].rawValue; stopScan(); await doVerify(text, { autoCheckIn: true }); return; }
@@ -240,11 +293,22 @@ function CheckInBox({ events = [] }) {
                 } catch {}
                 requestAnimationFrame(loop);
             };
-            loop();
+            requestAnimationFrame(loop);
         } catch {
             setScanning(false);
             showToast("Impossibile accedere alla fotocamera", "error");
             releaseWakeLock();
+        }
+    };
+
+    const toggleTorch = async () => {
+        if (!support.torch || !trackRef.current) return;
+        const next = !torchOn;
+        try {
+            await trackRef.current.applyConstraints({ advanced: [{ torch: next }] });
+            setTorchOn(next);
+        } catch {
+            // ignore
         }
     };
 
@@ -329,6 +393,18 @@ function CheckInBox({ events = [] }) {
                         <FormHelperText sx={{ color: "inherit" }}>Solo eventi di oggi ({todayISO})</FormHelperText>
                     </Stack>
                 </FormControl>
+                <FormControl>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Switch
+                            checked={autoAll}
+                            onChange={(_, v) => {
+                                setAutoAll(v);
+                                try { localStorage.setItem("checkinAutoAll", v ? "on" : "false"); } catch {}
+                            }}
+                        />
+                        <FormHelperText sx={{ color: "inherit" }}>Alla scansione: registra tutti i rimanenti</FormHelperText>
+                    </Stack>
+                </FormControl>
                 <Button variant="outlined" startIcon={<FullscreenIcon />} onClick={() => setOpOpen(true)}>
                     Modal operatore
                 </Button>
@@ -394,7 +470,7 @@ function CheckInBox({ events = [] }) {
                                         hidden
                                         accept="image/*"
                                         type="file"
-                                        onChange={(e) => onPickImage(e.target.files?.[0])}
+                                        onChange={(e) => { onPickImage(e.target.files?.[0]); if (e?.target) e.target.value = ""; }}
                                     />
                                 </Button>
                             </Stack>
@@ -426,6 +502,16 @@ function CheckInBox({ events = [] }) {
                                 >
                                     {soundOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
                                 </IconButton>
+
+                                {support.torch && (
+                                    <IconButton
+                                        onClick={toggleTorch}
+                                        disabled={!scanning}
+                                        aria-label={torchOn ? "Spegni torcia" : "Accendi torcia"}
+                                    >
+                                        {torchOn ? <FlashOnIcon /> : <FlashOffIcon />}
+                                    </IconButton>
+                                )}
                             </Stack>
                         </Stack>
 
@@ -495,11 +581,11 @@ function CheckInBox({ events = [] }) {
                             {statusKind === "warn" && <WarningAmberIcon color="warning" />}
                             {statusKind === "error" && <ErrorOutlineIcon color="error" />}
                             <Typography variant="h6" fontWeight={800}>
-                                {statusKind === "ok"   && "ACCESSO CONSENTITO (auto +1)"}
-                                {statusKind === "done" && "GIÀ UTILIZZATO (0 rimanenti)"}
-                                {statusKind === "warn" && (result?.reason === "expired" ? "TOKEN SCADUTO" : "EVENTO NON DI OGGI")}
-                                {statusKind === "error"&& "NON VALIDO"}
-                                {statusKind === "idle" && "In attesa di scansione"}
+                            {statusKind === "ok"   && (lastAutoCount > 1 ? `VALIDO (auto +${lastAutoCount})` : "VALIDO")}
+                            {statusKind === "done" && (lastJustCheckedIn && lastPreRemaining > 0 ? "CHECK-IN COMPLETATO" : "GIÀ UTILIZZATO (0 rimanenti)")}
+                            {statusKind === "warn" && (result?.reason === "expired" ? "TOKEN SCADUTO" : "EVENTO NON DI OGGI")}
+                            {statusKind === "error"&& "NON VALIDO"}
+                            {statusKind === "idle" && "In attesa di scansione"}
                             </Typography>
                         </Stack>
 
@@ -577,16 +663,23 @@ function CheckInBox({ events = [] }) {
                         <Button variant="text" startIcon={<FullscreenExitIcon />} onClick={() => setOpOpen(false)} sx={{ color: "#fff" }}>
                             Chiudi
                         </Button>
-                        <IconButton
-                            onClick={() => {
-                                const next = !soundOn;
-                                setSoundOn(next);
-                                try { localStorage.setItem("checkinSound", next ? "on" : "off"); } catch {}
-                            }}
-                            sx={{ color: "#fff" }}
-                        >
-                            {soundOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
-                        </IconButton>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            {support.torch && (
+                                <IconButton onClick={toggleTorch} disabled={!scanning} sx={{ color: "#fff" }} aria-label={torchOn ? "Spegni torcia" : "Accendi torcia"}>
+                                    {torchOn ? <FlashOnIcon /> : <FlashOffIcon />}
+                                </IconButton>
+                            )}
+                            <IconButton
+                                onClick={() => {
+                                    const next = !soundOn;
+                                    setSoundOn(next);
+                                    try { localStorage.setItem("checkinSound", next ? "on" : "off"); } catch {}
+                                }}
+                                sx={{ color: "#fff" }}
+                            >
+                                {soundOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
+                            </IconButton>
+                        </Stack>
 
                     </Stack>
 
@@ -606,8 +699,8 @@ function CheckInBox({ events = [] }) {
                             }} />
 
                             <Typography sx={{ fontSize: 40, fontWeight: 900, letterSpacing: 1, mb: 1 }}>
-                                {statusKind === "ok"   && "VALIDO"}
-                                {statusKind === "done" && "COMPLETO"}
+                                {statusKind === "ok"   && (lastAutoCount > 1 ? "VALIDO" : "VALIDO")}
+                                {statusKind === "done" && (lastJustCheckedIn && lastPreRemaining > 0 ? "VALIDO" : "GIÀ UTILIZZATO")}
                                 {statusKind === "warn" && (result?.reason === "expired" ? "SCADUTO" : "NON DI OGGI")}
                                 {statusKind === "error"&& "NON VALIDO"}
                                 {statusKind === "idle" && "IN ATTESA"}

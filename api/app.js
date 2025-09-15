@@ -1083,10 +1083,25 @@ app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
     const quantity = Number(b.quantity || 1);
     const checkedInCount = Number(b.checkedInCount || 0);
     const remaining = Math.max(quantity - checkedInCount, 0);
+    // Try to also include event date/time for client-only checks
+    let eventDate = null;
+    let eventTime = null;
+    try {
+      const evSnap = await db.collection("events").doc(String(eid)).get();
+      if (evSnap.exists) {
+        const ev = evSnap.data() || {};
+        eventDate = ev.date || null;
+        eventTime = ev.time || null;
+      }
+    } catch {}
+
     return res.json({
+      valid: true,
       ok: true,
       bookingId: bid,
       eventId: eid,
+      eventDate,
+      eventTime,
       quantity,
       checkedInCount,
       remaining,
@@ -1104,7 +1119,7 @@ app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
 });
 
 // Check-in by token (increment)
-app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
+app.post("/api/bookings/checkin", publicLimiter, requireAdmin, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
@@ -1158,7 +1173,7 @@ app.post("/api/bookings/checkin", publicLimiter, async (req, res) => {
 });
 
 // Undo last check-in (decrement)
-app.post("/api/bookings/checkin/undo", publicLimiter, async (req, res) => {
+app.post("/api/bookings/checkin/undo", publicLimiter, requireAdmin, async (req, res) => {
   try {
     const db = getDb();
     const { token, count = 1 } = req.body || {};
