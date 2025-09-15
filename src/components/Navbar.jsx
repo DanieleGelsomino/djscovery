@@ -18,6 +18,9 @@ const Nav = styled(motion.nav)`
   width: 100%;
   z-index: 1000;
   padding: 0.6rem 0;
+  display: flex;
+  align-items: center;
+  min-height: 72px; /* uniform header height aligned with 4.5rem logo */
   background: ${({ scrolled }) =>
     scrolled ? "rgba(17,17,17,0.6)" : "transparent"};
   backdrop-filter: ${({ scrolled }) =>
@@ -62,6 +65,7 @@ const Logo = styled(motion(Link))`
 const LogoImage = styled.img`
   height: 4.5rem;
   width: auto;
+  display: block;
 `;
 
 const Toggle = styled(motion.button)`
@@ -71,15 +75,17 @@ const Toggle = styled(motion.button)`
   color: var(--white);
   cursor: pointer;
   display: none;
+  align-items: center;
 
   @media (max-width: 768px) {
-    display: block;
+    display: flex;
   }
 `;
 
 const Menu = styled(motion.ul)`
   list-style: none;
   display: flex;
+  align-items: center;
   gap: 1rem;
 
   @media (max-width: 768px) {
@@ -127,11 +133,15 @@ const Menu = styled(motion.ul)`
 `;
 
 const MenuItem = styled(motion.li)`
+  display: flex;
+  align-items: center;
   a {
-    display: block;
+    display: flex;
+    align-items: center;
     color: inherit;
     padding: 0.5rem 1rem;
     font-weight: 500;
+    line-height: 1;
   }
 `;
 
