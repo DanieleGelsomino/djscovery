@@ -19,6 +19,7 @@ export default function TimedCardsLite({
   const raf = useRef(null);
 
   const total = slides.length;
+  const isSingle = total === 1;
   const current = useMemo(() => slides[index] ?? {}, [slides, index]);
 
   const go = (dir) => {
@@ -142,7 +143,7 @@ export default function TimedCardsLite({
         </div>
       </div>
 
-      <div className="tc-card-picker">
+      <div className={`tc-card-picker ${isSingle ? "is-single" : ""}`}>
         {slides.map((s, i) => (
           <button
             key={i}

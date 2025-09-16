@@ -87,6 +87,7 @@
   z-index:45; overflow-x:auto; overflow-y:hidden; padding:12px 14px;
   background:linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.12)); border-radius:16px; backdrop-filter: blur(3px);
 }
+.tc-card-picker.is-single{ justify-content:center; }
 .tc-thumb{ position:relative; margin-top:8px; flex:0 0 auto; width:260px; height:260px; border-radius:18px; background-size:cover; background-position:center; overflow:hidden; color:#fff; display:block; border:0; cursor:pointer; box-shadow: 0 10px 26px rgba(0,0,0,.35); transition: transform .15s ease, filter .2s ease, box-shadow .2s ease; }
 .tc-thumb::after{ content:""; position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.0) 10%, rgba(0,0,0,.55) 65%, rgba(0,0,0,.9) 100%); }
 .tc-thumb:hover{ transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,.45); }
@@ -141,6 +142,11 @@
   .tc-thumb{ width:calc(var(--picker-h) - 24px); height:calc(var(--picker-h) - 24px); border-radius:14px; margin-top:0; }
   .tc-thumb-overlay{ padding:10px; }
   .tc-thumb-overlay .t2{ font-size:18px; }
+
+  .tc-card-picker.is-single{
+    justify-content:center;
+    overflow-x:hidden;
+  }
 
   /* Player: sopra al picker */
   .tc-pagination{ bottom:calc(var(--picker-h) + 24px + env(safe-area-inset-bottom)); gap:8px; width:calc(100% - 32px); padding:0 4px; }
