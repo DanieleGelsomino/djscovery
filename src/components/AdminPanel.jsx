@@ -1757,6 +1757,7 @@ const AdminPanel = () => {
                         onChange={handleChange}
                         multiline
                         minRows={6}
+                        fullWidth
                         placeholder="Line-up, dress code, guestlist, promozioni…"
                         sx={{
                           '& .MuiOutlinedInput-input': { padding: '10px' },
@@ -1771,6 +1772,7 @@ const AdminPanel = () => {
                         onChange={handleChange}
                         multiline
                         minRows={4}
+                        fullWidth
                         placeholder="English description…"
                         sx={{
                           '& .MuiOutlinedInput-input': { padding: '10px' },
@@ -1795,6 +1797,7 @@ const AdminPanel = () => {
                             onChange={handleChange}
                             multiline
                             minRows={4}
+                            fullWidth
                             placeholder="Es. briefing staff, orari, contatti…"
                             sx={{
                               '& .MuiOutlinedInput-input': { padding: '10px' },
@@ -1810,6 +1813,7 @@ const AdminPanel = () => {
                             onChange={handleChange}
                             multiline
                             minRows={4}
+                            fullWidth
                             placeholder="Un nominativo per riga, o CSV 'Nome,Cognome,+#'…"
                             sx={{
                               '& .MuiOutlinedInput-input': { padding: '10px' },
@@ -1851,6 +1855,7 @@ const AdminPanel = () => {
                                 required
                                 error={!!errors.startDate}
                                 helperText={errors.startDate}
+                                fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
@@ -1883,6 +1888,7 @@ const AdminPanel = () => {
                                 onChange={handleChange}
                                 error={!!errors.endDate}
                                 helperText={errors.endDate}
+                                fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
@@ -1917,6 +1923,7 @@ const AdminPanel = () => {
                                 required
                                 error={!!errors.time}
                                 helperText={errors.time}
+                                fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
