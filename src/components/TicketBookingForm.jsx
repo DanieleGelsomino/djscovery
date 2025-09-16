@@ -201,8 +201,13 @@ const TicketBookingForm = () => {
                 {!eventLoading && eventInfo && (
                     <div style={{ maxWidth: 600, margin: '0.5rem auto 1rem', opacity: .9 }}>
                         <strong>{eventInfo.name}</strong>
-                        {eventInfo.date || eventInfo.time ? (
-                            <span> • {formatDMY(eventInfo.date) || ''} {eventInfo.time || ''}</span>
+                        {(eventInfo.startDate || eventInfo.date || eventInfo.time) ? (
+                            <span>
+                              {" "}• {eventInfo.endDate && eventInfo.endDate !== (eventInfo.startDate || eventInfo.date)
+                                ? `${formatDMY(eventInfo.startDate || eventInfo.date) || ''} → ${formatDMY(eventInfo.endDate)}`
+                                : (formatDMY(eventInfo.startDate || eventInfo.date) || '')}
+                              {eventInfo.time ? ` ${eventInfo.time}` : ''}
+                            </span>
                         ) : null}
                     </div>
                 )}

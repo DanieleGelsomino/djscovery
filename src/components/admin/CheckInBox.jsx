@@ -178,7 +178,7 @@ function CheckInBox({ events = [] }) {
             const data = await verifyBooking(token);
             const isValid = (data?.valid !== undefined) ? !!data.valid : !!data?.ok;
             const ev = eventById(data.eventId);
-            const isToday = (data.eventDate || ev?.date) === todayISO;
+            const isToday = (data.eventDate || ev?.startDate || ev?.date) === todayISO;
             const payload = { ...data, token, isToday, valid: isValid };
             setResult(payload);
 
@@ -600,7 +600,7 @@ function CheckInBox({ events = [] }) {
                                     </Grid>
                                     <Grid item xs={12} md={6}>
                                         <InfoRow label="Evento" value={ev?.name || result.eventId} />
-                                        <InfoRow label="Data evento" value={formatDate(ev?.date)} />
+                                        <InfoRow label="Data evento" value={ev?.endDate && ev?.endDate !== ev?.startDate && ev?.endDate !== ev?.date ? `${formatDate(ev?.startDate || ev?.date)} → ${formatDate(ev?.endDate)}` : formatDate(ev?.startDate || ev?.date)} />
                                         <InfoRow label="Biglietti" value={`${result.checkedInCount || 0} / ${result.quantity} (rim. ${result.remaining ?? 0})`} />
                                     </Grid>
                                 </Grid>

@@ -311,6 +311,7 @@ const AdminPanel = () => {
   const bkSearchRef = useRef(null);
   const formRef = useRef(null);
   const dateInputRef = useRef(null);
+  const endDateInputRef = useRef(null);
   const timeInputRef = useRef(null);
 
   // form
@@ -318,10 +319,13 @@ const AdminPanel = () => {
     name: "",
     dj: "",
     date: "",
+    startDate: "",
+    endDate: "",
     time: "",
     price: "",
     capacity: "",
     description: "",
+    description_en: "",
     soldOut: false,
     image: "",
     place: "",
@@ -387,6 +391,7 @@ const AdminPanel = () => {
     new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
+        try { URL.revokeObjectURL(img.src); } catch {}
         const w = img.width,
           h = img.height;
         const targetRatio = 16 / 9;
@@ -416,7 +421,10 @@ const AdminPanel = () => {
           0.85
         );
       };
-      img.onerror = () => resolve(null);
+      img.onerror = () => {
+        try { URL.revokeObjectURL(img.src); } catch {}
+        resolve(null);
+      };
       img.src = URL.createObjectURL(file);
     });
 
@@ -424,14 +432,28 @@ const AdminPanel = () => {
   const onPickFromDevice = () => fileInputRef.current?.click();
   const onDeviceFileChange = async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const webp = await toWebp16x9(file);
-    if (webp) setFormData((f) => ({ ...f, image: webp }));
-    else {
-      const reader = new FileReader();
-      reader.onload = () =>
-        setFormData((f) => ({ ...f, image: reader.result || "" }));
-      reader.readAsDataURL(file);
+    try {
+      if (!file) return;
+      const name = (file.name || '').toLowerCase();
+      const type = (file.type || '').toLowerCase();
+      // HEIC/HEIF are not decodable by canvas/Image in most browsers
+      if (type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif')) {
+        showToast('Formato HEIC non supportato. Usa JPG/PNG/WEBP.', 'warning');
+        return;
+      }
+      const webp = await toWebp16x9(file);
+      if (webp) setFormData((f) => ({ ...f, image: webp }));
+      else {
+        const reader = new FileReader();
+        reader.onload = () =>
+          setFormData((f) => ({ ...f, image: reader.result || "" }));
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      showToast('Errore caricamento immagine', 'error');
+    } finally {
+      // allow selecting the same file again
+      try { if (e?.target) e.target.value = ''; } catch {}
     }
   };
 
@@ -439,12 +461,19 @@ const AdminPanel = () => {
   const validate = () => {
     const e = {};
     if (!formData.name?.trim()) e.name = "Inserisci un nome";
-    if (!formData.date) e.date = "Scegli una data";
+    if (!formData.startDate) e.startDate = "Scegli una data di inizio";
     if (!formData.time) e.time = "Inserisci un orario";
-    if (formData.date && formData.time) {
-      const dt = new Date(`${formData.date}T${formData.time}:00`);
+    if (formData.startDate && formData.time) {
+      const dt = new Date(`${formData.startDate}T${formData.time}:00`);
       if (isNaN(dt.getTime()) || dt.getTime() <= Date.now())
         e.time = "Data/ora deve essere nel futuro";
+    }
+    if (formData.startDate && formData.endDate) {
+      const sd = new Date(`${formData.startDate}T00:00:00`);
+      const ed = new Date(`${formData.endDate}T23:59:59`);
+      if (!isNaN(sd.getTime()) && !isNaN(ed.getTime()) && ed < sd) {
+        e.endDate = "La data di fine non può essere precedente alla data di inizio";
+      }
     }
     if (formData.price !== "" && Number(formData.price) < 0)
       e.price = "Prezzo non valido";
@@ -479,10 +508,13 @@ const AdminPanel = () => {
       name: "",
       dj: "",
       date: "",
+      startDate: "",
+      endDate: "",
       time: "",
       price: "",
       capacity: "",
       description: "",
+      description_en: "",
       soldOut: false,
       image: "",
       place: "",
@@ -510,6 +542,8 @@ const AdminPanel = () => {
     try {
       const payload = {
         ...formData,
+        // ensure back-compat `date` mirrors `startDate`
+        date: formData.startDate || formData.date,
         image: formData.image || heroImg,
         place: placeSelected?.label || formData.place,
         placeCoords: placeCoords || formData.placeCoords || null,
@@ -517,6 +551,9 @@ const AdminPanel = () => {
         updatedAt: new Date().toISOString(),
         updatedBy: userEmail,
       };
+      if (formData.description_en && formData.description_en.trim()) {
+        payload.i18n = { en: { description: formData.description_en.trim() } };
+      }
       if (editingId) {
         const prev = events.find((e) => e.id === editingId) || {};
         payload.lastDiff = diffObjects(prev, payload);
@@ -558,10 +595,13 @@ const AdminPanel = () => {
       name: ev.name || "",
       dj: ev.dj || "",
       date: ev.date || "",
+      startDate: ev.startDate || ev.date || "",
+      endDate: ev.endDate || "",
       time: ev.time || "",
       price: ev.price || "",
       capacity: ev.capacity || "",
       description: ev.description || "",
+      description_en: ev.i18n?.en?.description || ev.translations?.en?.description || "",
       soldOut: !!ev.soldOut,
       image: ev.image || "",
       place: ev.place || "",
@@ -603,12 +643,14 @@ const AdminPanel = () => {
   // Duplica
   const handleDuplicate = (ev) => {
     if (!canEditEvent(role)) return;
-    const { id, date, time, soldOut, updatedAt, updatedBy, lastDiff, ...rest } =
+    const { id, date, startDate, endDate, time, soldOut, updatedAt, updatedBy, lastDiff, ...rest } =
       ev;
     setEditingId(null);
     setFormData({
       ...rest,
       date: "",
+      startDate: "",
+      endDate: "",
       time: "",
       soldOut: false,
       // Duplichiamo come "published" per coerenza con il salvataggio atteso
@@ -628,8 +670,10 @@ const AdminPanel = () => {
 
   // Export ICS
   const exportICS = (ev) => {
-    const dtStart = `${ev.date}T${(ev.time || "00:00").replace(":", "")}00`;
-    const dtEnd = `${ev.date}T${(ev.time || "00:00").replace(":", "")}00`;
+    const dStart = ev.startDate || ev.date;
+    const dEnd = ev.endDate || dStart;
+    const dtStart = `${dStart}T${(ev.time || "00:00").replace(":", "")}00`;
+    const dtEnd = `${dEnd}T${(ev.time || "00:00").replace(":", "")}00`;
     const ics = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -870,7 +914,9 @@ const AdminPanel = () => {
       Nome: e.name || "",
       DJ: e.dj || "",
       Stato: e.status || "published",
-      Data: toDMY(e.date),
+      Data: e.endDate && e.endDate !== e.startDate && e.endDate !== e.date
+        ? `${toDMY(e.startDate || e.date)} → ${toDMY(e.endDate)}`
+        : toDMY(e.startDate || e.date),
       Ora: formatHM(e.time) || "",
       Luogo: e.place || "",
       Capienza: e.capacity || "",
@@ -976,7 +1022,7 @@ const AdminPanel = () => {
 
   /* ---------- isValid per azioni sticky ---------- */
   const isValid = useMemo(
-    () => Boolean(formData.name && formData.date && formData.time),
+    () => Boolean(formData.name && formData.startDate && formData.time),
     [formData]
   );
 
@@ -1282,7 +1328,8 @@ const AdminPanel = () => {
                         <TableCell>Nome</TableCell>
                         <TableCell>DJ</TableCell>
                         <TableCell>Luogo</TableCell>
-                        <TableCell>Data</TableCell>
+                        <TableCell>Inizio</TableCell>
+                        <TableCell>Fine</TableCell>
                         <TableCell>Ora</TableCell>
                         <TableCell>Capienza</TableCell>
                         <TableCell>Status</TableCell>
@@ -1296,7 +1343,7 @@ const AdminPanel = () => {
                       {filteredSortedEvents.length === 0 && (
                         <TableRow>
                           <TableCell
-                            colSpan={9}
+                            colSpan={10}
                             align="center"
                             sx={{ py: 4, opacity: 0.7 }}
                           >
@@ -1335,7 +1382,8 @@ const AdminPanel = () => {
                             </TableCell>
                             <TableCell>{ev.dj || "—"}</TableCell>
                             <TableCell>{ev.place || "—"}</TableCell>
-                            <TableCell>{formatDate(ev.date)}</TableCell>
+                            <TableCell>{formatDate(ev.startDate || ev.date)}</TableCell>
+                            <TableCell>{formatDate(ev.endDate || ev.startDate || ev.date)}</TableCell>
                             <TableCell>{formatHM(ev.time)}</TableCell>
                             <TableCell>{ev.capacity || "-"}</TableCell>
                             <TableCell>
@@ -1715,6 +1763,20 @@ const AdminPanel = () => {
                           '& .MuiOutlinedInput-inputMultiline': { padding: '10px 12px' },
                         }}
                       />
+                      <Box sx={{ height: 12 }} />
+                      <TextField
+                        name="description_en"
+                        label="Descrizione (EN, opzionale)"
+                        value={formData.description_en}
+                        onChange={handleChange}
+                        multiline
+                        minRows={4}
+                        placeholder="English description…"
+                        sx={{
+                          '& .MuiOutlinedInput-input': { padding: '10px' },
+                          '& .MuiOutlinedInput-inputMultiline': { padding: '10px 12px' },
+                        }}
+                      />
                     </Paper>
 
                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -1776,19 +1838,19 @@ const AdminPanel = () => {
                           </Typography>
                           <Grid container spacing={1.5}>
                             <Grid item xs={12}>
-                              {/* DATA */}
+                              {/* DATA INIZIO */}
                               <TextField
                                 type="date"
-                                name="date"
-                                label="Data *"
+                                name="startDate"
+                                label="Dal *"
                                 inputRef={dateInputRef}
                                 InputLabelProps={{ shrink: true }}
                                 inputProps={{ min: todayISO() }}
-                                value={formData.date}
+                                value={formData.startDate}
                                 onChange={handleChange}
                                 required
-                                error={!!errors.date}
-                                helperText={errors.date}
+                                error={!!errors.startDate}
+                                helperText={errors.startDate}
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
@@ -1805,7 +1867,40 @@ const AdminPanel = () => {
                                 }}
                                 sx={{
                                   "& input::-webkit-calendar-picker-indicator":
-                                    { opacity: 0, display: "none" }, // nasconde l’icona nera di default
+                                    { opacity: 0, display: "none" },
+                                }}
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              {/* DATA FINE (opzionale) */}
+                              <TextField
+                                type="date"
+                                name="endDate"
+                                label="Al"
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: formData.startDate || todayISO() }}
+                                value={formData.endDate}
+                                onChange={handleChange}
+                                error={!!errors.endDate}
+                                helperText={errors.endDate}
+                                InputProps={{
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                          endDateInputRef.current?.showPicker?.()
+                                        }
+                                      >
+                                        <CalendarTodayIcon fontSize="small" />
+                                      </IconButton>
+                                    </InputAdornment>
+                                  ),
+                                }}
+                                inputRef={endDateInputRef}
+                                sx={{
+                                  "& input::-webkit-calendar-picker-indicator":
+                                    { opacity: 0, display: "none" },
                                 }}
                               />
                             </Grid>
@@ -2104,7 +2199,9 @@ const AdminPanel = () => {
                       <MenuItem value="all">Tutti gli eventi</MenuItem>
                       {events.map((ev) => (
                         <MenuItem key={ev.id} value={ev.id}>
-                          {ev.name} — {formatDate(ev.date)}
+                          {ev.name} — {ev.endDate && ev.endDate !== ev.startDate && ev.endDate !== ev.date
+                            ? `${formatDate(ev.startDate || ev.date)} → ${formatDate(ev.endDate)}`
+                            : formatDate(ev.startDate || ev.date)}
                         </MenuItem>
                       ))}
                     </Select>

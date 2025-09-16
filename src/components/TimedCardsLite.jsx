@@ -72,6 +72,8 @@ export default function TimedCardsLite({
         desc={current.desc}
         time={current.time}
         date={current.date}
+        isMultiDay={current.isMultiDay}
+        multiDayLabel={current.multiDayLabel}
         price={current.price}
         soldOut={current.soldOut}
         onDiscover={current.onDiscover}
@@ -83,6 +85,8 @@ export default function TimedCardsLite({
         desc={current.desc}
         time={current.time}
         date={current.date}
+        isMultiDay={current.isMultiDay}
+        multiDayLabel={current.multiDayLabel}
         price={current.price}
         soldOut={current.soldOut}
         onDiscover={current.onDiscover}
@@ -171,6 +175,8 @@ function Details({
   desc,
   time,
   date,
+  isMultiDay = false,
+  multiDayLabel = '',
   price,
   soldOut = false,
   onDiscover,
@@ -190,6 +196,9 @@ function Details({
         <div className="title-box-2">
           <div className="title-2">{title2}</div>
         </div>
+      )}
+      {isMultiDay && !!multiDayLabel && (
+        <div className="tc-badge" aria-label="multi-day">{multiDayLabel}</div>
       )}
       {desc && <div className="desc">{desc}</div>}
       {(time || price) && (

@@ -452,7 +452,10 @@ const imageSchema = z
 const eventSchemaCreate = z.object({
     name: z.string().min(2),
     dj: z.string().optional().nullable(),
-    date: z.string().min(10),
+    // Support both legacy `date` and new `startDate`/`endDate`
+    date: z.string().min(10).optional().nullable(),
+    startDate: z.string().min(10),
+    endDate: z.string().optional().nullable(),
     time: z.string().min(4),
     price: z.union([z.string(), z.number()]).optional().nullable(),
     capacity: z.union([z.string(), z.number()]).optional().nullable(),
@@ -513,8 +516,8 @@ app.get("/api/events", async (req, res) => {
                 const snap = await ref.orderBy("date").get();
                 const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
                 data.sort((a, b) => {
-                    const da = `${a.date || ""}T${a.time || "00:00"}`;
-                    const dbb = `${b.date || ""}T${b.time || "00:00"}`;
+                    const da = `${a.startDate || a.date || ""}T${a.time || "00:00"}`;
+                    const dbb = `${b.startDate || b.date || ""}T${b.time || "00:00"}`;
                     return da.localeCompare(dbb);
                 });
                 return res.json(data);
@@ -539,6 +542,8 @@ app.post("/api/events", authenticate, requireRole("admin", "editor"), async (req
     try {
         const body = {
             ...payload,
+            // keep legacy `date` updated as alias to startDate
+            date: payload.startDate || payload.date,
             price,
             capacity,
             soldOut: !!payload.soldOut,
@@ -575,6 +580,7 @@ app.put("/api/events/:id", authenticate, requireRole("admin", "editor"), async (
             ...payload,
             ...(payload.capacity !== undefined ? { capacity: Number(payload.capacity || 0) || 0 } : {}),
             ...(payload.price !== undefined ? { price: Number(payload.price || 0) || 0 } : {}),
+            ...(payload.startDate !== undefined ? { date: payload.startDate || before.startDate || before.date || null } : {}),
             updatedAt: now(),
             updatedBy: pick(req.user, ["uid", "email"]),
         };

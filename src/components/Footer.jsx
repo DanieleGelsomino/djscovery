@@ -414,7 +414,7 @@ const Footer = () => {
   const email = "djscovery.channel@gmail.com";
   const wa =
     import.meta.env.VITE_WHATSAPP_COMMUNITY_URL ||
-    "https://chat.whatsapp.com/your-community";
+    "https://chat.whatsapp.com/HheBIUyTc9R6MuPcGu7guj?mode=ems_sms_t";
 
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState("idle"); // 'idle' | 'loading' | 'ok' | 'err'

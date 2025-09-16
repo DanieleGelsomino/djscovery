@@ -7,6 +7,10 @@
 
 /* SLIDES */
 .tc-card{ position:absolute; inset:0; background-size:cover; background-position:center 30%; background-repeat:no-repeat; transform:scale(1.02); opacity:0; transition:opacity .6s ease, transform .8s ease; box-shadow:6px 6px 10px 2px rgba(0,0,0,.6); }
+.tc-card::before{ content:""; position:absolute; inset:0; pointer-events:none; background:
+  linear-gradient(90deg, rgba(0,0,0,.34) 0%, rgba(0,0,0,.22) 35%, rgba(0,0,0,.10) 60%, rgba(0,0,0,0) 100%),
+  radial-gradient(60% 60% at 50% 40%, rgba(0,0,0,.12) 0%, rgba(0,0,0,0) 65%);
+}
 .tc-card.is-active{ opacity:1; transform:scale(1); z-index:10; }
 .tc-card.is-inactive{ z-index:0; }
 
@@ -20,17 +24,47 @@
 .tc-details .place-box .text{ padding-top:16px; font-size:20px; font-weight:500; }
 .tc-details .title-box-1{ height:auto; overflow:visible; }
 .tc-details .title-box-2{ height:auto; margin-top:2px; overflow:visible; }
-.tc-details .title-1, .tc-details .title-2{ font-weight:700; font-family:Oswald,Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; font-size:72px; line-height:1.06; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,.35); }
+.tc-details .title-1, .tc-details .title-2{ font-weight:700; font-family:Oswald,Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; font-size:72px; line-height:1.06; letter-spacing:1px; text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 1px rgba(0,0,0,.25); }
 .tc-details .title-2{ color:var(--primary); margin-top:-6px; }
-.tc-details .desc{ margin-top:16px; max-width:56ch; line-height:1.5; opacity:.95; white-space: normal; word-break: break-word; overflow-wrap: anywhere; hyphens: auto; }
+.tc-details .desc{ margin-top:16px; max-width:56ch; line-height:1.5; opacity:.98; white-space: pre-line; word-break: break-word; overflow-wrap: anywhere; hyphens: auto; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+.tc-details .tc-badge{ display:inline-block; margin-top:8px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; font-weight:800; font-size:11px; letter-spacing:.2px; text-transform:uppercase; }
 .tc-details .tc-meta{ display:flex; gap:12px; margin-top:10px; align-items:center; }
-.tc-details .tc-meta .meta-item{ padding:6px 10px; border-radius:12px; background:rgba(255,255,255,.12); color:#fff; font-weight:600; font-size:12px; letter-spacing:.3px; }
-.tc-details .tc-meta .meta-item.price{ background:rgba(236,173,41,.22); color:#fff; }
+.tc-details .tc-meta .meta-item{
+  padding:6px 10px;
+  border-radius:12px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font-weight:600;
+  font-size:12px;
+  letter-spacing:.3px;
+  border:1px solid rgba(255,255,255,.20);
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.tc-details .tc-meta .meta-item.price{
+  background:rgba(236,173,41,.22);
+  color:#fff;
+  border:1px solid rgba(236,173,41,.55);
+  text-shadow: 0 1px 0 rgba(0,0,0,.20);
+}
 .tc-details .cta{ display:flex; gap:12px; margin-top:24px; }
-.tc-details .discover{ border:1px solid #fff; border-radius:var(--radius); padding:10px 24px; font-weight:700; cursor:pointer; background:transparent; color:#fff; text-transform:uppercase; }
+.tc-details .discover{
+  border:1.5px solid #fff;
+  border-radius:var(--radius);
+  padding:12px 28px;
+  font-weight:800;
+  letter-spacing:.4px;
+  cursor:pointer;
+  background: rgba(0,0,0,.22);
+  color:#fff;
+  text-transform:uppercase;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+  backdrop-filter: blur(1.2px);
+}
+.tc-details .discover:hover{ transform: translateY(-1px); background: rgba(0,0,0,.28); }
+.tc-details .discover:active{ transform: translateY(0); }
 .tc-details .discover.soldout{
   cursor: not-allowed;
-  border-color: var(--red);
+  border: 1px solid var(--red);
   color: var(--red);
   background: rgba(215, 38, 61, 0.12);
 }
@@ -78,7 +112,7 @@
   .tc-details .desc{ max-width:100%; font-size:14px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .tc-details .tc-meta{ flex-wrap:wrap; gap:8px; }
   .tc-details .tc-meta .meta-item{ font-size:11px; padding:6px 8px; }
-  .tc-details .discover{ padding:10px 16px; font-size:12px; position: relative; z-index: 110; pointer-events: auto; }
+  .tc-details .discover{ padding:11px 18px; font-size:12px; position: relative; z-index: 110; pointer-events: auto; }
 
   /* Picker: in basso, a tutta larghezza, orizzontale scroll */
   .tc-card-picker{
@@ -109,6 +143,9 @@
   .tc-progress-marks{ display:none; }
   .tc-numbers{ display:none; }
 }
+
+/* Avoid double background on the layered alt details */
+/* no extra background on alt layer */
 
 /* Desktop: move picker to the right to avoid covering titles */
 @media (min-width: 1025px){

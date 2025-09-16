@@ -415,7 +415,10 @@ app.post("/api/events", requireAdmin, async (req, res) => {
     const doc = {
       name: String(data.name || "").trim(),
       dj: String(data.dj || "").trim(),
-      date: String(data.date || "").trim(),
+      // For range support, keep legacy `date` as alias of `startDate`
+      startDate: String(data.startDate || data.date || "").trim(),
+      endDate: String(data.endDate || "").trim(),
+      date: String(data.startDate || data.date || "").trim(),
       time: String(data.time || "").trim(),
       price: data.price ?? "",
       capacity: Number(data.capacity || 0) || 0,
@@ -1133,7 +1136,7 @@ app.get("/api/bookings/verify", publicLimiter, async (req, res) => {
       const evSnap = await db.collection("events").doc(String(eid)).get();
       if (evSnap.exists) {
         const ev = evSnap.data() || {};
-        eventDate = ev.date || null;
+        eventDate = ev.startDate || ev.date || null;
         eventTime = ev.time || null;
       }
     } catch {}

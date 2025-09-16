@@ -1,5 +1,5 @@
 export const eventDateTime = (ev) => {
-  const d = ev?.date || "";
+  const d = ev?.startDate || ev?.date || "";
   const t = ev?.time || "00:00";
   const dt = new Date(`${d}T${t}:00`);
   return isNaN(dt.getTime()) ? null : dt;

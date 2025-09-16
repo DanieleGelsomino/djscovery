@@ -51,3 +51,13 @@ export function formatHM(input) {
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
 }
+
+// Simple date range formatter with basic i18n for labels
+export function formatDateRange(start, end, lang = 'it') {
+  const s = formatDMY(start);
+  const e = formatDMY(end);
+  if (!s && !e) return '';
+  if (!s) return e;
+  if (!e || s === e) return s;
+  return lang === 'en' ? `from ${s} to ${e}` : `dal ${s} al ${e}`;
+}
