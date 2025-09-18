@@ -10,7 +10,6 @@ import {
   FaEnvelope,
   FaWhatsapp,
   FaSpotify,
-  FaChevronDown,
 } from "react-icons/fa";
 import { SiTiktok } from "react-icons/si";
 import logoImg from "../assets/img/logo-dj.png";
@@ -100,17 +99,25 @@ const Grid = styled.div`
   display: grid;
   gap: 2rem;
   grid-template-columns: 1.2fr 1fr 1.2fr;
+
   @media (max-width: 1000px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    text-align: center;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 0.9rem;
+    align-items: start;
   }
 `;
 const Brand = styled.div`
   display: grid;
   gap: 0.9rem;
+
+  @media (max-width: 1000px) {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
 `;
 const Logo = styled(Link)`
   display: inline-flex;
@@ -140,68 +147,36 @@ const Tagline = styled.p`
 const Col = styled.div`
   display: grid;
   align-content: start;
-  gap: 0.8rem;
-`;
-const ColHeaderBtn = styled.button`
-  all: unset;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  user-select: none;
-  padding-top: 0.8rem;
-  margin: 0;
-  color: var(--yellow);
-  font-size: 1rem;
-  position: relative;
-  &:before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 34px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--yellow);
-    box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.15);
-    @media (max-width: 640px) {
-      left: 50%;
-      transform: translateX(-50%);
-    }
-  }
-`;
-const Chevron = styled(FaChevronDown)`
-  flex: 0 0 auto;
-  transition: transform var(--transition-fast);
-  opacity: 0.9;
-`;
-const Collapsible = styled.div`
-  overflow: hidden;
-  transition: max-height var(--transition-med), opacity var(--transition-med);
-  &.closed {
-    max-height: 0;
-    opacity: 0;
-  }
-  &.open {
-    max-height: 400px;
-    opacity: 1;
+  gap: 0.6rem;
+  text-align: left;
+
+  @media (max-width: 640px) {
+    justify-items: flex-start;
   }
 `;
 const LinksList = styled.nav`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
+
   a {
-    color: var(--white);
-    opacity: 0.88;
-    transition: opacity var(--transition-med), color var(--transition-med),
-      transform var(--transition-fast);
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 500;
+    letter-spacing: 0.18px;
+    font-size: 0.9rem;
+    transition: color var(--transition-med);
   }
+
   a:hover,
   a:focus-visible {
     color: var(--yellow);
-    opacity: 1;
-    transform: translateX(2px);
+  }
+
+  @media (max-width: 640px) {
+    justify-items: flex-start;
+    a {
+      font-size: 0.92rem;
+      letter-spacing: 0.1px;
+    }
   }
 `;
 const Social = styled.div`
@@ -251,29 +226,42 @@ const Social = styled.div`
 `;
 const Contacts = styled.div`
   display: grid;
-  gap: 0.55rem;
+  gap: 0.6rem;
   justify-items: start;
   text-align: left;
-  @media (max-width: 640px) {
-    justify-items: center;
-    text-align: center;
-  }
   a {
-    color: var(--white);
-    opacity: 0.9;
+    color: rgba(255, 255, 255, 0.92);
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    overflow-wrap: anywhere;
-    transition: opacity var(--transition-med), color var(--transition-med),
-      transform var(--transition-fast);
+    gap: 0.45rem;
+    max-width: 100%;
+    transition: color var(--transition-med);
   }
   a:hover,
   a:focus-visible {
-    color: var(--green);
-    opacity: 1;
-    transform: translateY(-1px);
+    color: var(--yellow);
+  }
+
+  a span {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 640px) {
+    justify-items: flex-start;
+  }
+`;
+
+const MobileContactsList = styled(Contacts)`
+  @media (max-width: 640px) {
+    gap: 0.55rem;
+    a {
+      font-size: 0.9rem;
+      gap: 0.4rem;
+      align-items: center;
+    }
   }
 `;
 const NewsForm = styled.form`
@@ -419,13 +407,6 @@ const Footer = () => {
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState("idle"); // 'idle' | 'loading' | 'ok' | 'err'
 
-  // Mobile accordion state
-  const [isMobile, setIsMobile] = useState(false);
-  const [openSections, setOpenSections] = useState({
-    explore: true,
-    contacts: true,
-  });
-
   const onSubscribe = async (e) => {
     e.preventDefault();
     if (!nlEmail) return;
@@ -448,30 +429,13 @@ const Footer = () => {
     }
   }, [nlStatus]);
 
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 640);
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
-    // Default closed on mobile, open on desktop, but allow toggling everywhere
-    setOpenSections({
-      explore: isMobile ? false : true,
-      contacts: isMobile ? false : true,
-    });
-  }, [isMobile]);
-
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  const copyText =
-    t("footer.copy") || "Djscovery. Tutti i diritti riservati.";
+  const copyText = t("footer.copy") || "Djscovery. Tutti i diritti riservati.";
   const privacyLabel = t("footer.privacy") || "Privacy";
   const cookiesLabel = t("footer.cookies") || "Cookie";
   const termsLabel = t("footer.terms") || "Termini";
-  const manageCookiesLabel =
-    t("footer.manage_cookies") || "Gestisci cookie";
+  const manageCookiesLabel = t("footer.manage_cookies") || "Gestisci cookie";
   const backToTopLabel = t("footer.back_to_top") || "Torna su";
 
   return (
@@ -533,75 +497,33 @@ const Footer = () => {
             </Brand>
 
             <Col>
-              <ColHeaderBtn
-                type="button"
-                aria-expanded={openSections.explore}
-                aria-controls="footer-explore"
-                onClick={() =>
-                  setOpenSections((s) => ({ ...s, explore: !s.explore }))
-                }
-              >
-                <span>{t("nav.home") || "Esplora"}</span>
-                <Chevron
-                  style={{
-                    transform: openSections.explore
-                      ? "rotate(180deg)"
-                      : "rotate(0deg)",
-                  }}
-                  aria-hidden
-                />
-              </ColHeaderBtn>
-              <Collapsible
-                id="footer-explore"
-                className={openSections.explore ? "open" : "closed"}
-              >
-                <LinksList aria-label="Navigazione footer">
-                  <Link to="/eventi">{t("nav.events") || "Eventi"}</Link>
-                  <Link to="/gallery">{t("nav.gallery") || "Gallery"}</Link>
-                  <Link to="/tappe">{t("nav.tappe") || "Tappe"}</Link>
-                  <Link to="/chi-siamo">{t("nav.about") || "Chi siamo"}</Link>
-                  <Link to="/contatti">{t("nav.contacts") || "Contatti"}</Link>
-                </LinksList>
-              </Collapsible>
+              <ColTitle>{t("nav.home") || "Esplora"}</ColTitle>
+              <LinksList aria-label="Navigazione footer">
+                <Link to="/eventi">{t("nav.events") || "Eventi"}</Link>
+                <Link to="/gallery">{t("nav.gallery") || "Gallery"}</Link>
+                <Link to="/tappe">{t("nav.tappe") || "Tappe"}</Link>
+                <Link to="/chi-siamo">{t("nav.about") || "Chi siamo"}</Link>
+                <Link to="/contatti">{t("nav.contacts") || "Contatti"}</Link>
+              </LinksList>
             </Col>
 
             <Col>
-              <ColHeaderBtn
-                type="button"
-                aria-expanded={openSections.contacts}
-                aria-controls="footer-contacts"
-                onClick={() =>
-                  setOpenSections((s) => ({ ...s, contacts: !s.contacts }))
-                }
-              >
-                <span>{t("nav.contacts") || "Contatti"}</span>
-                <Chevron
-                  style={{
-                    transform: openSections.contacts
-                      ? "rotate(180deg)"
-                      : "rotate(0deg)",
-                  }}
-                  aria-hidden
-                />
-              </ColHeaderBtn>
-              <Collapsible
-                id="footer-contacts"
-                className={openSections.contacts ? "open" : "closed"}
-              >
-                <Contacts>
-                  <a href={`mailto:${email}`} aria-label="Email">
-                    <FaEnvelope /> {email}
-                  </a>
-                  <a
-                    href={wa}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="WhatsApp community"
-                  >
-                    <FaWhatsapp /> WhatsApp
-                  </a>
-                </Contacts>
-              </Collapsible>
+              <ColTitle>{t("nav.contacts") || "Contatti"}</ColTitle>
+              <MobileContactsList>
+                <a href={`mailto:${email}`} aria-label="Email">
+                  <FaEnvelope />
+                  <span>{email}</span>
+                </a>
+                <a
+                  href={wa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp community"
+                >
+                  <FaWhatsapp />
+                  <span>WhatsApp</span>
+                </a>
+              </MobileContactsList>
             </Col>
           </Grid>
         </Container>
@@ -643,3 +565,10 @@ const Footer = () => {
 };
 
 export default Footer;
+const ColTitle = styled.div`
+  font-weight: 700;
+  letter-spacing: 2.4px;
+  color: var(--yellow);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+`;
