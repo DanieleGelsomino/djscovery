@@ -13,7 +13,7 @@
   },
   "hero": {
     "title": "Music & Travel",
-    "subtitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vehicula magna.",
+    "subtitle": "Djscover new places with the power of music",
     "cta_events": "Discover upcoming events"
   },
   "gallery": {
@@ -54,7 +54,8 @@
   },
   "youtube": {
     "title": "Latest Videos",
-    "subtitle": "Watch our newest clips from YouTube"
+    "subtitle": "Watch our newest clips from YouTube",
+    "open_playlist": "Open playlist on YouTube"
   },
   "events": {
     "title": "Next Events",
@@ -85,8 +86,13 @@
     "or": "or"
   },
   "footer": {
-    "text": "Lorem ipsum dolor sit amet.",
-    "copy": "DJSCOVERY"
+    "text": "Community, events and music: explore the Djscovery world.",
+    "copy": "Djscovery. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "terms": "Terms of Service",
+    "manage_cookies": "Manage cookies",
+    "back_to_top": "Back to top"
   },
   "cookies": {
     "title": "Your cookie preferences",
@@ -282,5 +288,4 @@
     "title": "Oops! Page not found",
     "desc": "The requested path does not exist:"
   }
-
 }

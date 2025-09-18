@@ -126,15 +126,14 @@ const YouTubeSection = () => {
       <div className="container">
         <h2>{t("youtube.title")}</h2>
         <p>
-          {t("youtube.subtitle")} ·
-          {" "}
+          {t("youtube.subtitle")} ·{" "}
           <a
             href={playlistUrl}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "var(--yellow)", fontWeight: 700 }}
           >
-            Apri playlist su YouTube
+            {t("youtube.open_playlist") || "Apri playlist su YouTube"}
           </a>
         </p>
         {!prefs?.marketing ? (

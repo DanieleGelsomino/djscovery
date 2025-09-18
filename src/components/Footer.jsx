@@ -465,6 +465,15 @@ const Footer = () => {
 
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
+  const copyText =
+    t("footer.copy") || "Djscovery. Tutti i diritti riservati.";
+  const privacyLabel = t("footer.privacy") || "Privacy";
+  const cookiesLabel = t("footer.cookies") || "Cookie";
+  const termsLabel = t("footer.terms") || "Termini";
+  const manageCookiesLabel =
+    t("footer.manage_cookies") || "Gestisci cookie";
+  const backToTopLabel = t("footer.back_to_top") || "Torna su";
+
   return (
     <Foot initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <AccentBar aria-hidden />
@@ -604,27 +613,26 @@ const Footer = () => {
         <Container>
           <LowerRow>
             <Copy>
-              &copy; {year}{" "}
-              {t("footer.copy") || "Djscovery. Tutti i diritti riservati."}
+              &copy; {year} {copyText}
             </Copy>
             <SmallLinks>
-              <Link to="/privacy">Privacy</Link>
+              <Link to="/privacy">{privacyLabel}</Link>
               <span className="dot" />
-              <Link to="/cookie">Cookie</Link>
+              <Link to="/cookie">{cookiesLabel}</Link>
               <span className="dot" />
-              <Link to="/tos">Termini</Link>
+              <Link to="/tos">{termsLabel}</Link>
               <span className="dot" />
               <button
                 type="button"
                 className="linklike"
                 onClick={openManager}
-                aria-label="Gestisci preferenze cookie"
+                aria-label={manageCookiesLabel}
               >
-                Gestisci cookie
+                {manageCookiesLabel}
               </button>
               <span className="dot" />
-              <BackToTop onClick={scrollTop} aria-label="Torna su">
-                ↑ Torna su
+              <BackToTop onClick={scrollTop} aria-label={backToTopLabel}>
+                ↑ {backToTopLabel}
               </BackToTop>
             </SmallLinks>
           </LowerRow>

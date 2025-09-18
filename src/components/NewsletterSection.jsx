@@ -150,6 +150,7 @@ const NewsletterSection = () => {
   const waUrl =
     import.meta.env.VITE_WHATSAPP_COMMUNITY_URL ||
     "https://chat.whatsapp.com/HheBIUyTc9R6MuPcGu7guj?mode=ems_sms_t";
+  const joinLabel = t("cta.whatsapp.button") || "Unisciti ora";
 
   return (
     <Section>
@@ -191,11 +192,11 @@ const NewsletterSection = () => {
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={"Unisciti ora"}
+                aria-label={joinLabel}
                 whileHover={{ scale: 1.04, y: -1 }}
                 whileTap={{ scale: 0.98 }}
               >
-                🔥 Unisciti ora
+                🔥 {joinLabel}
               </CTAButton>
             </ButtonRow>
           </Card>
