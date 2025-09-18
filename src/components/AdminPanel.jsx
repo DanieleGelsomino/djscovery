@@ -425,15 +425,25 @@ const AdminPanel = () => {
         canvas.height = 900;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1600, 900);
-        canvas.toBlob(
-          (blob) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          },
-          "image/webp",
-          0.85
-        );
+        const exportBlob = (type, quality) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+              } else if (type === "image/webp") {
+                exportBlob("image/jpeg", 0.92);
+              } else {
+                resolve(null);
+              }
+            },
+            type,
+            quality
+          );
+        };
+
+        exportBlob("image/webp", 0.85);
       };
       img.onerror = () => {
         try { URL.revokeObjectURL(img.src); } catch {}
