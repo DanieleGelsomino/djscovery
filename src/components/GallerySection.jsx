@@ -260,7 +260,7 @@ const GallerySection = () => {
 
             <AnimatePresence>
                 {selectedIndex !== null && (
-                    <Suspense fallback={<Spinner />}>
+                    <Suspense fallback={null}>
                         <ImageModal
                             selectedIndex={selectedIndex}
                             setSelectedIndex={setSelectedIndex}

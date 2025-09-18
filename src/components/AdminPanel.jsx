@@ -450,18 +450,29 @@ const AdminPanel = () => {
       if (!file) return;
       const name = (file.name || '').toLowerCase();
       const type = (file.type || '').toLowerCase();
-      // HEIC/HEIF are not decodable by canvas/Image in most browsers
+
+      let workingFile = file;
+
       if (type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif')) {
-        showToast('Formato HEIC non supportato. Usa JPG/PNG/WEBP.', 'warning');
-        return;
+        try {
+          const heic2any = (await import('heic2any')).default;
+          const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+          const jpegBlob = Array.isArray(result) ? result[0] : result;
+          workingFile = new File([jpegBlob], name.replace(/\.heic|\.heif/gi, '.jpg'), { type: 'image/jpeg' });
+          showToast('Foto HEIC convertita automaticamente.', 'info');
+        } catch (conversionError) {
+          showToast('Conversione HEIC fallita, seleziona un JPG/PNG.', 'error');
+          return;
+        }
       }
-      const webp = await toWebp16x9(file);
+
+      const webp = await toWebp16x9(workingFile);
       if (webp) setFormData((f) => ({ ...f, image: webp }));
       else {
         const reader = new FileReader();
         reader.onload = () =>
           setFormData((f) => ({ ...f, image: reader.result || "" }));
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(workingFile);
       }
     } catch (err) {
       showToast('Errore caricamento immagine', 'error');

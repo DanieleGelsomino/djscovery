@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "./LanguageContext";
 import { useQuery } from "@tanstack/react-query";
 import { fetchEvents } from "../api";
-import Spinner from "./Spinner";
 import ComingSoon from "./ComingSoon";
 import TimedCardsLite from "./TimedCardsLite";
 import heroFallback from "../assets/img/hero.png";
@@ -91,7 +90,7 @@ const EventiSection = () => {
   });
 
   const events = Array.isArray(eventsRaw) ? eventsRaw : [];
-  if (isLoading) return <Spinner aria-label={t("events.loading")} />;
+  if (isLoading) return null;
   if (!events.length) return <ComingSoon />;
 
   const slides = events.map((e) => {

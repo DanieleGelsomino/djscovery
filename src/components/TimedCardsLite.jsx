@@ -69,23 +69,6 @@ export default function TimedCardsLite({
       ))}
 
       <Details
-        alt
-        place={current.place}
-        title1={current.title1}
-        title2={current.title2}
-        desc={current.desc}
-        time={current.time}
-        date={current.date}
-        isMultiDay={current.isMultiDay}
-        multiDayLabel={current.multiDayLabel}
-        price={current.price}
-        soldOut={current.soldOut}
-        upcoming={current.upcoming}
-        ctaLabel={current.ctaLabel}
-        ctaDisabled={current.ctaDisabled}
-        onDiscover={current.onDiscover}
-      />
-      <Details
         place={current.place}
         title1={current.title1}
         title2={current.title2}
@@ -193,7 +176,6 @@ function Details({
   ctaLabel,
   ctaDisabled = false,
   onDiscover,
-  alt = false,
 }) {
   const buttonLabel = ctaLabel || (soldOut ? "Sold Out" : "Prenota ora");
   const disabled = !!(ctaDisabled || soldOut);
@@ -201,31 +183,33 @@ function Details({
   if (soldOut) classNames.push("soldout");
   if (upcoming) classNames.push("upcoming");
   return (
-    <div className={`tc-details ${alt ? "alt" : ""}`}>
-      {place && (
-        <div className="place-box">
-          <div className="text">{place}</div>
+    <div className="tc-details">
+      <div className="tc-details-content">
+        {place && (
+          <div className="place-box">
+            <div className="text">{place}</div>
+          </div>
+        )}
+        <div className="title-box-1">
+          <div className="title-1">{title1}</div>
         </div>
-      )}
-      <div className="title-box-1">
-        <div className="title-1">{title1}</div>
+        {title2 && (
+          <div className="title-box-2">
+            <div className="title-2">{title2}</div>
+          </div>
+        )}
+        {isMultiDay && !!multiDayLabel && (
+          <div className="tc-badge" aria-label="multi-day">{multiDayLabel}</div>
+        )}
+        {desc && <div className="desc">{desc}</div>}
+        {(time || date || price) && (
+          <div className="tc-meta">
+            {time && <div className="meta-item">{time}</div>}
+            {date && <div className="meta-item">{date}</div>}
+            {price && <div className="meta-item price">{price}</div>}
+          </div>
+        )}
       </div>
-      {title2 && (
-        <div className="title-box-2">
-          <div className="title-2">{title2}</div>
-        </div>
-      )}
-      {isMultiDay && !!multiDayLabel && (
-        <div className="tc-badge" aria-label="multi-day">{multiDayLabel}</div>
-      )}
-      {desc && <div className="desc">{desc}</div>}
-      {(time || date || price) && (
-        <div className="tc-meta">
-          {time && <div className="meta-item">{time}</div>}
-          {date && <div className="meta-item">{date}</div>}
-          {price && <div className="meta-item price">{price}</div>}
-        </div>
-      )}
       <div className="cta">
         <button
           className={classNames.join(" ")}

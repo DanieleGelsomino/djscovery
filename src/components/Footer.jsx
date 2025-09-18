@@ -105,8 +105,9 @@ const Grid = styled.div`
   }
 
   @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
+    grid-template-columns: minmax(150px, 0.75fr) minmax(200px, 1.25fr);
+    gap: 0.9rem;
+    align-items: start;
   }
 `;
 const Brand = styled.div`
@@ -164,8 +165,8 @@ const LinksList = styled.nav`
   a {
     color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
-    letter-spacing: 0.15px;
-    font-size: 0.9rem;
+    letter-spacing: 0.14px;
+    font-size: 0.92rem;
     transition: color var(--transition-med);
   }
 
@@ -177,8 +178,8 @@ const LinksList = styled.nav`
   @media (max-width: 640px) {
     justify-items: flex-start;
     a {
-      font-size: 0.9rem;
-      letter-spacing: 0.05px;
+      font-size: 0.92rem;
+      letter-spacing: 0.08px;
     }
   }
 `;
@@ -234,11 +235,11 @@ const Contacts = styled.div`
   text-align: left;
   a {
     color: rgba(255, 255, 255, 0.92);
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
-    gap: 0.5rem;
+    column-gap: 0.5rem;
     max-width: 100%;
-    flex-wrap: nowrap;
     transition: color var(--transition-med);
   }
   a:hover,
@@ -247,17 +248,12 @@ const Contacts = styled.div`
   }
 
   a span {
-    flex: 1 1 auto;
+    min-width: 0;
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
     line-height: 1.4;
-  }
-
-  a svg {
-    flex-shrink: 0;
-    margin-top: 0;
   }
 
   @media (max-width: 640px) {
@@ -270,7 +266,7 @@ const MobileContactsList = styled(Contacts)`
     gap: 0.55rem;
     a {
       font-size: 0.9rem;
-      gap: 0.45rem;
+      column-gap: 0.45rem;
     }
   }
 `;
