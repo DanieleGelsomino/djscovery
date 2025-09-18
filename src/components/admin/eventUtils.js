@@ -1,4 +1,5 @@
 export const eventDateTime = (ev) => {
+  if (ev?.upcoming) return null;
   const d = ev?.startDate || ev?.date || "";
   const t = ev?.time || "00:00";
   const dt = new Date(`${d}T${t}:00`);

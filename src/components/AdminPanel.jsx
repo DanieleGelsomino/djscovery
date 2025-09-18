@@ -55,6 +55,7 @@ import {
   MenuItem,
   Select,
   FormControl,
+  FormControlLabel,
   Card,
   CardContent,
   CardActions,
@@ -140,6 +141,18 @@ const glass = {
   backgroundColor: "rgba(20,20,24,0.82)",
   border: "1px solid rgba(255,255,255,0.08)",
   boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
+};
+
+const hasValue = (value) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  return true;
+};
+
+const inferUpcoming = (ev) => {
+  if (!ev) return false;
+  if (ev.upcoming === true || ev.upcoming === false) return !!ev.upcoming;
+  return !hasValue(ev.startDate || ev.date);
 };
 
 /* ----------- DATE UTILS ----------- */
@@ -327,6 +340,7 @@ const AdminPanel = () => {
     description: "",
     description_en: "",
     soldOut: false,
+    upcoming: false,
     image: "",
     place: "",
     placeCoords: null,
@@ -460,19 +474,22 @@ const AdminPanel = () => {
   // validazione
   const validate = () => {
     const e = {};
+    const isUpcoming = !!formData.upcoming;
     if (!formData.name?.trim()) e.name = "Inserisci un nome";
-    if (!formData.startDate) e.startDate = "Scegli una data di inizio";
-    if (!formData.time) e.time = "Inserisci un orario";
-    if (formData.startDate && formData.time) {
-      const dt = new Date(`${formData.startDate}T${formData.time}:00`);
-      if (isNaN(dt.getTime()) || dt.getTime() <= Date.now())
-        e.time = "Data/ora deve essere nel futuro";
-    }
-    if (formData.startDate && formData.endDate) {
-      const sd = new Date(`${formData.startDate}T00:00:00`);
-      const ed = new Date(`${formData.endDate}T23:59:59`);
-      if (!isNaN(sd.getTime()) && !isNaN(ed.getTime()) && ed < sd) {
-        e.endDate = "La data di fine non può essere precedente alla data di inizio";
+    if (!isUpcoming) {
+      if (!formData.startDate) e.startDate = "Scegli una data di inizio";
+      if (!formData.time) e.time = "Inserisci un orario";
+      if (formData.startDate && formData.time) {
+        const dt = new Date(`${formData.startDate}T${formData.time}:00`);
+        if (isNaN(dt.getTime()) || dt.getTime() <= Date.now())
+          e.time = "Data/ora deve essere nel futuro";
+      }
+      if (formData.startDate && formData.endDate) {
+        const sd = new Date(`${formData.startDate}T00:00:00`);
+        const ed = new Date(`${formData.endDate}T23:59:59`);
+        if (!isNaN(sd.getTime()) && !isNaN(ed.getTime()) && ed < sd) {
+          e.endDate = "La data di fine non può essere precedente alla data di inizio";
+        }
       }
     }
     if (formData.price !== "" && Number(formData.price) < 0)
@@ -516,6 +533,7 @@ const AdminPanel = () => {
       description: "",
       description_en: "",
       soldOut: false,
+      upcoming: false,
       image: "",
       place: "",
       placeCoords: null,
@@ -540,10 +558,15 @@ const AdminPanel = () => {
     if (!validate()) return;
     const userEmail = auth?.currentUser?.email || "admin";
     try {
+      const upcoming = !!formData.upcoming;
       const payload = {
         ...formData,
+        upcoming,
         // ensure back-compat `date` mirrors `startDate`
-        date: formData.startDate || formData.date,
+        date: upcoming ? "" : formData.startDate || formData.date,
+        startDate: upcoming ? "" : formData.startDate,
+        endDate: upcoming ? "" : formData.endDate,
+        time: upcoming ? "" : formData.time,
         image: formData.image || heroImg,
         place: placeSelected?.label || formData.place,
         placeCoords: placeCoords || formData.placeCoords || null,
@@ -591,18 +614,25 @@ const AdminPanel = () => {
   };
 
   const handleEdit = (ev) => {
+    const upcoming = inferUpcoming(ev);
+    const startDate = upcoming ? "" : ev.startDate || ev.date || "";
+    const endDate = upcoming ? "" : ev.endDate || "";
+    const dateAlias = upcoming ? "" : ev.date || ev.startDate || "";
+    const time = upcoming ? "" : ev.time || "";
+
     setFormData({
       name: ev.name || "",
       dj: ev.dj || "",
-      date: ev.date || "",
-      startDate: ev.startDate || ev.date || "",
-      endDate: ev.endDate || "",
-      time: ev.time || "",
+      date: dateAlias,
+      startDate,
+      endDate,
+      time,
       price: ev.price || "",
       capacity: ev.capacity || "",
       description: ev.description || "",
       description_en: ev.i18n?.en?.description || ev.translations?.en?.description || "",
       soldOut: !!ev.soldOut,
+      upcoming,
       image: ev.image || "",
       place: ev.place || "",
       placeCoords: ev.placeCoords || null,
@@ -645,6 +675,7 @@ const AdminPanel = () => {
     if (!canEditEvent(role)) return;
     const { id, date, startDate, endDate, time, soldOut, updatedAt, updatedBy, lastDiff, ...rest } =
       ev;
+    const upcoming = inferUpcoming(ev);
     setEditingId(null);
     setFormData({
       ...rest,
@@ -653,6 +684,7 @@ const AdminPanel = () => {
       endDate: "",
       time: "",
       soldOut: false,
+      upcoming,
       // Duplichiamo come "published" per coerenza con il salvataggio atteso
       status: "published",
     });
@@ -670,6 +702,14 @@ const AdminPanel = () => {
 
   // Export ICS
   const exportICS = (ev) => {
+    if (ev.upcoming || !ev.startDate || !ev.time) {
+      showToast(
+        t("admin.form.upcoming_export_warning") ||
+          "Imposta data e ora prima di esportare",
+        "warning"
+      );
+      return;
+    }
     const dStart = ev.startDate || ev.date;
     const dEnd = ev.endDate || dStart;
     const dtStart = `${dStart}T${(ev.time || "00:00").replace(":", "")}00`;
@@ -1022,7 +1062,11 @@ const AdminPanel = () => {
 
   /* ---------- isValid per azioni sticky ---------- */
   const isValid = useMemo(
-    () => Boolean(formData.name && formData.startDate && formData.time),
+    () =>
+      Boolean(
+        formData.name &&
+          (formData.upcoming || (formData.startDate && formData.time))
+      ),
     [formData]
   );
 
@@ -1353,6 +1397,7 @@ const AdminPanel = () => {
                       )}
                       {evPageRows.map((ev) => {
                         const past = isPast(ev);
+                        const isUpcoming = !!ev.upcoming;
                         const status = ev.status || "published";
                         return (
                           <TableRow
@@ -1382,9 +1427,21 @@ const AdminPanel = () => {
                             </TableCell>
                             <TableCell>{ev.dj || "—"}</TableCell>
                             <TableCell>{ev.place || "—"}</TableCell>
-                            <TableCell>{formatDate(ev.startDate || ev.date)}</TableCell>
-                            <TableCell>{formatDate(ev.endDate || ev.startDate || ev.date)}</TableCell>
-                            <TableCell>{formatHM(ev.time)}</TableCell>
+                            <TableCell>
+                              {isUpcoming
+                                ? t("admin.events.upcoming") || "In arrivo"
+                                : formatDate(ev.startDate || ev.date)}
+                            </TableCell>
+                            <TableCell>
+                              {isUpcoming
+                                ? "—"
+                                : formatDate(ev.endDate || ev.startDate || ev.date)}
+                            </TableCell>
+                            <TableCell>
+                              {isUpcoming
+                                ? t("admin.events.to_be_announced") || "TBD"
+                                : formatHM(ev.time)}
+                            </TableCell>
                             <TableCell>{ev.capacity || "-"}</TableCell>
                             <TableCell>
                               <Chip
@@ -1840,6 +1897,37 @@ const AdminPanel = () => {
                           >
                             Programmazione
                           </Typography>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                color="primary"
+                                checked={!!formData.upcoming}
+                                onChange={(_, checked) => {
+                                  setFormData((f) => ({
+                                    ...f,
+                                    upcoming: checked,
+                                    ...(checked
+                                      ? { startDate: "", endDate: "", time: "", date: "" }
+                                      : {}),
+                                  }));
+                                  setErrors((prev) => {
+                                    if (!checked) return prev;
+                                    const { startDate, endDate, time, ...rest } = prev;
+                                    return rest;
+                                  });
+                                }}
+                              />
+                            }
+                            label={
+                              t("admin.form.upcoming_label") ||
+                              "Evento in arrivo (data da definire)"
+                            }
+                            componentsProps={{ typography: { sx: { fontSize: 14 } } }}
+                          />
+                          <FormHelperText sx={{ mt: -1.5, mb: 1.5 }}>
+                            {t("admin.form.upcoming_hint") ||
+                              "Pubblica l'evento senza data e ora, verranno aggiunte in seguito."}
+                          </FormHelperText>
                           <Grid container spacing={1.5}>
                             <Grid item xs={12}>
                               {/* DATA INIZIO */}
@@ -1852,15 +1940,22 @@ const AdminPanel = () => {
                                 inputProps={{ min: todayISO() }}
                                 value={formData.startDate}
                                 onChange={handleChange}
-                                required
-                                error={!!errors.startDate}
-                                helperText={errors.startDate}
+                                required={!formData.upcoming}
+                                disabled={formData.upcoming}
+                                error={!formData.upcoming && !!errors.startDate}
+                                helperText={
+                                  formData.upcoming
+                                    ? t("admin.form.upcoming_date_helper") ||
+                                      "La data verrà comunicata presto"
+                                    : errors.startDate
+                                }
                                 fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
                                       <IconButton
                                         size="small"
+                                        disabled={formData.upcoming}
                                         onClick={() =>
                                           dateInputRef.current?.showPicker?.()
                                         }
@@ -1886,14 +1981,21 @@ const AdminPanel = () => {
                                 inputProps={{ min: formData.startDate || todayISO() }}
                                 value={formData.endDate}
                                 onChange={handleChange}
-                                error={!!errors.endDate}
-                                helperText={errors.endDate}
+                                disabled={formData.upcoming}
+                                error={!formData.upcoming && !!errors.endDate}
+                                helperText={
+                                  formData.upcoming
+                                    ? t("admin.form.upcoming_date_helper") ||
+                                      ""
+                                    : errors.endDate
+                                }
                                 fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
                                       <IconButton
                                         size="small"
+                                        disabled={formData.upcoming}
                                         onClick={() =>
                                           endDateInputRef.current?.showPicker?.()
                                         }
@@ -1920,15 +2022,22 @@ const AdminPanel = () => {
                                 InputLabelProps={{ shrink: true }}
                                 value={formData.time}
                                 onChange={handleChange}
-                                required
-                                error={!!errors.time}
-                                helperText={errors.time}
+                                required={!formData.upcoming}
+                                disabled={formData.upcoming}
+                                error={!formData.upcoming && !!errors.time}
+                                helperText={
+                                  formData.upcoming
+                                    ? t("admin.form.upcoming_time_helper") ||
+                                      "L'orario sarà annunciato"
+                                    : errors.time
+                                }
                                 fullWidth
                                 InputProps={{
                                   endAdornment: (
                                     <InputAdornment position="end">
                                       <IconButton
                                         size="small"
+                                        disabled={formData.upcoming}
                                         onClick={() =>
                                           timeInputRef.current?.showPicker?.()
                                         }

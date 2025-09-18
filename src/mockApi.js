@@ -13,6 +13,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "2",
@@ -26,6 +27,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "3",
@@ -39,6 +41,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "4",
@@ -52,6 +55,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "5",
@@ -65,6 +69,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "6",
@@ -78,6 +83,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "7",
@@ -91,6 +97,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "8",
@@ -104,6 +111,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
   {
     id: "9",
@@ -117,6 +125,7 @@ export let mockEvents = [
     description: "Lorem ipsum dolor sit amet.",
     capacity: 100,
     soldOut: false,
+    upcoming: false,
   },
 ];
 
@@ -165,7 +174,16 @@ export const mockFetchBookings = async () => {
 
 export const mockCreateEvent = async (data) => {
   loadMock();
-  const newEvent = { id: uuid(), ...data };
+  const upcoming = !!data.upcoming;
+  const newEvent = {
+    id: uuid(),
+    ...data,
+    upcoming,
+    startDate: upcoming ? "" : data.startDate,
+    endDate: upcoming ? "" : data.endDate,
+    date: upcoming ? "" : data.date,
+    time: upcoming ? "" : data.time,
+  };
   mockEvents.push(newEvent);
   save();
   return newEvent;
@@ -173,7 +191,21 @@ export const mockCreateEvent = async (data) => {
 
 export const mockUpdateEvent = async (id, data) => {
   loadMock();
-  mockEvents = mockEvents.map((e) => (e.id === id ? { ...e, ...data } : e));
+  mockEvents = mockEvents.map((e) => {
+    if (e.id !== id) return e;
+    const updated = { ...e, ...data };
+    if (Object.prototype.hasOwnProperty.call(data, "upcoming")) {
+      const isUpcoming = !!data.upcoming;
+      updated.upcoming = isUpcoming;
+      if (isUpcoming) {
+        updated.startDate = "";
+        updated.endDate = "";
+        updated.date = "";
+        updated.time = "";
+      }
+    }
+    return updated;
+  });
   save();
   return { success: true };
 };

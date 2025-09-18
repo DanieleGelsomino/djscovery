@@ -63,7 +63,8 @@
     "none": "No events available",
     "book_now": "Book now",
     "sold_out": "Sold out",
-    "free": "Free"
+    "free": "Free",
+    "upcoming": "Coming soon"
   },
   "about": {
     "title": "About Us",
@@ -194,7 +195,9 @@
         "edit": "Edit",
         "delete": "Delete"
       },
-      "past": "Past event"
+      "past": "Past event",
+      "upcoming": "Coming soon",
+      "to_be_announced": "To be announced"
     },
     "form": {
       "titleEdit": "Edit event",
@@ -222,6 +225,11 @@
       "guest_list_label": "Guest list",
       "guest_list_placeholder": "One name per line, or CSV 'First,Last,+#'…",
       "program": "Schedule",
+      "upcoming_label": "Coming soon (date to be defined)",
+      "upcoming_hint": "Enable it to publish the event without a date or time. You can add them later.",
+      "upcoming_date_helper": "Date will be announced soon",
+      "upcoming_time_helper": "Time will be announced",
+      "upcoming_export_warning": "Set date and time before exporting",
       "date_label": "Date *",
       "time_label": "Time *",
       "place": "Place",

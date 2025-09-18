@@ -15,6 +15,72 @@ function Translated({ text, from = 'it', to = 'en' }) {
   return out;
 }
 
+const DRIVE_DEFAULT_WIDTH = 1920;
+const DRIVE_RETINA_WIDTH = 3200;
+
+function adjustDriveSizedUrl(url = '', targetWidth) {
+  if (!url || typeof url !== "string" || !Number.isFinite(targetWidth)) {
+    return { url, changed: false };
+  }
+  if (!/googleusercontent\.com/.test(url)) {
+    return { url, changed: false };
+  }
+
+  const match = url.match(/=w(\d+)([^?]*)/i);
+  if (!match) return { url, changed: false };
+
+  const originalChunk = match[0];
+  const originalWidth = parseInt(match[1], 10);
+  if (!Number.isFinite(originalWidth) || originalWidth >= targetWidth) {
+    return { url, changed: false };
+  }
+
+  const suffix = match[2] || "";
+  let updatedSuffix = suffix;
+  const heightMatch = suffix.match(/-h(\d+)/i);
+  if (heightMatch) {
+    const originalHeight = parseInt(heightMatch[1], 10);
+    if (Number.isFinite(originalHeight) && originalWidth > 0) {
+      const ratio = originalHeight / originalWidth;
+      const newHeight = Math.round(targetWidth * ratio);
+      updatedSuffix = suffix.replace(/-h\d+/i, `-h${newHeight}`);
+    }
+  }
+
+  const replacement = `=w${targetWidth}${updatedSuffix}`;
+  return { url: url.replace(originalChunk, replacement), changed: true };
+}
+
+function getImageVariants(src) {
+  if (!src) {
+    return { image: heroFallback, imageSet: null };
+  }
+
+  if (typeof src !== "string") {
+    return { image: src, imageSet: null };
+  }
+
+  if (!/googleusercontent\.com/.test(src)) {
+    return { image: src, imageSet: null };
+  }
+
+  const { url: firstCandidate } = adjustDriveSizedUrl(src, DRIVE_DEFAULT_WIDTH);
+  const baseImage = firstCandidate || src;
+
+  const { url: retinaCandidate, changed: retinaChanged } = adjustDriveSizedUrl(src, DRIVE_RETINA_WIDTH);
+  const retinaImage = retinaChanged ? retinaCandidate : baseImage;
+
+  const parts = [`url("${baseImage}") 1x`];
+  if (retinaImage && retinaImage !== baseImage) {
+    parts.push(`url("${retinaImage}") 2x`);
+  }
+
+  return {
+    image: baseImage,
+    imageSet: parts.length > 1 ? `image-set(${parts.join(", ")})` : null,
+  };
+}
+
 const EventiSection = () => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
@@ -37,22 +103,56 @@ const EventiSection = () => {
     const descBase = (tx.description || e.description || (place ? `${place}` : "")).trim();
 
     // Dates: support start/end range
-    const startDate = e.startDate || e.date || "";
-    const endDate = e.endDate || e.startDate || e.date || "";
-    const isRange = startDate && endDate && String(startDate) !== String(endDate);
+    const rawStartDate = e.startDate ?? e.date ?? "";
+    const rawEndDate = e.endDate ?? e.startDate ?? e.date ?? "";
+    const hasStartDate = !(
+      rawStartDate === null ||
+      rawStartDate === undefined ||
+      (typeof rawStartDate === "string" && rawStartDate.trim() === "")
+    );
+    const hasEndDate = !(
+      rawEndDate === null ||
+      rawEndDate === undefined ||
+      (typeof rawEndDate === "string" && rawEndDate.trim() === "")
+    );
+    const startDate = hasStartDate ? rawStartDate : "";
+    const endDate = hasEndDate ? rawEndDate : "";
+    const isUpcoming = !!e.upcoming || !hasStartDate;
+    const isRange = hasStartDate && hasEndDate && String(startDate) !== String(endDate);
     const dateFmt = isRange
       ? formatDateRange(startDate, endDate, lang)
       : formatDMY(startDate);
-    const timeFmt = formatHM(e.time);
-    const title2 = dj || (dateFmt ? `${dateFmt}${timeFmt ? ` · ${timeFmt}` : ""}` : "");
-    const image = e.image || heroFallback;
+    const timeFmt = isUpcoming ? "" : formatHM(e.time);
+    const dateDisplay = isUpcoming
+      ? t("events.upcoming") || "In arrivo"
+      : dateFmt;
+    const title2 =
+      dj ||
+      (dateDisplay
+        ? `${dateDisplay}${timeFmt ? ` · ${timeFmt}` : ""}`
+        : "");
+    const { image, imageSet } = getImageVariants(e.image || heroFallback);
     const time = timeFmt;
-    const date = dateFmt;
-    const price = e.soldOut ? "" : (e.price ? `${e.price}€` : (t('events.free') || 'Gratis'));
+    const date = isUpcoming ? "" : dateDisplay;
+    const price = isUpcoming
+      ? ""
+      : e.soldOut
+        ? ""
+        : e.price
+          ? `${e.price}€`
+          : t('events.free') || 'Gratis';
     // Auto-translate description if no localized version is provided
     const desc = tx.description || (lang === 'it' ? descBase : (
       <Translated text={descBase} from="it" to={lang || 'it'} />
     ));
+
+    const isSoldOut = !!e.soldOut;
+    const ctaLabel = isUpcoming
+      ? t('events.upcoming') || 'In arrivo'
+      : isSoldOut
+        ? t('events.sold_out') || 'Sold out'
+        : t('events.book_now') || 'Prenota ora';
+    const ctaDisabled = isUpcoming || isSoldOut;
 
     return {
       place,
@@ -61,12 +161,16 @@ const EventiSection = () => {
       desc,
       time,
       date,
-      isMultiDay: !!isRange,
-      multiDayLabel: (lang === 'en' ? 'Multi-day' : 'Più giorni'),
+      isMultiDay: !isUpcoming && !!isRange,
+      multiDayLabel: lang === 'en' ? 'Multi-day' : 'Più giorni',
       price,
-      soldOut: !!e.soldOut,
+      soldOut: isSoldOut,
+      upcoming: isUpcoming,
+      ctaLabel,
+      ctaDisabled,
       image,
-      onDiscover: () => navigate(`/prenota?event=${e.id}`),
+      imageSet,
+      onDiscover: ctaDisabled ? undefined : () => navigate(`/prenota?event=${e.id}`),
     };
   });
 

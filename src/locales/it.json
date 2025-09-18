@@ -62,8 +62,9 @@
     "loading": "Caricamento eventi...",
     "none": "Nessun evento disponibile",
     "book_now": "Prenota ora",
-      "sold_out": "Sold out",
-      "free": "Gratis"
+    "sold_out": "Sold out",
+    "free": "Gratis",
+    "upcoming": "In arrivo"
   },
   "about": {
     "title": "Chi Siamo",
@@ -194,7 +195,9 @@
         "edit": "Modifica",
         "delete": "Elimina"
       },
-      "past": "Evento passato"
+      "past": "Evento passato",
+      "upcoming": "In arrivo",
+      "to_be_announced": "Da definire"
     },
     "form": {
       "titleEdit": "Modifica evento",
@@ -222,6 +225,11 @@
       "guest_list_label": "Guest list",
       "guest_list_placeholder": "Un nominativo per riga, o CSV 'Nome,Cognome,+#'…",
       "program": "Programmazione",
+      "upcoming_label": "Evento in arrivo (data da definire)",
+      "upcoming_hint": "Attivalo per pubblicare l'evento senza data e ora. Potrai aggiornarle più avanti.",
+      "upcoming_date_helper": "La data verrà comunicata presto",
+      "upcoming_time_helper": "L'orario verrà annunciato",
+      "upcoming_export_warning": "Imposta data e ora prima di esportare",
       "date_label": "Data *",
       "time_label": "Orario *",
       "place": "Luogo",

@@ -24,6 +24,7 @@ import { useLanguage } from "../LanguageContext";
 function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut, onDuplicate, onExportICS, canDelete }) {
     const past = isPast(ev);
     const { t } = useLanguage();
+    const isUpcoming = !!ev.upcoming;
     const statusColor =
         ev.status === "draft" ? "default" : ev.status === "archived" ? "warning" : "success";
     return (
@@ -38,11 +39,15 @@ function MobileEventCard({ ev, onEdit, onDelete, onToggleSoldOut, onDuplicate, o
                 <Typography variant="body2" sx={{ opacity: 0.85 }}>{ev.place || "—"}</Typography>
                 <Stack direction="row" spacing={2} sx={{ mt: 1, opacity: 0.8 }}>
                     <Typography variant="caption">
-                      📅 {ev.endDate && ev.endDate !== ev.startDate && ev.endDate !== ev.date
-                        ? `${formatDate(ev.startDate || ev.date)} → ${formatDate(ev.endDate)}`
-                        : formatDate(ev.startDate || ev.date)}
+                      📅 {isUpcoming
+                        ? t("admin.events.upcoming") || "In arrivo"
+                        : ev.endDate && ev.endDate !== ev.startDate && ev.endDate !== ev.date
+                          ? `${formatDate(ev.startDate || ev.date)} → ${formatDate(ev.endDate)}`
+                          : formatDate(ev.startDate || ev.date)}
                     </Typography>
-                    <Typography variant="caption">⏰ {formatHM(ev.time)}</Typography>
+                    <Typography variant="caption">⏰ {isUpcoming
+                      ? t("admin.events.to_be_announced") || "TBD"
+                      : formatHM(ev.time)}</Typography>
                     <Typography variant="caption">👥 {ev.capacity || "-"}</Typography>
                 </Stack>
             </CardContent>

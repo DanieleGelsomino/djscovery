@@ -60,7 +60,10 @@ export default function TimedCardsLite({
         <div
           key={i}
           className={`tc-card ${i === index ? "is-active" : "is-inactive"}`}
-          style={{ backgroundImage: `url(${s.image})` }}
+          style={{
+            ...(s.image ? { "--tc-bg-image": `url(${s.image})` } : {}),
+            ...(s.imageSet ? { "--tc-bg-image-set": s.imageSet } : {}),
+          }}
           aria-hidden={i !== index}
         />
       ))}
@@ -77,6 +80,9 @@ export default function TimedCardsLite({
         multiDayLabel={current.multiDayLabel}
         price={current.price}
         soldOut={current.soldOut}
+        upcoming={current.upcoming}
+        ctaLabel={current.ctaLabel}
+        ctaDisabled={current.ctaDisabled}
         onDiscover={current.onDiscover}
       />
       <Details
@@ -90,6 +96,9 @@ export default function TimedCardsLite({
         multiDayLabel={current.multiDayLabel}
         price={current.price}
         soldOut={current.soldOut}
+        upcoming={current.upcoming}
+        ctaLabel={current.ctaLabel}
+        ctaDisabled={current.ctaDisabled}
         onDiscover={current.onDiscover}
       />
 
@@ -180,9 +189,17 @@ function Details({
   multiDayLabel = '',
   price,
   soldOut = false,
+  upcoming = false,
+  ctaLabel,
+  ctaDisabled = false,
   onDiscover,
   alt = false,
 }) {
+  const buttonLabel = ctaLabel || (soldOut ? "Sold Out" : "Prenota ora");
+  const disabled = !!(ctaDisabled || soldOut);
+  const classNames = ["discover"];
+  if (soldOut) classNames.push("soldout");
+  if (upcoming) classNames.push("upcoming");
   return (
     <div className={`tc-details ${alt ? "alt" : ""}`}>
       {place && (
@@ -202,7 +219,7 @@ function Details({
         <div className="tc-badge" aria-label="multi-day">{multiDayLabel}</div>
       )}
       {desc && <div className="desc">{desc}</div>}
-      {(time || price) && (
+      {(time || date || price) && (
         <div className="tc-meta">
           {time && <div className="meta-item">{time}</div>}
           {date && <div className="meta-item">{date}</div>}
@@ -211,11 +228,11 @@ function Details({
       )}
       <div className="cta">
         <button
-          className={`discover ${soldOut ? "soldout" : ""}`}
-          onClick={soldOut ? undefined : onDiscover}
-          disabled={soldOut}
+          className={classNames.join(" ")}
+          onClick={disabled ? undefined : onDiscover}
+          disabled={disabled}
         >
-          {soldOut ? "Sold Out" : "Prenota ora"}
+          {buttonLabel}
         </button>
       </div>
     </div>
