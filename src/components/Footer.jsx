@@ -105,9 +105,8 @@ const Grid = styled.div`
   }
 
   @media (max-width: 640px) {
-    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
-    gap: 0.9rem;
-    align-items: start;
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
   }
 `;
 const Brand = styled.div`
@@ -117,6 +116,10 @@ const Brand = styled.div`
   @media (max-width: 1000px) {
     grid-column: 1 / -1;
     text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    grid-column: 1 / -1;
   }
 `;
 const Logo = styled(Link)`
@@ -151,7 +154,7 @@ const Col = styled.div`
   text-align: left;
 
   @media (max-width: 640px) {
-    justify-items: flex-start;
+    gap: 0.55rem;
   }
 `;
 const LinksList = styled.nav`
@@ -159,9 +162,9 @@ const LinksList = styled.nav`
   gap: 0.55rem;
 
   a {
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
-    letter-spacing: 0.18px;
+    letter-spacing: 0.15px;
     font-size: 0.9rem;
     transition: color var(--transition-med);
   }
@@ -174,8 +177,8 @@ const LinksList = styled.nav`
   @media (max-width: 640px) {
     justify-items: flex-start;
     a {
-      font-size: 0.92rem;
-      letter-spacing: 0.1px;
+      font-size: 0.9rem;
+      letter-spacing: 0.05px;
     }
   }
 `;
@@ -233,8 +236,9 @@ const Contacts = styled.div`
     color: rgba(255, 255, 255, 0.92);
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.5rem;
     max-width: 100%;
+    flex-wrap: nowrap;
     transition: color var(--transition-med);
   }
   a:hover,
@@ -243,10 +247,17 @@ const Contacts = styled.div`
   }
 
   a span {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  a svg {
+    flex-shrink: 0;
+    margin-top: 0;
   }
 
   @media (max-width: 640px) {
@@ -259,8 +270,7 @@ const MobileContactsList = styled(Contacts)`
     gap: 0.55rem;
     a {
       font-size: 0.9rem;
-      gap: 0.4rem;
-      align-items: center;
+      gap: 0.45rem;
     }
   }
 `;
@@ -507,7 +517,7 @@ const Footer = () => {
               </LinksList>
             </Col>
 
-            <Col>
+            <Col className="contacts">
               <ColTitle>{t("nav.contacts") || "Contatti"}</ColTitle>
               <MobileContactsList>
                 <a href={`mailto:${email}`} aria-label="Email">

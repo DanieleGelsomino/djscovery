@@ -63,7 +63,7 @@ const Logo = styled(motion(Link))`
 `;
 
 const LogoImage = styled.img`
-  height: 4.5rem;
+  height: 2rem;
   width: auto;
   display: block;
 `;

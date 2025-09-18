@@ -1,9 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import heroImg from '../assets/img/hero.png';
-import { useLanguage } from './LanguageContext';
+import React from "react";
+import { Link } from "react-router-dom";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import heroImg from "../assets/img/hero-home.png";
+import heroLogo from "../assets/img/logo-dj.png";
+import { useLanguage } from "./LanguageContext";
 
 const Section = styled(motion.section)`
   position: relative;
@@ -28,22 +29,35 @@ const Background = styled(motion.div)`
 const Overlay = styled(motion.div)`
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.65));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65));
 `;
 
 const Content = styled.div`
   position: relative;
   z-index: 1;
   padding: 0 1rem;
-
-  h1 {
-    font-size: clamp(2.8rem, 6vw, 5rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   p {
     font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    max-width: 520px;
+  }
+`;
+
+const LogoWrap = styled(motion.div)`
+  display: flex;
+  justify-content: center;
+  margin-bottom: clamp(1.3rem, 3vw, 2.4rem);
+  max-width: clamp(220px, 40vw, 420px);
+  width: 100%;
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 18px 45px rgba(0, 0, 0, 0.45));
   }
 `;
 
@@ -63,18 +77,25 @@ const CTAWrapper = styled(motion.div)`
 const BtnPrimary = styled(motion(Link))`
   padding: 0.8rem 1.5rem;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(33,191,115,0.95), rgba(33,191,115,0.85));
+  background: linear-gradient(
+    180deg,
+    rgba(33, 191, 115, 0.95),
+    rgba(33, 191, 115, 0.85)
+  );
   color: var(--white);
   font-weight: 700;
   letter-spacing: 0.2px;
-  box-shadow: 0 10px 30px rgba(33,191,115,0.25);
+  box-shadow: 0 10px 30px rgba(33, 191, 115, 0.25);
 `;
-
 
 const HeroSection = () => {
   const { t } = useLanguage();
   return (
-    <Section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+    <Section
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >
       <Background
         style={{ backgroundImage: `url(${heroImg})` }}
         initial={{ scale: 1.1, opacity: 0 }}
@@ -83,20 +104,20 @@ const HeroSection = () => {
       />
       <Overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
       <Content>
-        <motion.h1
+        <LogoWrap
           initial={{ y: -30, opacity: 0 }}
           whileInView={{ y: 0, opacity: 1 }}
           viewport={{ once: true }}
         >
-          {t('hero.title')}
-        </motion.h1>
+          <img src={heroLogo} alt="Djscovery" />
+        </LogoWrap>
         <motion.p
           initial={{ y: 30, opacity: 0 }}
           whileInView={{ y: 0, opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          {t('hero.subtitle')}
+          {t("hero.subtitle")}
         </motion.p>
         <CTAWrapper
           initial={{ opacity: 0, y: 20 }}
@@ -105,10 +126,13 @@ const HeroSection = () => {
         >
           <BtnPrimary
             to="/eventi"
-            whileHover={{ scale: 1.03, boxShadow: '0 16px 40px rgba(33,191,115,0.35)' }}
+            whileHover={{
+              scale: 1.03,
+              boxShadow: "0 16px 40px rgba(33,191,115,0.35)",
+            }}
             whileTap={{ scale: 0.98 }}
           >
-            {t('hero.cta_events')}
+            {t("hero.cta_events")}
           </BtnPrimary>
         </CTAWrapper>
       </Content>
