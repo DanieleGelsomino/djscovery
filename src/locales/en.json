@@ -65,7 +65,8 @@
     "book_now": "Book now",
     "sold_out": "Sold out",
     "free": "Free",
-    "upcoming": "Coming soon"
+    "upcoming": "Coming soon",
+    "upcoming_hint": "Connect with us on our social channels to stay updated on the next event"
   },
   "about": {
     "title": "About Us",
