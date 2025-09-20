@@ -82,6 +82,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AddToDriveIcon from "@mui/icons-material/AddToDrive";
@@ -112,6 +113,7 @@ import DriveImagePickerDialog from "./admin/DriveImagePickerDialog";
 import MobileEventCard from "./admin/MobileEventCard";
 import MobileBookingCard from "./admin/MobileBookingCard";
 import CheckInBox from "./admin/CheckInBox";
+import AnalyticsDashboard from "./admin/AnalyticsDashboard";
 import { isPast, eventDateTime } from "./admin/eventUtils";
 
 /* ---------------- THEME ---------------- */
@@ -241,10 +243,18 @@ const AdminPanel = () => {
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const hasToken = Boolean(localStorage.getItem("adminToken"));
 
-  const { data: bookingsData = [], refetch: refetchBookings } = useQuery({
+  const {
+    data: bookingsData = [],
+    refetch: refetchBookings,
+    isFetching: isFetchingBookings,
+    dataUpdatedAt: bookingsUpdatedAt,
+  } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchBookings,
     enabled: true, // render anche se ricarichi direttamente il pannello
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
+    staleTime: 15000,
     onError: (err) => {
       if (err?.response?.status === 401) {
         setAuthToken(null);
@@ -254,10 +264,18 @@ const AdminPanel = () => {
     },
   });
 
-  const { data: eventsData = [], refetch: refetchEvents } = useQuery({
+  const {
+    data: eventsData = [],
+    refetch: refetchEvents,
+    isFetching: isFetchingEvents,
+    dataUpdatedAt: eventsUpdatedAt,
+  } = useQuery({
     queryKey: ["events"],
     queryFn: fetchEvents,
     enabled: true,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
+    staleTime: 15000,
     onError: (err) => {
       if (err?.response?.status === 401) {
         setAuthToken(null);
@@ -277,6 +295,11 @@ const AdminPanel = () => {
   useEffect(() => {
     setEvents(Array.isArray(eventsData) ? eventsData : []);
   }, [eventsData]);
+
+  const analyticsRefresh = useCallback(() => {
+    refetchBookings();
+    refetchEvents();
+  }, [refetchBookings, refetchEvents]);
 
   // pagination
   const [evPage, setEvPage] = useState(0);
@@ -1004,6 +1027,7 @@ const AdminPanel = () => {
 
   /* ---------- Drawer ---------- */
   const navItems = [
+    { key: "analytics", label: "Analisi", icon: <QueryStatsIcon /> },
     { key: "events", label: "Eventi", icon: <CalendarTodayIcon /> },
     {
       key: "create",
@@ -1234,6 +1258,20 @@ const AdminPanel = () => {
           }}
         >
           <Toolbar />
+
+          {section === "analytics" && (
+            <Box sx={{ mb: 4 }}>
+              <AnalyticsDashboard
+                bookings={bookings}
+                events={events}
+                onRefresh={analyticsRefresh}
+                bookingsUpdatedAt={bookingsUpdatedAt}
+                eventsUpdatedAt={eventsUpdatedAt}
+                isFetchingBookings={isFetchingBookings}
+                isFetchingEvents={isFetchingEvents}
+              />
+            </Box>
+          )}
 
           {/* EVENTI */}
           {section === "events" && (
