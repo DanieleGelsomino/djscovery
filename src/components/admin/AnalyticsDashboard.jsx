@@ -31,7 +31,7 @@ const glass = {
   backgroundColor: "rgba(20,20,24,0.82)",
   border: "1px solid rgba(255,255,255,0.08)",
   boxShadow: "0 8px 26px rgba(0,0,0,0.45)",
-  borderRadius: 16,
+  borderRadius: "16px",
 };
 
 const COLORS = ["#FFD54F", "#7986CB", "#4DB6AC", "#FF8A65", "#BA68C8"];
