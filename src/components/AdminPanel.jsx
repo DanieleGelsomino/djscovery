@@ -2375,30 +2375,45 @@ const AdminPanel = () => {
                     </Select>
                   </FormControl>
 
-                  <Button
-                    color="error"
-                    variant="outlined"
-                    startIcon={<DeleteIcon />}
-                    onClick={() =>
-                      setConfirm({
-                        open: true,
-                        id: null,
-                        type: "booking-all",
-                        filterEventId:
-                          bkEventFilter !== "all" ? bkEventFilter : null,
-                      })
-                    }
-                  >
-                    Elimina{" "}
-                    {bkEventFilter !== "all"
-                      ? "tutte (evento filtrato)"
-                      : "tutte le prenotazioni"}
-                  </Button>
+                  {filteredSortedBookings.length > 0 && (
+                    <Button
+                      color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
+                      onClick={() =>
+                        setConfirm({
+                          open: true,
+                          id: null,
+                          type: "booking-all",
+                          filterEventId:
+                            bkEventFilter !== "all" ? bkEventFilter : null,
+                        })
+                      }
+                    >
+                      Elimina{" "}
+                      {bkEventFilter !== "all"
+                        ? "tutte (evento filtrato)"
+                        : "tutte le prenotazioni"}
+                    </Button>
+                  )}
                 </Stack>
               </Stack>
 
               {isMobile ? (
                 <Box sx={{ overflowX: "hidden" }}>
+                  {filteredSortedBookings.length === 0 && (
+                    <Box
+                      sx={{
+                        p: 3,
+                        textAlign: "center",
+                        opacity: 0.7,
+                        border: "1px dashed rgba(255,255,255,0.15)",
+                        borderRadius: 2,
+                      }}
+                    >
+                      Nessuna prenotazione presente.
+                    </Box>
+                  )}
                   {filteredSortedBookings.slice(0, bkMobileVis).map((b) => (
                     <MobileBookingCard
                       key={b.id}
@@ -2425,7 +2440,7 @@ const AdminPanel = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filteredSortedEvents.length === 0 && (
+                      {filteredSortedBookings.length === 0 && (
                         <TableRow>
                           <TableCell
                             colSpan={9}

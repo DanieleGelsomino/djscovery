@@ -6,7 +6,7 @@ import { fetchEvents } from "../api";
 import ComingSoon from "./ComingSoon";
 import TimedCardsLite from "./TimedCardsLite";
 import heroFallback from "../assets/img/hero.png";
-import { formatDMY, formatHM, formatDateRange } from "../lib/date";
+import { toDateLike, formatDMY, formatHM, formatDateRange } from "../lib/date";
 import useAutoTranslate from "../lib/useAutoTranslate";
 
 function Translated({ text, from = 'it', to = 'en' }) {
@@ -93,7 +93,66 @@ const EventiSection = () => {
   if (isLoading) return null;
   if (!events.length) return <ComingSoon />;
 
-  const slides = events.map((e) => {
+  const toTime = (value) => {
+    const d = toDateLike(value);
+    return d ? d.getTime() : null;
+  };
+
+  const getRawStart = (ev) => (ev?.startDate ?? ev?.date ?? "");
+
+  const hasStartDate = (ev) => {
+    const raw = getRawStart(ev);
+    if (raw === null || raw === undefined) return false;
+    if (typeof raw === "string") return raw.trim() !== "";
+    return true;
+  };
+
+  const isUpcomingEvent = (ev) => !!(ev && ev.upcoming) || !hasStartDate(ev);
+
+  const getStartTime = (ev) => toTime(getRawStart(ev));
+
+  const getCreationTime = (ev) => {
+    if (!ev) return null;
+    const candidates = [ev.createdAt, ev.created, ev._createdAt, ev.updatedAt];
+    for (const candidate of candidates) {
+      const t = toTime(candidate);
+      if (t != null) return t;
+    }
+    return null;
+  };
+
+  const sortedEvents = [...events].sort((a, b) => {
+    const aUpcoming = isUpcomingEvent(a);
+    const bUpcoming = isUpcomingEvent(b);
+    if (aUpcoming !== bUpcoming) return aUpcoming ? 1 : -1;
+
+    const aStart = getStartTime(a);
+    const bStart = getStartTime(b);
+
+    if (!aUpcoming) {
+      if (aStart != null && bStart != null && aStart !== bStart) {
+        return aStart - bStart;
+      }
+      if (aStart != null && bStart == null) return -1;
+      if (aStart == null && bStart != null) return 1;
+    }
+
+    const aCreated = getCreationTime(a);
+    const bCreated = getCreationTime(b);
+    if (aCreated != null || bCreated != null) {
+      if (aCreated == null) return 1;
+      if (bCreated == null) return -1;
+      if (aCreated !== bCreated) return bCreated - aCreated;
+    }
+
+    const aName = String(a?.name || "").toLowerCase();
+    const bName = String(b?.name || "").toLowerCase();
+    if (aName < bName) return -1;
+    if (aName > bName) return 1;
+    return String(a?.id || "").localeCompare(String(b?.id || ""));
+  });
+
+  const slides = sortedEvents.map((e) => {
     // i18n-aware fields with fallback
     const tx = (e.i18n && e.i18n[lang]) || (e.translations && e.translations[lang]) || {};
     const title1 = tx.name || e.name || "Evento";
