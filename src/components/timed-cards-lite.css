@@ -125,8 +125,107 @@
 
 /* Responsive */
 @media (max-width: 1024px){
-  .tc-card-picker{ left:24px; right:24px; transform:none; bottom:24px; top:auto; width:auto; justify-content:flex-start; }
-  .tc-thumb{ flex:0 0 220px; }
+  .tc-root{
+    height:100svh;
+    --picker-h: 208px;
+  }
+  .tc-card{
+    background-position:center 38%;
+  }
+  .tc-details{
+    left:24px;
+    top:56px;
+    width:calc(100% - 48px);
+    gap:16px;
+    max-height:calc(100svh - var(--picker-h) - 180px);
+    padding-right:8px;
+  }
+  .tc-details-content{
+    max-height:calc(100svh - var(--picker-h) - 196px);
+    padding-right:6px;
+    mask-image:none;
+    -webkit-mask-image:none;
+  }
+  .tc-details-content::after{
+    display:none;
+  }
+  .tc-details .title-1,
+  .tc-details .title-2{
+    font-size:clamp(30px, calc(2.2vw + 1.2rem), 56px);
+    line-height:1.08;
+  }
+  .tc-details .title-2{
+    margin-top:-4px;
+  }
+  .tc-details .desc{
+    max-width:100%;
+    font-size:clamp(14px, calc(0.45vw + 0.85rem), 16px);
+  }
+  .tc-details .tc-meta{
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .tc-details .tc-meta .meta-item{
+    font-size:11px;
+    padding:6px 9px;
+  }
+  .tc-details .discover{
+    padding:11px 22px;
+  }
+  .tc-card-picker{
+    left:24px;
+    right:24px;
+    transform:none;
+    top:auto;
+    bottom:calc(18px + env(safe-area-inset-bottom));
+    width:auto;
+    max-width:none;
+    justify-content:flex-start;
+    padding:14px 16px;
+    gap:14px;
+    height:var(--picker-h);
+    border-radius:16px;
+    background:linear-gradient(180deg, rgba(0,0,0,.32), rgba(0,0,0,.14));
+    backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.14);
+    box-shadow:0 12px 28px rgba(0,0,0,.32);
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x;
+  }
+  .tc-card-picker.is-single{
+    justify-content:center;
+    overflow-x:hidden;
+  }
+  .tc-thumb{
+    flex:0 0 clamp(200px, 26vw, 240px);
+    height:clamp(200px, 26vw, 240px);
+    border-radius:16px;
+    margin-top:0;
+  }
+  .tc-pagination{
+    bottom:calc(var(--picker-h) + 36px + env(safe-area-inset-bottom));
+    gap:10px;
+    width:calc(100% - 48px);
+    padding:0 6px;
+  }
+  .tc-arrow{
+    width:40px;
+    height:40px;
+    border-radius:14px;
+    border:1.5px solid rgba(255,255,255,.6);
+    background:rgba(0,0,0,.18);
+  }
+  .tc-arrow svg{
+    width:22px;
+    height:22px;
+  }
+  .tc-progress{
+    flex:1;
+    width:auto;
+    margin-left:8px;
+  }
 }
 @media (max-width: 768px){
   .tc-root{ height:100svh; --picker-h: 168px; }
