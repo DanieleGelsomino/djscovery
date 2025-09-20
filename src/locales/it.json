@@ -65,7 +65,8 @@
     "book_now": "Prenota ora",
     "sold_out": "Sold out",
     "free": "Gratis",
-    "upcoming": "In arrivo"
+    "upcoming": "In arrivo",
+    "upcoming_hint": "Connettiti ai nostri canali social per rimanere aggiornato sul prossimo evento"
   },
   "about": {
     "title": "Chi Siamo",

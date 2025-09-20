@@ -200,9 +200,13 @@ const EventiSection = () => {
           ? `${e.price}€`
           : t('events.free') || 'Gratis';
     // Auto-translate description if no localized version is provided
-    const desc = tx.description || (lang === 'it' ? descBase : (
-      <Translated text={descBase} from="it" to={lang || 'it'} />
-    ));
+    const upcomingHint = t('events.upcoming_hint')
+      || 'Connettiti ai nostri canali social per rimanere aggiornato sul prossimo evento';
+    const desc = isUpcoming
+      ? upcomingHint
+      : tx.description || (lang === 'it' ? descBase : (
+        <Translated text={descBase} from="it" to={lang || 'it'} />
+      ));
 
     const isSoldOut = !!e.soldOut;
     const ctaLabel = isUpcoming
